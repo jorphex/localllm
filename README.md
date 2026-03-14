@@ -82,7 +82,7 @@ MAIN_MODEL=Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf \
 MAIN_MMPROJ=Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf \
 MAIN_THREADS=10 \
 MAIN_CONTEXT=131072 \
-MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on' \
+MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on -rea on --reasoning-budget 1000' \
 EMBED_MODEL=Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf \
 EMBED_DEVICE=none \
 EMBED_GPU_LAYERS=0 \
@@ -108,6 +108,38 @@ Stop the detached services:
 ```bash
 ./scripts/stop-stack.sh
 ```
+
+## systemd --user
+
+For a durable setup, prefer the user-service units under `systemd/` instead of `screen`.
+
+Install or refresh the units:
+
+```bash
+mkdir -p ~/.config/systemd/user
+ln -sf ~/projects/localllm/systemd/localllm-main.service ~/.config/systemd/user/localllm-main.service
+ln -sf ~/projects/localllm/systemd/localllm-embedding.service ~/.config/systemd/user/localllm-embedding.service
+systemctl --user daemon-reload
+systemctl --user enable --now localllm-main.service localllm-embedding.service
+```
+
+Useful commands:
+
+```bash
+systemctl --user status localllm-main.service localllm-embedding.service
+systemctl --user restart localllm-main.service
+systemctl --user restart localllm-embedding.service
+journalctl --user -u localllm-main.service -f
+journalctl --user -u localllm-embedding.service -f
+```
+
+For startup after reboot without logging in first, enable linger once:
+
+```bash
+loginctl enable-linger "$USER"
+```
+
+If that command needs elevated privileges on your system, run it once as an administrator.
 
 ## API Endpoints
 
@@ -223,7 +255,7 @@ For this host, the current preferred `9B` stack is:
 
 Current tuning:
 
-- main runs on `CUDA0` with `-t 10 -c 131072 -np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on`
+- main runs on `CUDA0` with `-t 10 -c 131072 -np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on -rea on --reasoning-budget 1000`
 - embeddings run mostly on CPU with `--device none --gpu-layers 0 -t 8 -c 2048 -ub 128 -np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off`
 
 Observed steady-state footprint:

@@ -1,0 +1,23 @@
+[Unit]
+Description=localllm main llama.cpp service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/localllm
+Environment=MAIN_HOST=127.0.0.1
+Environment=MAIN_PORT=8091
+Environment=MAIN_MODEL=Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf
+Environment=MAIN_MMPROJ=Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf
+Environment=MAIN_THREADS=10
+Environment=MAIN_CONTEXT=131072
+Environment=MAIN_DEVICE=CUDA0
+Environment=MAIN_GPU_LAYERS=auto
+Environment=MAIN_FIT=true
+Environment="MAIN_EXTRA_ARGS=-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on -rea on --reasoning-budget 1000"
+ExecStart=%h/projects/localllm/scripts/serve-main.sh
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

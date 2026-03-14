@@ -1,0 +1,23 @@
+[Unit]
+Description=localllm embedding llama.cpp service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/localllm
+Environment=EMBED_HOST=127.0.0.1
+Environment=EMBED_PORT=8092
+Environment=EMBED_MODEL=Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf
+Environment=EMBED_THREADS=8
+Environment=EMBED_CONTEXT=2048
+Environment=EMBED_UBATCH=128
+Environment=EMBED_DEVICE=none
+Environment=EMBED_GPU_LAYERS=0
+Environment=EMBED_FIT=false
+Environment="EMBED_EXTRA_ARGS=-np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off"
+ExecStart=%h/projects/localllm/scripts/serve-embedding.sh
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target
