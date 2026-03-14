@@ -1,0 +1,15 @@
+[project]
+name = "localllm"
+version = "0.1.0"
+description = "Local llama.cpp service runtime helpers for openwendy-style HTTP model services"
+requires-python = ">=3.11"
+dependencies = [
+  "httpx",
+]
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["llama_runtime"]
