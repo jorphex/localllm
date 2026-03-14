@@ -81,7 +81,7 @@ Start the current proven `9B` profile explicitly:
 MAIN_MODEL=Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf \
 MAIN_MMPROJ=Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf \
 MAIN_THREADS=10 \
-MAIN_CONTEXT=32768 \
+MAIN_CONTEXT=131072 \
 MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on' \
 EMBED_MODEL=Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf \
 EMBED_DEVICE=none \
@@ -223,12 +223,12 @@ For this host, the current preferred `9B` stack is:
 
 Current tuning:
 
-- main runs on `CUDA0` with `-t 10 -c 32768 -np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on`
+- main runs on `CUDA0` with `-t 10 -c 131072 -np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on`
 - embeddings run mostly on CPU with `--device none --gpu-layers 0 -t 8 -c 2048 -ub 128 -np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off`
 
 Observed steady-state footprint:
 
-- main GPU usage: about `8.1 GiB`
+- main GPU usage: about `9.4 GiB`
 - embedding GPU usage: about `214 MiB`
 - embedding RAM usage: about `1.08 GiB` RSS
 
