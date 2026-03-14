@@ -7,7 +7,7 @@ source "${SCRIPT_DIR}/common.sh"
 MAIN_SESSION="${MAIN_SESSION:-localllm-main}"
 EMBED_SESSION="${EMBED_SESSION:-localllm-embedding}"
 ROUTER_SESSION="${ROUTER_SESSION:-localllm-router}"
-START_ROUTER="${START_ROUTER:-true}"
+START_ROUTER="${START_ROUTER:-false}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-180}"
 
 MAIN_HOST="${MAIN_HOST:-127.0.0.1}"

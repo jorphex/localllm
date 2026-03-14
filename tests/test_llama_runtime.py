@@ -74,6 +74,47 @@ class LlamaRuntimeTests(unittest.TestCase):
         self.assertIn("8093", command)
         self.assertNotIn(str(self.mmproj), command)
 
+    def test_resolve_model_path_falls_back_to_openwendy_cache_when_localllm_cache_missing(self):
+        config = {**self.base_config}
+        config.pop("llama_cpp_model_dir")
+
+        with patch("llama_runtime._resolve_existing_dir") as resolve_dir_mock:
+            resolve_dir_mock.side_effect = [
+                None,
+                self.tempdir.name,
+            ]
+
+            resolved = llama_runtime.resolve_model_path(config, self.main_model.name)
+
+        self.assertEqual(resolved, str(self.main_model))
+
+    def test_resolve_llama_server_bin_prefers_localllm_share_before_openwendy_share(self):
+        localllm_bin = Path(self.tempdir.name) / "localllm-llama-server"
+        localllm_bin.write_text("", encoding="utf-8")
+
+        with patch("llama_runtime._resolve_existing_path") as resolve_path_mock:
+            resolve_path_mock.side_effect = [
+                str(localllm_bin),
+                None,
+            ]
+
+            resolved = llama_runtime.resolve_llama_server_bin({})
+
+        self.assertEqual(resolved, str(localllm_bin))
+
+    def test_resolve_model_path_raises_for_bad_configured_model_dir(self):
+        bad_dir = Path(self.tempdir.name) / "missing-models"
+        config = {**self.base_config, "llama_cpp_model_dir": str(bad_dir)}
+
+        with self.assertRaises(FileNotFoundError):
+            llama_runtime.resolve_model_path(config, self.main_model.name)
+
+    def test_resolve_llama_server_bin_raises_for_bad_configured_path(self):
+        bad_path = Path(self.tempdir.name) / "missing-llama-server"
+
+        with self.assertRaises(FileNotFoundError):
+            llama_runtime.resolve_llama_server_bin({"llama_server_bin": str(bad_path)})
+
     def test_build_server_commands_include_optional_gpu_args(self):
         config = {
             **self.base_config,

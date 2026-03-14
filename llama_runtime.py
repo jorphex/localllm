@@ -14,6 +14,10 @@ import httpx
 
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost"}
+DEFAULT_LOCALLLM_SHARE = "~/.local/share/localllm/llama.cpp/bin/llama-server"
+DEFAULT_OPENWENDY_SHARE = "~/.local/share/openwendy/llama.cpp/bin/llama-server"
+DEFAULT_LOCALLLM_MODEL_DIR = "~/.cache/localllm/gguf"
+DEFAULT_OPENWENDY_MODEL_DIR = "~/.cache/openwendy/gguf"
 
 
 def _parse_local_endpoint(base_url: str) -> tuple[str, int]:
@@ -36,10 +40,23 @@ def _resolve_existing_path(path_value: str | None) -> str | None:
     return None
 
 
+def _resolve_existing_dir(path_value: str | None) -> str | None:
+    if not path_value:
+        return None
+    expanded = os.path.abspath(os.path.expanduser(path_value))
+    if os.path.isdir(expanded):
+        return expanded
+    return None
+
+
 def resolve_llama_server_bin(config_data: dict) -> str:
-    configured = _resolve_existing_path(config_data.get("llama_server_bin"))
-    if configured:
-        return configured
+    configured_value = config_data.get("llama_server_bin")
+    if configured_value:
+        configured = _resolve_existing_path(configured_value)
+        if configured:
+            return configured
+        expanded = os.path.abspath(os.path.expanduser(str(configured_value)))
+        raise FileNotFoundError(f"Configured llama-server binary does not exist: {expanded}")
 
     repo_candidate = os.path.join(
         os.path.dirname(__file__),
@@ -51,9 +68,10 @@ def resolve_llama_server_bin(config_data: dict) -> str:
     if os.path.isfile(repo_candidate):
         return repo_candidate
 
-    local_share_candidate = os.path.expanduser("~/.local/share/openwendy/llama.cpp/bin/llama-server")
-    if os.path.isfile(local_share_candidate):
-        return local_share_candidate
+    for candidate in (DEFAULT_LOCALLLM_SHARE, DEFAULT_OPENWENDY_SHARE):
+        resolved = _resolve_existing_path(candidate)
+        if resolved:
+            return resolved
 
     on_path = shutil.which("llama-server")
     if on_path:
@@ -62,6 +80,7 @@ def resolve_llama_server_bin(config_data: dict) -> str:
     raise FileNotFoundError(
         "Could not find llama-server. Set `llama_server_bin`, place it under "
         "`tools/llama.cpp/bin/llama-server`, install it under "
+        "`~/.local/share/localllm/llama.cpp/bin/llama-server` or "
         "`~/.local/share/openwendy/llama.cpp/bin/llama-server`, or make it available on PATH."
     )
 
@@ -69,13 +88,25 @@ def resolve_llama_server_bin(config_data: dict) -> str:
 def resolve_model_path(config_data: dict, model_name: str) -> str:
     if os.path.isabs(model_name) and os.path.isfile(model_name):
         return model_name
-    model_dir = os.path.abspath(
-        os.path.expanduser(config_data.get("llama_cpp_model_dir") or "~/.cache/openwendy/gguf")
+    search_dirs = []
+    configured_dir_value = config_data.get("llama_cpp_model_dir")
+    if configured_dir_value:
+        search_dirs.append(os.path.abspath(os.path.expanduser(str(configured_dir_value))))
+    else:
+        for candidate_dir in (DEFAULT_LOCALLLM_MODEL_DIR, DEFAULT_OPENWENDY_MODEL_DIR):
+            resolved_dir = _resolve_existing_dir(candidate_dir)
+            if resolved_dir and resolved_dir not in search_dirs:
+                search_dirs.append(resolved_dir)
+        if not search_dirs:
+            search_dirs.append(os.path.abspath(os.path.expanduser(DEFAULT_LOCALLLM_MODEL_DIR)))
+
+    for model_dir in search_dirs:
+        candidate = os.path.join(model_dir, model_name)
+        if os.path.isfile(candidate):
+            return candidate
+    raise FileNotFoundError(
+        f"Could not find GGUF model file: {model_name} in {', '.join(search_dirs)}"
     )
-    candidate = os.path.join(model_dir, model_name)
-    if os.path.isfile(candidate):
-        return candidate
-    raise FileNotFoundError(f"Could not find GGUF model file: {candidate}")
 
 
 def _build_sleep_args(config_data: dict) -> list[str]:
@@ -222,13 +253,13 @@ class ManagedLlamaCppRuntime:
                 name="main",
                 base_url=config_data["llama_cpp_base_url"],
                 command=build_main_server_command(config_data),
-                log_path=os.path.abspath("openwendy-llama-main.log"),
+                log_path=os.path.abspath("localllm-main.log"),
             ),
             _ManagedProcess(
                 name="embedding",
                 base_url=config_data["llama_cpp_embedding_base_url"],
                 command=build_embedding_server_command(config_data),
-                log_path=os.path.abspath("openwendy-llama-embed.log"),
+                log_path=os.path.abspath("localllm-embed.log"),
             ),
         ]
         router_model_name = str(config_data.get("router_model_name") or "").strip()
@@ -238,7 +269,7 @@ class ManagedLlamaCppRuntime:
                     name="router",
                     base_url=config_data["llama_cpp_router_base_url"],
                     command=build_router_server_command(config_data),
-                    log_path=os.path.abspath("openwendy-llama-router.log"),
+                    log_path=os.path.abspath("localllm-router.log"),
                 )
             )
 

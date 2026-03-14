@@ -7,7 +7,7 @@ EMBED_HOST="${EMBED_HOST:-127.0.0.1}"
 EMBED_PORT="${EMBED_PORT:-8092}"
 ROUTER_HOST="${ROUTER_HOST:-127.0.0.1}"
 ROUTER_PORT="${ROUTER_PORT:-8093}"
-START_ROUTER="${START_ROUTER:-true}"
+START_ROUTER="${START_ROUTER:-false}"
 
 echo "Screens:"
 screen -wipe >/dev/null 2>&1 || true

@@ -1,7 +1,7 @@
 [project]
 name = "localllm"
 version = "0.1.0"
-description = "Local llama.cpp service runtime helpers for openwendy-style HTTP model services"
+description = "Local llama.cpp service runtime helpers for OpenAI-compatible HTTP model services"
 requires-python = ">=3.11"
 dependencies = [
   "httpx",

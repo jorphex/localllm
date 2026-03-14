@@ -5,8 +5,36 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 LOG_DIR="${LOCALLLM_LOG_DIR:-${PROJECT_ROOT}/logs}"
 
-LLAMA_SERVER_BIN="${LLAMA_SERVER_BIN:-${HOME}/.local/share/openwendy/llama.cpp/bin/llama-server}"
-MODEL_DIR="${LLAMA_CPP_MODEL_DIR:-${HOME}/.cache/openwendy/gguf}"
+default_llama_server_bin() {
+  local localllm_bin="${HOME}/.local/share/localllm/llama.cpp/bin/llama-server"
+  local openwendy_bin="${HOME}/.local/share/openwendy/llama.cpp/bin/llama-server"
+  if [[ -f "${localllm_bin}" ]]; then
+    printf '%s\n' "${localllm_bin}"
+    return
+  fi
+  if [[ -f "${openwendy_bin}" ]]; then
+    printf '%s\n' "${openwendy_bin}"
+    return
+  fi
+  printf '%s\n' "${localllm_bin}"
+}
+
+default_model_dir() {
+  local localllm_models="${HOME}/.cache/localllm/gguf"
+  local openwendy_models="${HOME}/.cache/openwendy/gguf"
+  if [[ -d "${localllm_models}" ]]; then
+    printf '%s\n' "${localllm_models}"
+    return
+  fi
+  if [[ -d "${openwendy_models}" ]]; then
+    printf '%s\n' "${openwendy_models}"
+    return
+  fi
+  printf '%s\n' "${localllm_models}"
+}
+
+LLAMA_SERVER_BIN="${LLAMA_SERVER_BIN:-$(default_llama_server_bin)}"
+MODEL_DIR="${LLAMA_CPP_MODEL_DIR:-$(default_model_dir)}"
 
 ensure_logs_dir() {
   mkdir -p "${LOG_DIR}"
