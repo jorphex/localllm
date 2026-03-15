@@ -136,6 +136,29 @@ class LlamaRuntimeTests(unittest.TestCase):
             self.assertIn("--fit", command)
             self.assertIn("on", command)
 
+    def test_build_server_commands_include_service_specific_extra_args(self):
+        config = {
+            **self.base_config,
+            "llama_cpp_extra_args": "--threads-http 6",
+            "llama_cpp_main_extra_args": "-b 4096 -ub 1024 -fa on",
+            "llama_cpp_embedding_extra_args": ["-b", "256", "--no-warmup"],
+            "llama_cpp_router_extra_args": "-np 2 -ctk q8_0",
+        }
+
+        main_command = llama_runtime.build_main_server_command(config)
+        embedding_command = llama_runtime.build_embedding_server_command(config)
+        router_command = llama_runtime.build_router_server_command(config)
+
+        self.assertEqual(main_command[-6:], ["-b", "4096", "-ub", "1024", "-fa", "on"])
+        self.assertEqual(embedding_command[-3:], ["-b", "256", "--no-warmup"])
+        self.assertEqual(router_command[-4:], ["-np", "2", "-ctk", "q8_0"])
+
+        for command in (main_command, embedding_command, router_command):
+            self.assertIn("--sleep-idle-seconds", command)
+            self.assertIn("300", command)
+            self.assertIn("--threads-http", command)
+            self.assertIn("6", command)
+
     def test_managed_runtime_reuses_existing_healthy_servers(self):
         runtime = llama_runtime.ManagedLlamaCppRuntime(self.base_config, Mock())
 

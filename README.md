@@ -26,6 +26,12 @@ The router does not need its own persistent memory. It can either:
 - run as a separate small model on its own endpoint
 - reuse the main chat endpoint if you want to avoid loading a second model and can accept the extra serial call on routed turns
 
+When `llama_runtime.ManagedLlamaCppRuntime` manages processes directly, it now supports the same extra `llama-server` tuning surface through config keys:
+- `llama_cpp_extra_args`
+- `llama_cpp_main_extra_args`
+- `llama_cpp_embedding_extra_args`
+- `llama_cpp_router_extra_args`
+
 Any client can point at those services with:
 - main base URL: `http://127.0.0.1:8091/v1`
 - embedding base URL: `http://127.0.0.1:8092/v1`
@@ -82,7 +88,7 @@ MAIN_MODEL=Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf \
 MAIN_MMPROJ=Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf \
 MAIN_THREADS=10 \
 MAIN_CONTEXT=131072 \
-MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on -rea on --reasoning-budget 1000' \
+MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --reasoning-budget 1000' \
 EMBED_MODEL=Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf \
 EMBED_DEVICE=none \
 EMBED_GPU_LAYERS=0 \
@@ -255,8 +261,38 @@ For this host, the current preferred `9B` stack is:
 
 Current tuning:
 
-- main runs on `CUDA0` with `-t 10 -c 131072 -np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on -rea on --reasoning-budget 1000`
+- main runs on `CUDA0` with `-t 10 -c 131072 -np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --reasoning-budget 1000`
 - embeddings run mostly on CPU with `--device none --gpu-layers 0 -t 8 -c 2048 -ub 128 -np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off`
+
+Useful additional knobs exposed by `llama-server` and compatible with the `*_EXTRA_ARGS` hooks:
+
+- `--threads-http N` for busy multi-client request handling
+- `--cache-type-k TYPE` and `--cache-type-v TYPE` to shrink KV cache memory use
+- `--cache-reuse N` and `--cache-prompt` for repeated prompt reuse patterns
+- `--cont-batching` and `-np N` for concurrent serving behavior
+- `--no-kv-offload` if KV offload hurts latency on your GPU/CPU mix
+- `--mmproj-offload` for vision projector placement
+- `--slots` and `--props` for deeper runtime introspection and live tuning
+- draft/speculative decoding flags such as `--model-draft`, `--draft`, and `--spec-type`
+
+Why the current main tuning changed:
+
+- `--threads-http 6` increases the HTTP worker pool so request handling overhead is less likely to bottleneck the model server.
+- `-ctk q8_0` stores the KV cache K tensors in `q8_0` instead of `f16`, reducing memory pressure.
+- `-ctv q8_0` stores the KV cache V tensors in `q8_0` instead of `f16`, reducing memory pressure further.
+- On this host, that combination improved a simple chat probe from roughly `0.57 s` to `0.13 s` and increased free VRAM from roughly `262 MiB` to `594 MiB`.
+
+Reasoning mode note:
+
+- The current main service is started with `-rea on`, which makes reasoning a server-level default.
+- The generic OpenAI-style fields `reasoning_effort` and `reasoning: false` did not disable thinking in direct tests against this server.
+- For Qwen-style switching, the correct request knob is `chat_template_kwargs.enable_thinking`.
+- In direct tests against this `llama-server`, `chat_template_kwargs: {"enable_thinking": false}` returned a plain answer without `reasoning_content`, while `chat_template_kwargs: {"enable_thinking": true}` returned thinking output.
+- If your client can pass arbitrary request fields through to the OpenAI-compatible server, one endpoint can support both thinking and non-thinking turns.
+- Example no-thinking request body:
+  `{"model":"Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":false}}`
+- Example thinking-on request body:
+  `{"model":"Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":true}}`
 
 Observed steady-state footprint:
 

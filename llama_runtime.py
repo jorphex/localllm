@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import shutil
 import signal
 import subprocess
@@ -146,6 +147,19 @@ def _build_gpu_args(config_data: dict) -> list[str]:
     return args
 
 
+def _build_extra_args(config_data: dict, *keys: str) -> list[str]:
+    args: list[str] = []
+    for key in keys:
+        value = config_data.get(key)
+        if value in (None, "", False):
+            continue
+        if isinstance(value, (list, tuple)):
+            args.extend(str(item) for item in value if str(item))
+            continue
+        args.extend(shlex.split(str(value)))
+    return args
+
+
 def build_main_server_command(config_data: dict) -> list[str]:
     host, port = _parse_local_endpoint(config_data["llama_cpp_base_url"])
     command = [
@@ -166,6 +180,13 @@ def build_main_server_command(config_data: dict) -> list[str]:
         command.extend(["-mm", resolve_model_path(config_data, mmproj_name)])
     command.extend(_build_gpu_args(config_data))
     command.extend(_build_sleep_args(config_data))
+    command.extend(
+        _build_extra_args(
+            config_data,
+            "llama_cpp_extra_args",
+            "llama_cpp_main_extra_args",
+        )
+    )
     return command
 
 
@@ -191,6 +212,13 @@ def build_embedding_server_command(config_data: dict) -> list[str]:
     ]
     command.extend(_build_gpu_args(config_data))
     command.extend(_build_sleep_args(config_data))
+    command.extend(
+        _build_extra_args(
+            config_data,
+            "llama_cpp_extra_args",
+            "llama_cpp_embedding_extra_args",
+        )
+    )
     return command
 
 
@@ -214,6 +242,13 @@ def build_router_server_command(config_data: dict) -> list[str]:
     ]
     command.extend(_build_gpu_args(config_data))
     command.extend(_build_sleep_args(config_data))
+    command.extend(
+        _build_extra_args(
+            config_data,
+            "llama_cpp_extra_args",
+            "llama_cpp_router_extra_args",
+        )
+    )
     return command
 
 
