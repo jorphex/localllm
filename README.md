@@ -88,7 +88,7 @@ MAIN_MODEL=Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf \
 MAIN_MMPROJ=Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf \
 MAIN_THREADS=10 \
 MAIN_CONTEXT=131072 \
-MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --reasoning-budget 1000' \
+MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on' \
 EMBED_MODEL=Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf \
 EMBED_DEVICE=none \
 EMBED_GPU_LAYERS=0 \
@@ -261,7 +261,8 @@ For this host, the current preferred `9B` stack is:
 
 Current tuning:
 
-- main runs on `CUDA0` with `-t 10 -c 131072 -np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --reasoning-budget 1000`
+- main runs on `CUDA0` with `-t 10 -c 131072 -np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on`
+- no reasoning budget is set on the current main service
 - embeddings run mostly on CPU with `--device none --gpu-layers 0 -t 8 -c 2048 -ub 128 -np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off`
 
 Useful additional knobs exposed by `llama-server` and compatible with the `*_EXTRA_ARGS` hooks:
@@ -285,7 +286,8 @@ Why the current main tuning changed:
 Reasoning mode note:
 
 - The current main service is started with `-rea on`, which makes reasoning a server-level default.
-- The generic OpenAI-style fields `reasoning_effort` and `reasoning: false` did not disable thinking in direct tests against this server.
+- No `--reasoning-budget` is configured on the current main service, so thinking is not artificially capped at startup.
+- Generic OpenAI-style request fields such as `reasoning_effort` and `reasoning: false` were not the correct switch for this setup.
 - For Qwen-style switching, the correct request knob is `chat_template_kwargs.enable_thinking`.
 - In direct tests against this `llama-server`, `chat_template_kwargs: {"enable_thinking": false}` returned a plain answer without `reasoning_content`, while `chat_template_kwargs: {"enable_thinking": true}` returned thinking output.
 - If your client can pass arbitrary request fields through to the OpenAI-compatible server, one endpoint can support both thinking and non-thinking turns.
