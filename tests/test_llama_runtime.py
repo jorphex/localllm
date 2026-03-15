@@ -74,7 +74,7 @@ class LlamaRuntimeTests(unittest.TestCase):
         self.assertIn("8093", command)
         self.assertNotIn(str(self.mmproj), command)
 
-    def test_resolve_model_path_falls_back_to_openwendy_cache_when_localllm_cache_missing(self):
+    def test_resolve_model_path_falls_back_to_legacy_cache_when_localllm_cache_missing(self):
         config = {**self.base_config}
         config.pop("llama_cpp_model_dir")
 
@@ -88,7 +88,7 @@ class LlamaRuntimeTests(unittest.TestCase):
 
         self.assertEqual(resolved, str(self.main_model))
 
-    def test_resolve_llama_server_bin_prefers_localllm_share_before_openwendy_share(self):
+    def test_resolve_llama_server_bin_prefers_localllm_share_before_legacy_share(self):
         localllm_bin = Path(self.tempdir.name) / "localllm-llama-server"
         localllm_bin.write_text("", encoding="utf-8")
 

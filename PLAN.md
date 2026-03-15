@@ -1,4 +1,5 @@
 # Plan
-- [x] Capture current live command lines and baseline latency for chat and embeddings
-- [x] Run temporary tuned variants on alternate ports and compare latency/headroom
-- [x] Apply the best safe tuning to repo defaults and verify services still work
+- [x] Audit `localllm` for remaining `openwendy` references and classify them into runtime compatibility, tests, or docs.
+- [x] Keep the real compatibility fallbacks but rename/reframe them as legacy behavior rather than product-specific behavior.
+- [x] Trim `README.md` so it documents generic runtime usage plus one compatibility note, not OpenWendy-specific workflow assumptions.
+- [x] Run focused verification for the edited Python files and tests.

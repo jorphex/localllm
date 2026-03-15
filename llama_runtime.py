@@ -16,9 +16,9 @@ import httpx
 
 LOCAL_HOSTS = {"127.0.0.1", "localhost"}
 DEFAULT_LOCALLLM_SHARE = "~/.local/share/localllm/llama.cpp/bin/llama-server"
-DEFAULT_OPENWENDY_SHARE = "~/.local/share/openwendy/llama.cpp/bin/llama-server"
+DEFAULT_LEGACY_SHARE = "~/.local/share/openwendy/llama.cpp/bin/llama-server"
 DEFAULT_LOCALLLM_MODEL_DIR = "~/.cache/localllm/gguf"
-DEFAULT_OPENWENDY_MODEL_DIR = "~/.cache/openwendy/gguf"
+DEFAULT_LEGACY_MODEL_DIR = "~/.cache/openwendy/gguf"
 
 
 def _parse_local_endpoint(base_url: str) -> tuple[str, int]:
@@ -69,7 +69,7 @@ def resolve_llama_server_bin(config_data: dict) -> str:
     if os.path.isfile(repo_candidate):
         return repo_candidate
 
-    for candidate in (DEFAULT_LOCALLLM_SHARE, DEFAULT_OPENWENDY_SHARE):
+    for candidate in (DEFAULT_LOCALLLM_SHARE, DEFAULT_LEGACY_SHARE):
         resolved = _resolve_existing_path(candidate)
         if resolved:
             return resolved
@@ -81,7 +81,7 @@ def resolve_llama_server_bin(config_data: dict) -> str:
     raise FileNotFoundError(
         "Could not find llama-server. Set `llama_server_bin`, place it under "
         "`tools/llama.cpp/bin/llama-server`, install it under "
-        "`~/.local/share/localllm/llama.cpp/bin/llama-server` or "
+        "`~/.local/share/localllm/llama.cpp/bin/llama-server`, the legacy compatibility path "
         "`~/.local/share/openwendy/llama.cpp/bin/llama-server`, or make it available on PATH."
     )
 
@@ -94,7 +94,7 @@ def resolve_model_path(config_data: dict, model_name: str) -> str:
     if configured_dir_value:
         search_dirs.append(os.path.abspath(os.path.expanduser(str(configured_dir_value))))
     else:
-        for candidate_dir in (DEFAULT_LOCALLLM_MODEL_DIR, DEFAULT_OPENWENDY_MODEL_DIR):
+        for candidate_dir in (DEFAULT_LOCALLLM_MODEL_DIR, DEFAULT_LEGACY_MODEL_DIR):
             resolved_dir = _resolve_existing_dir(candidate_dir)
             if resolved_dir and resolved_dir not in search_dirs:
                 search_dirs.append(resolved_dir)

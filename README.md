@@ -37,11 +37,20 @@ Any client can point at those services with:
 - embedding base URL: `http://127.0.0.1:8092/v1`
 - optional router base URL: `http://127.0.0.1:8093/v1`
 
-For `openwendy`, the matching env vars are:
-- `LLAMA_CPP_BASE_URL`
-- `LLAMA_CPP_EMBEDDING_BASE_URL`
-- optional `LLAMA_CPP_ROUTER_BASE_URL`
-- `LLAMA_CPP_MANAGE_PROCESSES=false`
+Clients that split main, embedding, and optional router URLs can map those endpoints directly onto their own config keys or env vars.
+
+## Compatibility
+
+Preferred runtime roots are:
+- `~/.local/share/localllm/llama.cpp/bin/llama-server`
+- `~/.cache/localllm/gguf`
+
+For legacy compatibility, path discovery still falls back to:
+- `~/.local/share/openwendy/llama.cpp/bin/llama-server`
+- `~/.cache/openwendy/gguf`
+
+That fallback exists so older consumers can keep working while migrating. It is not the preferred layout for new setups.
+On this host today, the active services still resolve through those legacy compatibility roots.
 
 ## Scripts
 
@@ -248,7 +257,7 @@ These are the built-in defaults for the scripts unless you override them with en
 - ports: `8091`, `8092`, `8093`
 - main device defaults: `CUDA0` with `--gpu-layers auto` and `--fit on`
 - embedding device defaults: `none` with `--gpu-layers 0` and no `--fit`
-- script path discovery prefers `~/.local/share/localllm` and `~/.cache/localllm`, then falls back to the existing `openwendy` locations if that is where your binaries or GGUFs live today
+- script path discovery prefers the `localllm` roots above and then the legacy compatibility roots
 
 ## Current Preferred Stack
 
@@ -257,7 +266,7 @@ For this host, the current preferred `9B` stack is:
 - main: `Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf`
 - main `mmproj`: `Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf`
 - embedding: `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf`
-- router: shared-main routing inside `openwendy`; no separate router service by default
+- router: no separate router service by default; this host usually reuses the main endpoint when a router decision is needed
 
 Current tuning:
 
@@ -306,21 +315,14 @@ Preferred GGUF cache root:
 
 - `~/.cache/localllm/gguf`
 
-Fallback GGUF cache root on this host:
-
-- `~/.cache/openwendy/gguf`
-
 Preferred `llama-server` binary path:
 
 - `~/.local/share/localllm/llama.cpp/bin/llama-server`
 
-Fallback binary path on this host:
-
-- `~/.local/share/openwendy/llama.cpp/bin/llama-server`
-
 ## Current Cached Models
 
 These are the model files currently present under the active GGUF cache.
+On this host today, that active cache root still resolves to `~/.cache/openwendy/gguf` via the compatibility fallback.
 
 ### Main / Vision
 

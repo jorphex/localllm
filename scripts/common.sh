@@ -7,13 +7,13 @@ LOG_DIR="${LOCALLLM_LOG_DIR:-${PROJECT_ROOT}/logs}"
 
 default_llama_server_bin() {
   local localllm_bin="${HOME}/.local/share/localllm/llama.cpp/bin/llama-server"
-  local openwendy_bin="${HOME}/.local/share/openwendy/llama.cpp/bin/llama-server"
+  local legacy_bin="${HOME}/.local/share/openwendy/llama.cpp/bin/llama-server"
   if [[ -f "${localllm_bin}" ]]; then
     printf '%s\n' "${localllm_bin}"
     return
   fi
-  if [[ -f "${openwendy_bin}" ]]; then
-    printf '%s\n' "${openwendy_bin}"
+  if [[ -f "${legacy_bin}" ]]; then
+    printf '%s\n' "${legacy_bin}"
     return
   fi
   printf '%s\n' "${localllm_bin}"
@@ -21,13 +21,13 @@ default_llama_server_bin() {
 
 default_model_dir() {
   local localllm_models="${HOME}/.cache/localllm/gguf"
-  local openwendy_models="${HOME}/.cache/openwendy/gguf"
+  local legacy_models="${HOME}/.cache/openwendy/gguf"
   if [[ -d "${localllm_models}" ]]; then
     printf '%s\n' "${localllm_models}"
     return
   fi
-  if [[ -d "${openwendy_models}" ]]; then
-    printf '%s\n' "${openwendy_models}"
+  if [[ -d "${legacy_models}" ]]; then
+    printf '%s\n' "${legacy_models}"
     return
   fi
   printf '%s\n' "${localllm_models}"
