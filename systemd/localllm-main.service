@@ -13,7 +13,7 @@ Environment=MAIN_CONTEXT=131072
 Environment=MAIN_DEVICE=CUDA0
 Environment=MAIN_GPU_LAYERS=auto
 Environment=MAIN_FIT=true
-Environment="MAIN_EXTRA_ARGS=-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --reasoning-budget 1000"
+Environment="MAIN_EXTRA_ARGS=-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on"
 ExecStart=%h/projects/localllm/scripts/serve-main.sh
 Restart=always
 RestartSec=3
