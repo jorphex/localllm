@@ -171,6 +171,8 @@ Notes:
 
 - `nvidia-smi -pl` requires root, so this is a system unit rather than a `systemd --user` unit.
 - The RTX 3080 on this host reports a supported power-limit range of `100 W` to `370 W`.
+- `localllm-gpu-power-limit.service` is a `Type=oneshot` unit, so `systemctl status` showing `inactive (dead)` after `status=0/SUCCESS` is the expected healthy state.
+- `nvidia-smi` may warn that persistence mode is disabled; that warning does not prevent the power limit from being applied.
 
 For startup after reboot without logging in first, enable linger once:
 
