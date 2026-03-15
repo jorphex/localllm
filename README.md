@@ -148,6 +148,30 @@ journalctl --user -u localllm-main.service -f
 journalctl --user -u localllm-embedding.service -f
 ```
 
+## Optional boot-time GPU power cap
+
+On headless NVIDIA hosts, a simple way to reduce peak board power is to apply a lower power limit at boot.
+
+The repo includes a root-level system unit for that:
+
+```bash
+sudo ln -sf ~/projects/localllm/systemd/localllm-gpu-power-limit.service /etc/systemd/system/localllm-gpu-power-limit.service
+printf 'GPU_POWER_LIMIT_WATTS=300\n' | sudo tee /etc/default/localllm-gpu-power-limit >/dev/null
+sudo systemctl daemon-reload
+sudo systemctl enable --now localllm-gpu-power-limit.service
+```
+
+Verify it with:
+
+```bash
+nvidia-smi --query-gpu=power.draw,power.limit --format=csv,noheader
+```
+
+Notes:
+
+- `nvidia-smi -pl` requires root, so this is a system unit rather than a `systemd --user` unit.
+- The RTX 3080 on this host reports a supported power-limit range of `100 W` to `370 W`.
+
 For startup after reboot without logging in first, enable linger once:
 
 ```bash
