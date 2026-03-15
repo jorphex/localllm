@@ -18,6 +18,7 @@ EMBED_EXTRA_ARGS="${EMBED_EXTRA_ARGS:--np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa
 EMBED_MODEL_PATH="${MODEL_DIR}/${EMBED_MODEL}"
 require_file "${LLAMA_SERVER_BIN}"
 require_file "${EMBED_MODEL_PATH}"
+export_llama_runtime_env
 
 command=(
   "${LLAMA_SERVER_BIN}"

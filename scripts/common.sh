@@ -36,6 +36,12 @@ default_model_dir() {
 LLAMA_SERVER_BIN="${LLAMA_SERVER_BIN:-$(default_llama_server_bin)}"
 MODEL_DIR="${LLAMA_CPP_MODEL_DIR:-$(default_model_dir)}"
 
+export_llama_runtime_env() {
+  local llama_bin_dir
+  llama_bin_dir="$(cd -- "$(dirname -- "${LLAMA_SERVER_BIN}")" && pwd)"
+  export LD_LIBRARY_PATH="${llama_bin_dir}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+}
+
 ensure_logs_dir() {
   mkdir -p "${LOG_DIR}"
 }

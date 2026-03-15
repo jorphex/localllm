@@ -18,6 +18,7 @@ MAIN_EXTRA_ARGS="${MAIN_EXTRA_ARGS:--np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa
 MAIN_MODEL_PATH="${MODEL_DIR}/${MAIN_MODEL}"
 require_file "${LLAMA_SERVER_BIN}"
 require_file "${MAIN_MODEL_PATH}"
+export_llama_runtime_env
 
 command=(
   "${LLAMA_SERVER_BIN}"
