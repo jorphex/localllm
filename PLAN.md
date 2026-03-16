@@ -19,4 +19,4 @@
 - [x] 2. Apply the chosen live tuning, restart the main service, and verify `/health`, `/props`, and a direct reasoning probe.
 - [x] 3. Remove the requested obsolete model files from the cache.
 - [x] 4. Update `README.md` and `NOTES.md` with the new default package and tuning result.
-- [ ] 5. Commit the cutover.
+- [x] 5. Commit the cutover.
