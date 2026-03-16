@@ -77,6 +77,8 @@ Benchmark helpers live under `benchmarks/`.
   Compares launch-flag profiles for one model at a safe fixed context.
 - `./benchmarks/sweep_contexts.sh`
   Climbs context for one chosen profile until VRAM headroom lands near a target.
+- `./benchmarks/coding_compare.sh`
+  Runs the reusable uncapped coding-quality comparison with one candidate on the GPU at a time.
 
 ## Quick Start
 
@@ -336,6 +338,7 @@ Useful additional knobs exposed by `llama-server` and compatible with the `*_EXT
 - `--no-kv-offload` if KV offload hurts latency on your GPU/CPU mix
 - `--mmproj-offload` for vision projector placement
 - `--slots` and `--props` for deeper runtime introspection and live tuning
+- `--jinja` and `--chat-template*` when you need to override or debug chat-template rendering
 - draft/speculative decoding flags such as `--model-draft`, `--draft`, and `--spec-type`
 
 Why the current main tuning looks like this:
@@ -361,6 +364,17 @@ Reasoning mode note:
 - Example thinking-on request body:
   `{"model":"Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":true}}`
 
+Request-shape guidance:
+
+- `thinking_budget_tokens` is the current request-body knob for budgeting reasoning on this local `llama.cpp` endpoint, and local tests confirmed that it works. It is not the same thing as `chat_template_kwargs.enable_thinking`, and it should not be treated as a replacement for that field.
+- Use `chat_template_kwargs.enable_thinking=true` when you want a reasoning turn and `chat_template_kwargs.enable_thinking=false` when you want a fast visible-answer or routing turn.
+- Normal chat turns can usually keep only prior visible assistant text in history, but tool turns must preserve the actual assistant tool-call message plus the tool result message. Flattening a previous tool turn into plain assistant text throws away information the model needs.
+- If a tool-enabled turn is still deciding whether a tool is needed, use `tool_choice:"auto"`. Reserve `tool_choice:"required"` for turns where routing has already decided that a tool call must happen.
+- Thinking is usually disabled on tool-decision and tool-execution turns because the local finalists are more reliable when they emit a tool call or a visible answer immediately instead of burning early tokens on internal reasoning before the tool step.
+- Router turns should normally set `chat_template_kwargs.enable_thinking=false` and either omit `thinking_budget_tokens` or set it to `0`; they should not spend reasoning budget on a simple route decision.
+- Omitting `max_tokens` is valid on this endpoint and helped thinking-first models finish, but it shifts control to client-side timeouts and stop policies. Use that tradeoff deliberately.
+- `--jinja` is already enabled by default in the local `llama.cpp` build on this host. It is useful when you need to override or debug chat-template rendering, but it is not a missing extra switch for the current finalist models while they are using their embedded templates successfully.
+
 Recent local candidate findings:
 
 - These findings describe the current local finalist comparison work. They do not automatically change the durable repo default stack shown above.
@@ -376,6 +390,9 @@ Recent local candidate findings:
   - `qwen-3.5-abl` -> `Huihui-Qwen3.5-9B-abliterated-Q4_K_M.mradermacher.gguf`
   - `qwen-3.5` -> `Qwen3.5-9B-Q4_K_M.unsloth.gguf`
 - When manually swapping models with `./scripts/serve-main.sh`, set `MAIN_ALIAS` to one of those names so `/props` and downstream clients see the stable alias instead of the raw GGUF filename.
+- Model-maker request-parameter guidance to keep in mind:
+  - `glm-4.6v`: `temperature 0.8`, `top_p 0.6`, `top_k 2`, `repeat_penalty 1.1`, and `128k` effective context or less.
+  - `qwen-3.5` and `qwen-3.5-abl`: `temperature 1.0`, `top_p 0.95`, `top_k 20`, `presence_penalty 0.0`, `repeat_penalty 1.0`.
 - Local tuning outcome for the two Qwen3.5 finalists on this host:
   - `qwen-3.5` was best on `-np 1 -tb 8 -b 256 -ub 128 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup`, and the closest tested `~500 MiB` idle headroom point was `-c 362496` with about `508 MiB` free.
   - `qwen-3.5-abl` was best on the same launch profile, and the closest tested `~500 MiB` idle headroom point was `-c 397312` with about `506 MiB` free.
@@ -384,13 +401,14 @@ Current temporary `GLM` test profile:
 
 - This is an experimental live-test profile, not the durable repo default stack.
 - model: `Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf`
+- alias: `glm-4.6v`
 - `mmproj`: `Huihui-GLM-4.6V-Flash-abliterated-mmproj-f16.gguf`
-- launch context: `160768`
-- effective context: `131072` on the current `llama.cpp` runtime because the server caps it to the model training context
+- launch context: `131072`
+- effective context: `131072`
 - threads: `10`
 - extra args: `-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup`
-- on this host, that profile leaves about `494 MiB` free VRAM at idle and keeps the tiny direct probe around `91.9 tok/s`
-- local tuning lesson: for `GLM`, a safe `-c 32768` sweep was the right way to compare flags first, then raise context on the winning profile until VRAM headroom lands near the target
+- on this host, that profile currently leaves about `862 MiB` free VRAM at idle and keeps the `glm-4.6v` alias visible through `/props`
+- local tuning lesson: for `GLM`, a safe `-c 32768` sweep was the right way to compare flags first, then raise context on the winning profile; the older `160768` launch proved that the runtime caps this model at `131072` anyway, so the live profile now launches directly at `128k`
 
 Benchmark workflow note:
 
