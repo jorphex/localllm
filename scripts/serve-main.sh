@@ -13,7 +13,7 @@ MAIN_CONTEXT="${MAIN_CONTEXT:-98304}"
 MAIN_DEVICE="${MAIN_DEVICE:-CUDA0}"
 MAIN_GPU_LAYERS="${MAIN_GPU_LAYERS:-auto}"
 MAIN_FIT="${MAIN_FIT:-true}"
-MAIN_EXTRA_ARGS="${MAIN_EXTRA_ARGS:--np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --no-warmup}"
+MAIN_EXTRA_ARGS="${MAIN_EXTRA_ARGS:--np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup}"
 
 MAIN_MODEL_PATH="${MODEL_DIR}/${MAIN_MODEL}"
 require_file "${LLAMA_SERVER_BIN}"

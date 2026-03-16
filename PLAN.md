@@ -1,17 +1,19 @@
 # Goal
-- Test whether answer-first system instructions can change the current Qwen3-VL-8B thinking-first behavior enough to produce visible answers sooner, without using numeric reasoning budgets.
+- Expose the `llama.cpp` metrics endpoint on the live `localllm` main service, verify it, and provide a concise behavioral handoff list for the `openwendy` agent.
 
 # Success Criteria
-- A small set of answer-first instruction variants is tested on representative prompts.
-- Results report visible output presence, reasoning length, and finish reason.
-- The outcome is summarized clearly enough to judge whether this style is worth using in the bot.
+- The main service is started with metrics enabled.
+- The live endpoint responds successfully on the current host.
+- Repo docs and notes reflect the metrics endpoint.
+- A concise list of behavioral facts is ready for handoff to the `openwendy` agent.
 
 # Constraints
-- Keep the current live service unchanged.
-- Do not use numeric reasoning budgets in the requests.
-- Focus on answer-first phrasing rather than generic “think less” phrasing.
+- Keep the current model, context, and speed-tuned flags unchanged aside from enabling metrics.
+- Keep the embedding service unchanged.
+- Do not mix `localllm` implementation work with `openwendy` code changes.
 
 # Implementation Items
-- [x] 1. Define answer-first system-prompt variants.
-- [x] 2. Run them against representative prompts and compare visible output versus reasoning-only outcomes.
-- [x] 3. Summarize whether answer-first phrasing materially helps.
+- [x] 1. Update the live main-service flags to enable metrics.
+- [x] 2. Restart and verify the live metrics endpoint.
+- [x] 3. Update `README.md`, `NOTES.md`, and this plan with the result.
+- [x] 4. Prepare concise handoff items for the `openwendy` agent.

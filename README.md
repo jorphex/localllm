@@ -91,7 +91,7 @@ MAIN_MODEL=Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf \
 MAIN_MMPROJ=Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf \
 MAIN_THREADS=10 \
 MAIN_CONTEXT=98304 \
-MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --no-warmup' \
+MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup' \
 EMBED_MODEL=Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf \
 EMBED_DEVICE=none \
 EMBED_GPU_LAYERS=0 \
@@ -182,6 +182,7 @@ Health:
 - `GET http://127.0.0.1:8091/health`
 - `GET http://127.0.0.1:8092/health`
 - optional `GET http://127.0.0.1:8093/health`
+- `GET http://127.0.0.1:8091/metrics`
 
 OpenAI-compatible endpoints:
 - `POST http://127.0.0.1:8091/v1/chat/completions`
@@ -290,7 +291,7 @@ For this host, the current preferred main stack is:
 
 Current tuning:
 
-- main runs on `CUDA0` with `-t 10 -c 98304 -np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --no-warmup`
+- main runs on `CUDA0` with `-t 10 -c 98304 -np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup`
 - no reasoning budget is set on the current main service
 - embeddings run mostly on CPU with `--device none --gpu-layers 0 -t 8 -c 2048 -ub 128 -np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off`
 
