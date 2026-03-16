@@ -6,10 +6,10 @@ Type=simple
 WorkingDirectory=%h/projects/localllm
 Environment=MAIN_HOST=127.0.0.1
 Environment=MAIN_PORT=8091
-Environment=MAIN_MODEL=Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf
-Environment=MAIN_MMPROJ=mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf
+Environment=MAIN_MODEL=Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf
+Environment=MAIN_MMPROJ=Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf
 Environment=MAIN_THREADS=10
-Environment=MAIN_CONTEXT=47104
+Environment=MAIN_CONTEXT=69120
 Environment=MAIN_DEVICE=CUDA0
 Environment=MAIN_GPU_LAYERS=auto
 Environment=MAIN_FIT=true

@@ -1,20 +1,22 @@
 # Goal
-- Find the highest practical context and GPU-offload split for `Huihui-Qwen3-VL-8B-Thinking-abliterated` on this RTX 3080 while preserving a small VRAM safety margin and basic response stability, then set the live main service to that result and document it.
+- Cut `localllm` over from the current `noctrex` Qwen3-VL-8B `Thinking` package to the `mradermacher` Qwen3-VL-8B `Thinking` package with `mmproj-Q8_0`, retune the live context/flags for the 10 GB RTX 3080, remove obsolete model files, update docs, and commit the result.
 
 # Success Criteria
-- A sweep tests multiple context sizes and relevant manual GPU-layer settings.
-- The chosen profile leaves roughly `300` to `500 MiB` free on the GPU when idle, or the closest stable result if none hits that band.
-- The chosen profile both loads and completes a tiny direct reasoning probe cleanly.
-- The live `localllm-main.service` is restored on the selected profile.
-- `README.md` and `NOTES.md` reflect the final tuning decision.
+- Repo defaults and the live main service point at the `mradermacher` `Thinking` model plus `mmproj-Q8_0`.
+- A direct host sweep confirms the best live context target for this package on the current GPU.
+- Requested obsolete model files are removed from the cache.
+- `README.md` documents the new default package and the tuned context.
+- `NOTES.md` records the cutover result and the chosen tuning point.
+- A git commit captures the change.
 
 # Constraints
 - Keep the embedding service unchanged.
-- Prefer empirical stability over maximizing context at any cost.
-- Do not leave the live service on a profile that only barely loads but fails basic completions.
+- Preserve the existing reasoning-first behavior and notes about `<think>` normalization.
+- Prefer the highest context that still leaves practical VRAM headroom and acceptable probe behavior on this host.
 
 # Implementation Items
-- [x] 1. Sweep context and GPU-layer combinations on a temporary main-server launch while the live main service is stopped.
-- [x] 2. Pick the best stable profile based on free VRAM and direct probe behavior.
-- [x] 3. Apply the chosen profile to the live defaults and restart the main service.
-- [x] 4. Update `README.md` and `NOTES.md` with the verified result.
+- [x] 1. Update model defaults to the `mradermacher` `Thinking` package and sweep around the new context ceiling.
+- [x] 2. Apply the chosen live tuning, restart the main service, and verify `/health`, `/props`, and a direct reasoning probe.
+- [x] 3. Remove the requested obsolete model files from the cache.
+- [x] 4. Update `README.md` and `NOTES.md` with the new default package and tuning result.
+- [ ] 5. Commit the cutover.

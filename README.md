@@ -79,18 +79,18 @@ Start the current default stack:
 ```
 
 This now means:
-- `Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf` main on `CUDA0`
-- `mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf`
+- `Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf` main on `CUDA0`
+- `Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf`
 - `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf` embeddings on CPU
 - no separate router service by default
 
 Start the same stack with the full proven `8B` profile explicitly:
 
 ```bash
-MAIN_MODEL=Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf \
-MAIN_MMPROJ=mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf \
+MAIN_MODEL=Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf \
+MAIN_MMPROJ=Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf \
 MAIN_THREADS=10 \
-MAIN_CONTEXT=47104 \
+MAIN_CONTEXT=69120 \
 MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --no-warmup' \
 EMBED_MODEL=Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf \
 EMBED_DEVICE=none \
@@ -198,7 +198,7 @@ Chat:
 curl http://127.0.0.1:8091/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf",
+    "model": "Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf",
     "messages": [
       {
         "role": "user",
@@ -226,7 +226,7 @@ Vision chat on the same main endpoint:
 curl http://127.0.0.1:8091/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf",
+    "model": "Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf",
     "messages": [
       {
         "role": "user",
@@ -246,7 +246,7 @@ from openai import OpenAI
 
 chat = OpenAI(base_url="http://127.0.0.1:8091/v1", api_key="unused")
 reply = chat.chat.completions.create(
-    model="Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf",
+    model="Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf",
     messages=[{"role": "user", "content": "Suggest a clean Python project layout."}],
     temperature=0.2,
 )
@@ -269,8 +269,8 @@ For a coding-agent harness, the usual split is:
 
 These are the built-in defaults for the scripts unless you override them with environment variables:
 
-- main model: `Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf`
-- main `mmproj`: `mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf`
+- main model: `Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf`
+- main `mmproj`: `Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf`
 - embedding model: `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf`
 - separate router service: off by default
 - router model if you opt in: set `ROUTER_MODEL` explicitly
@@ -283,14 +283,14 @@ These are the built-in defaults for the scripts unless you override them with en
 
 For this host, the current preferred main stack is:
 
-- main: `Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf`
-- main `mmproj`: `mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf`
+- main: `Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf`
+- main `mmproj`: `Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf`
 - embedding: `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf`
 - router: no separate router service by default; this host usually reuses the main endpoint when a router decision is needed
 
 Current tuning:
 
-- main runs on `CUDA0` with `-t 10 -c 47104 -np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --no-warmup`
+- main runs on `CUDA0` with `-t 10 -c 69120 -np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --no-warmup`
 - no reasoning budget is set on the current main service
 - embeddings run mostly on CPU with `--device none --gpu-layers 0 -t 8 -c 2048 -ub 128 -np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off`
 
@@ -325,9 +325,9 @@ Reasoning mode note:
 - Any client that wants a strict no-thinking user-visible reply on this stack should be prepared to strip inline `<think>` blocks from `content` or otherwise normalize the response.
 - If your client can pass arbitrary request fields through to the OpenAI-compatible server, one endpoint can support both thinking and non-thinking turns.
 - Example no-thinking request body:
-  `{"model":"Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":false}}`
+  `{"model":"Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":false}}`
 - Example thinking-on request body:
-  `{"model":"Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":true}}`
+  `{"model":"Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":true}}`
 
 OpenWendy handoff note:
 
@@ -338,9 +338,10 @@ OpenWendy handoff note:
 
 Observed steady-state footprint:
 
-- at `-c 47104`, the model still loads cleanly with normal `auto` offload on this host and leaves about `372 MiB` free on the GPU with embeddings still active
-- targeted sweeps found this to be the highest tested context that both matched the requested VRAM headroom band and completed a tiny direct probe cleanly
-- a `131072` retry did load, but it dropped to partial GPU offload and immediately degraded a tiny smoke test, so it is not the recommended live setting for this machine
+- at `-c 69120`, the model still loads cleanly with normal `auto` offload on this host and leaves about `314 MiB` free on the GPU with embeddings still active
+- targeted sweeps found this to be the highest tested context that stayed inside the requested `300` to `500 MiB` VRAM headroom band and completed the tiny direct reasoning probe cleanly
+- nearby contexts showed the tradeoff clearly: `67584` left about `420 MiB` free at about `37.0 tok/s`, `69632` fell below the requested headroom floor at about `278 MiB` free, and `73728` switched into a slower fit regime that left more free VRAM but dropped the tiny probe to about `29.5 tok/s`
+- a `131072` retry did load and answer the tiny probe on this `mmproj-Q8_0` package, but it was only about `14.9 tok/s`, so it is not the recommended live setting for this machine
 - embedding GPU usage: about `214 MiB`
 - embedding RAM usage: about `1.08 GiB` RSS
 
@@ -359,9 +360,9 @@ On this host today, that active cache root still resolves to `~/.cache/openwendy
 
 ### Main / Vision
 
-- `Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf`
-- `mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf`
-- source: https://huggingface.co/noctrex/Huihui-Qwen3-VL-8B-Thinking-abliterated-GGUF
+- `Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf`
+- `Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf`
+- source: https://huggingface.co/mradermacher/Huihui-Qwen3-VL-8B-Thinking-abliterated-GGUF
 
 ### Embeddings
 
