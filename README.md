@@ -90,7 +90,7 @@ Start the same stack with the full proven `8B` profile explicitly:
 MAIN_MODEL=Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf \
 MAIN_MMPROJ=Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf \
 MAIN_THREADS=10 \
-MAIN_CONTEXT=69120 \
+MAIN_CONTEXT=98304 \
 MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --no-warmup' \
 EMBED_MODEL=Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf \
 EMBED_DEVICE=none \
@@ -290,7 +290,7 @@ For this host, the current preferred main stack is:
 
 Current tuning:
 
-- main runs on `CUDA0` with `-t 10 -c 69120 -np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --no-warmup`
+- main runs on `CUDA0` with `-t 10 -c 98304 -np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --no-warmup`
 - no reasoning budget is set on the current main service
 - embeddings run mostly on CPU with `--device none --gpu-layers 0 -t 8 -c 2048 -ub 128 -np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off`
 
@@ -337,10 +337,11 @@ OpenWendy handoff note:
 
 Observed steady-state footprint:
 
-- at `-c 69120` with live `-ctk q4_0 -ctv q4_0`, the model still loads cleanly with normal `auto` offload on this host and leaves about `1546 MiB` free on the GPU with embeddings still active
+- at `-c 98304` with live `-ctk q4_0 -ctv q4_0`, the model still loads cleanly with normal `auto` offload on this host and leaves about `352 MiB` free on the GPU with embeddings still active
 - targeted sweeps found this to be the highest tested context that stayed inside the requested `300` to `500 MiB` VRAM headroom band and completed the tiny direct reasoning probe cleanly
 - before the KV-cache retune, nearby contexts showed the old tradeoff clearly: `67584` left about `420 MiB` free at about `37.0 tok/s`, `69632` fell below the requested headroom floor at about `278 MiB` free, and `73728` switched into a slower fit regime that left more free VRAM but dropped the tiny probe to about `29.5 tok/s`
-- the later KV-cache sweep found batch-size changes mostly irrelevant on this workload, while `-ctk q4_0 -ctv q4_0` was a large win: the exact-OK reasoning probe improved from about `37.4 tok/s` to about `111.7 tok/s`, and the longer agent-looping prompt improved from about `35.4 tok/s` to about `110.4 tok/s`
+- the later KV-cache sweep found batch-size changes mostly irrelevant on this workload, while `-ctk q4_0 -ctv q4_0` was a large win: the exact-OK reasoning probe improved from about `37.4 tok/s` to about `111.3 tok/s`, and the longer agent-looping prompt improved from about `35.4 tok/s` to about `110.4 tok/s`
+- the follow-up context sweep showed that `98304` is the best live ceiling on the new `q4_0/q4_0` profile: it stayed effectively as fast as `69120` at about `110.0 tok/s` on the longer reasoning prompt, while `102400` dropped to about `76.2 tok/s`, `106496` to about `59.5 tok/s`, `110592` to about `48.3 tok/s`, and `114688` to about `40.8 tok/s`
 - a `131072` retry did load and answer the tiny probe on this `mmproj-Q8_0` package, but it was only about `14.9 tok/s`, so it is not the recommended live setting for this machine
 - embedding GPU usage: about `214 MiB`
 - embedding RAM usage: about `1.08 GiB` RSS
