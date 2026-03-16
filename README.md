@@ -62,6 +62,8 @@ The scripts live under `scripts/`.
   Starts one embedding `llama-server` process in the foreground.
 - `./scripts/serve-router.sh`
   Starts one router `llama-server` process in the foreground.
+- `./scripts/chat.sh`
+  Sends a quick terminal prompt to the live main chat service.
 - `./scripts/start-stack.sh`
   Launches detached `screen` sessions for main, embedding, and optional router, then waits for health.
 - `./scripts/status.sh`
@@ -117,6 +119,20 @@ Stop the detached services:
 ```bash
 ./scripts/stop-stack.sh
 ```
+
+Quick terminal chat tests against the live main service:
+
+```bash
+./scripts/chat.sh 'Reply with exactly OK.'
+./scripts/chat.sh -r 'Reply with exactly OK.'
+./scripts/chat.sh -s 'Answer briefly.' 'What does /metrics expose?'
+printf 'Reply with exactly OK.\n' | ./scripts/chat.sh
+```
+
+Notes:
+
+- `-r` prints `reasoning_content` before the visible answer.
+- `-T` sends `enable_thinking=false`, but on this model family that still may not yield a clean no-thinking reply.
 
 ## systemd --user
 
