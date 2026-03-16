@@ -1,22 +1,19 @@
 # Goal
-- Cut `localllm` over from the current `noctrex` Qwen3-VL-8B `Thinking` package to the `mradermacher` Qwen3-VL-8B `Thinking` package with `mmproj-Q8_0`, retune the live context/flags for the 10 GB RTX 3080, remove obsolete model files, update docs, and commit the result.
+- Benchmark a small set of `llama.cpp` flag variants around the current `mradermacher` Qwen3-VL-8B `Thinking` live profile to improve response speed without breaking fit, reasoning behavior, or the chosen `69120` context.
 
 # Success Criteria
-- Repo defaults and the live main service point at the `mradermacher` `Thinking` model plus `mmproj-Q8_0`.
-- A direct host sweep confirms the best live context target for this package on the current GPU.
-- Requested obsolete model files are removed from the cache.
-- `README.md` documents the new default package and the tuned context.
-- `NOTES.md` records the cutover result and the chosen tuning point.
-- A git commit captures the change.
+- A baseline measurement is captured for the current live profile.
+- A small set of plausible flag variants is measured on the same host and prompt shape.
+- If a variant is clearly better and still stable, the live service is updated to use it.
+- `README.md` and `NOTES.md` record the final tuning decision.
 
 # Constraints
+- Keep the same model, projector, and `69120` context unless a flag-only change proves insufficient.
 - Keep the embedding service unchanged.
-- Preserve the existing reasoning-first behavior and notes about `<think>` normalization.
-- Prefer the highest context that still leaves practical VRAM headroom and acceptable probe behavior on this host.
+- Prefer direct host measurements over theoretical wins.
 
 # Implementation Items
-- [x] 1. Update model defaults to the `mradermacher` `Thinking` package and sweep around the new context ceiling.
-- [x] 2. Apply the chosen live tuning, restart the main service, and verify `/health`, `/props`, and a direct reasoning probe.
-- [x] 3. Remove the requested obsolete model files from the cache.
-- [x] 4. Update `README.md` and `NOTES.md` with the new default package and tuning result.
-- [x] 5. Commit the cutover.
+- [x] 1. Capture the current baseline and identify the most plausible speed-sensitive flags to test.
+- [x] 2. Benchmark a small flag matrix on temporary launches with the live service stopped.
+- [x] 3. Apply the best stable profile if it beats the current baseline.
+- [x] 4. Update `README.md`, `NOTES.md`, and this plan with the result.
