@@ -1,19 +1,18 @@
 # Goal
-- Expose the `llama.cpp` metrics endpoint on the live `localllm` main service, verify it, and provide a concise behavioral handoff list for the `openwendy` agent.
+- Tune the temporary `GLM` test load more rigorously by sweeping launch flags at a safe `-c 32768`, then raising context back up until idle headroom lands around `500 MiB`.
 
 # Success Criteria
-- The main service is started with metrics enabled.
-- The live endpoint responds successfully on the current host.
-- Repo docs and notes reflect the metrics endpoint.
-- A concise list of behavioral facts is ready for handoff to the `openwendy` agent.
+- Run a focused flag sweep at `-c 32768` to find a better `GLM` profile than the current scratch defaults if one exists.
+- Re-sweep context with the best flag profile.
+- Leave `GLM` loaded on `8091` at the tuned profile closest to the requested headroom target.
 
 # Constraints
-- Keep the current model, context, and speed-tuned flags unchanged aside from enabling metrics.
-- Keep the embedding service unchanged.
-- Do not mix `localllm` implementation work with `openwendy` code changes.
+- Use a reduced context during the flag sweep so VRAM-fit artifacts do not dominate the comparison.
+- Keep `GLM` as the active temporary test model after the work is done.
+- Favor stable fit and practical responsiveness over marginal gains from risky settings.
 
 # Implementation Items
-- [x] 1. Update the live main-service flags to enable metrics.
-- [x] 2. Restart and verify the live metrics endpoint.
-- [x] 3. Update `README.md`, `NOTES.md`, and this plan with the result.
-- [x] 4. Prepare concise handoff items for the `openwendy` agent.
+- [x] 1. Sweep `GLM` launch flags at `-c 32768`.
+- [x] 2. Pick the best tested flag profile.
+- [x] 3. Re-sweep context on that profile to land near `500 MiB` free VRAM.
+- [x] 4. Restart the temporary `GLM` load on `8091` with the tuned profile.

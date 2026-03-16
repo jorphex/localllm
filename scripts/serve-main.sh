@@ -7,6 +7,7 @@ source "${SCRIPT_DIR}/common.sh"
 MAIN_HOST="${MAIN_HOST:-127.0.0.1}"
 MAIN_PORT="${MAIN_PORT:-8091}"
 MAIN_MODEL="${MAIN_MODEL:-Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf}"
+MAIN_ALIAS="${MAIN_ALIAS:-}"
 MAIN_MMPROJ="${MAIN_MMPROJ:-Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf}"
 MAIN_THREADS="${MAIN_THREADS:-10}"
 MAIN_CONTEXT="${MAIN_CONTEXT:-98304}"
@@ -33,6 +34,10 @@ if [[ -n "${MAIN_MMPROJ}" ]]; then
   MAIN_MMPROJ_PATH="${MODEL_DIR}/${MAIN_MMPROJ}"
   require_file "${MAIN_MMPROJ_PATH}"
   command+=(-mm "${MAIN_MMPROJ_PATH}")
+fi
+
+if [[ -n "${MAIN_ALIAS}" ]]; then
+  command+=(--alias "${MAIN_ALIAS}")
 fi
 
 append_offload_args MAIN command

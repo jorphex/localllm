@@ -63,13 +63,20 @@ The scripts live under `scripts/`.
 - `./scripts/serve-router.sh`
   Starts one router `llama-server` process in the foreground.
 - `./scripts/chat.sh`
-  Sends a quick terminal prompt to the live main chat service.
+  Connects to a currently loaded chat endpoint, lets you pick among the loaded models, and streams reasoning plus visible reply tokens in the terminal.
 - `./scripts/start-stack.sh`
   Launches detached `screen` sessions for main, embedding, and optional router, then waits for health.
 - `./scripts/status.sh`
   Shows detached `screen` sessions and current health endpoints.
 - `./scripts/stop-stack.sh`
   Stops the detached service screens.
+
+Benchmark helpers live under `benchmarks/`.
+
+- `./benchmarks/sweep_profiles.sh`
+  Compares launch-flag profiles for one model at a safe fixed context.
+- `./benchmarks/sweep_contexts.sh`
+  Climbs context for one chosen profile until VRAM headroom lands near a target.
 
 ## Quick Start
 
@@ -85,6 +92,8 @@ This now means:
 - `Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf`
 - `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf` embeddings on CPU
 - no separate router service by default
+
+This is the durable repo default stack, not the temporary experimental candidate that may be manually loaded on `8091` during live testing.
 
 Start the same stack with the full proven `8B` profile explicitly:
 
@@ -120,19 +129,21 @@ Stop the detached services:
 ./scripts/stop-stack.sh
 ```
 
-Quick terminal chat tests against the live main service:
+Quick terminal chat tests against currently loaded chat services:
 
 ```bash
-./scripts/chat.sh 'Reply with exactly OK.'
-./scripts/chat.sh -r 'Reply with exactly OK.'
-./scripts/chat.sh -s 'Answer briefly.' 'What does /metrics expose?'
-printf 'Reply with exactly OK.\n' | ./scripts/chat.sh
+./scripts/chat.sh
+CHAT_PORT=8091 ./scripts/chat.sh 'Reply with exactly OK.'
+CHAT_PORT=8091 ./scripts/chat.sh -T 'Reply with exactly OK.'
 ```
 
 Notes:
 
-- `-r` prints `reasoning_content` before the visible answer.
-- `-T` sends `enable_thinking=false`, but on this model family that still may not yield a clean no-thinking reply.
+- In a real terminal with no explicit `CHAT_PORT` or `CHAT_MODEL`, `./scripts/chat.sh` discovers loaded chat endpoints from `CHAT_ENDPOINTS` and opens an arrow-key picker for them.
+- The default discovery list is `127.0.0.1:8091,127.0.0.1:8093`; override it with `CHAT_ENDPOINTS=host1:port1,host2:port2`.
+- Streamed reasoning tokens print in gray, visible reply tokens in white, and streamed tool-call deltas in cyan.
+- Sampling and reasoning controls can be set per request with `--temp`, `--top-p`, `--top-k`, `--presence`, `--repeat`, and `-B` / `--thinking-budget`.
+- `-T` sends `enable_thinking=false`, but on some model families that still may not yield a clean no-thinking reply.
 
 ## systemd --user
 
@@ -204,8 +215,13 @@ OpenAI-compatible endpoints:
 - `POST http://127.0.0.1:8091/v1/chat/completions`
 - `POST http://127.0.0.1:8092/v1/embeddings`
 - optional `POST http://127.0.0.1:8093/v1/chat/completions`
+- `GET http://127.0.0.1:8091/props`
 
 The services do not require a real API key for local use. Clients that insist on one can use any placeholder string such as `dummy` or `unused`.
+
+When only one model is loaded on an endpoint, the local `llama.cpp` server can accept chat requests without an explicit `model` field. Many OpenAI-compatible clients still insist on sending `model` anyway, so practical client behavior may differ. If you want a shorter stable name than the GGUF filename, `llama-server` also supports `--alias`.
+
+`GET /props` is the simplest endpoint for discovering what a live service is actually serving. It includes fields such as `model_alias`, `model_path`, modality flags, and endpoint capabilities. When a service is started with `--alias`, that alias is what downstream clients and `./scripts/chat.sh` will see.
 
 ### curl examples
 
@@ -345,7 +361,44 @@ Reasoning mode note:
 - Example thinking-on request body:
   `{"model":"Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":true}}`
 
-OpenWendy handoff note:
+Recent local candidate findings:
+
+- These findings describe the current local finalist comparison work. They do not automatically change the durable repo default stack shown above.
+
+- Low `max_tokens` caps can make thinking-first models look much worse than they are. In local Qwen3.5 testing, capped runs often ended with `finish_reason="length"` and empty visible `content`, but uncapped reruns showed the same models could eventually complete with substantial visible answers.
+- The practical issue is now better described as reasoning efficiency and handoff quality, not simple inability to finish.
+- Thinking budgets are not just on or off. On local Qwen3.5 tests, the clean handoff from reasoning into visible answer depended on the budget value; too little budget could let truncated reasoning leak into the visible answer, while larger budgets could still truncate thought more cleanly before the final answer.
+- Earlier second-turn tool-flow failures turned out to be a harness-format issue. Replaying the model's actual first-turn assistant tool-call message fixed second-turn tool integration for the remaining local candidates.
+- On the current local comparison path, `Abhiray` and `mradermacher` Qwen3.5 variants behaved similarly enough that `Abhiray` was dropped as redundant.
+- On the current shortlist, `unsloth` is the plain Qwen3.5 path, while `GLM` and `mradermacher` are the abliterated-style options. The current practical recommendation is `GLM` for the cleaner mixed-use path and `unsloth` for the stronger plain Qwen3.5 path, with `mradermacher` trailing as a verbose fallback.
+- Stable aliases for the current finalists:
+  - `glm-4.6v` -> `Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf`
+  - `qwen-3.5-abl` -> `Huihui-Qwen3.5-9B-abliterated-Q4_K_M.mradermacher.gguf`
+  - `qwen-3.5` -> `Qwen3.5-9B-Q4_K_M.unsloth.gguf`
+- When manually swapping models with `./scripts/serve-main.sh`, set `MAIN_ALIAS` to one of those names so `/props` and downstream clients see the stable alias instead of the raw GGUF filename.
+- Local tuning outcome for the two Qwen3.5 finalists on this host:
+  - `qwen-3.5` was best on `-np 1 -tb 8 -b 256 -ub 128 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup`, and the closest tested `~500 MiB` idle headroom point was `-c 362496` with about `508 MiB` free.
+  - `qwen-3.5-abl` was best on the same launch profile, and the closest tested `~500 MiB` idle headroom point was `-c 397312` with about `506 MiB` free.
+
+Current temporary `GLM` test profile:
+
+- This is an experimental live-test profile, not the durable repo default stack.
+- model: `Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf`
+- `mmproj`: `Huihui-GLM-4.6V-Flash-abliterated-mmproj-f16.gguf`
+- launch context: `160768`
+- effective context: `131072` on the current `llama.cpp` runtime because the server caps it to the model training context
+- threads: `10`
+- extra args: `-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup`
+- on this host, that profile leaves about `494 MiB` free VRAM at idle and keeps the tiny direct probe around `91.9 tok/s`
+- local tuning lesson: for `GLM`, a safe `-c 32768` sweep was the right way to compare flags first, then raise context on the winning profile until VRAM headroom lands near the target
+
+Benchmark workflow note:
+
+- Keep reproducible tuning logic in `benchmarks/`, not in ad hoc `/tmp` scratch scripts.
+- The current helpers expect GGUF filenames and sweep settings through environment variables such as `BENCH_MODEL`, `BENCH_MMPROJ`, `BENCH_PROFILE_SPECS`, and `BENCH_CONTEXTS`.
+- The same workflow that worked for `GLM` also worked for the Qwen3.5 finalists: sweep flags at `-c 32768`, keep the best profile, then climb context until idle VRAM lands near the target headroom.
+
+Qwen3-VL handoff note:
 
 - Treat this as a thinking-first model, not a reliably switchable hybrid.
 - Prefer `chat_template_kwargs.enable_thinking=true` if you want structured `reasoning_content`.
