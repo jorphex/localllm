@@ -79,25 +79,19 @@ Start the current default stack:
 ```
 
 This now means:
-- `Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf` main on `CUDA0`
-- `Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf`
+- `Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf` main on `CUDA0`
+- `mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf`
 - `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf` embeddings on CPU
 - no separate router service by default
 
-Start the same stack but use the lighter `Q4_K_S` main:
+Start the same stack with the full proven `8B` profile explicitly:
 
 ```bash
-MAIN_MODEL=Huihui-Qwen3.5-9B-abliterated.Q4_K_S.gguf ./scripts/start-stack.sh
-```
-
-Start the current proven `9B` profile explicitly:
-
-```bash
-MAIN_MODEL=Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf \
-MAIN_MMPROJ=Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf \
+MAIN_MODEL=Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf \
+MAIN_MMPROJ=mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf \
 MAIN_THREADS=10 \
-MAIN_CONTEXT=131072 \
-MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on' \
+MAIN_CONTEXT=47104 \
+MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --no-warmup' \
 EMBED_MODEL=Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf \
 EMBED_DEVICE=none \
 EMBED_GPU_LAYERS=0 \
@@ -110,11 +104,11 @@ START_ROUTER=false \
 ./scripts/start-stack.sh
 ```
 
-If you want a separate router service anyway, opt in explicitly:
+If you want a separate router service anyway, opt in explicitly with your own smaller router model. On this 10 GB host, running a second large multimodal model beside the main `8B` service is not the recommended default:
 
 ```bash
 START_ROUTER=true \
-ROUTER_MODEL=Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf \
+ROUTER_MODEL=/absolute/path/to/your-router-model.gguf \
 ./scripts/start-stack.sh
 ```
 
@@ -204,7 +198,7 @@ Chat:
 curl http://127.0.0.1:8091/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf",
+    "model": "Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf",
     "messages": [
       {
         "role": "user",
@@ -232,7 +226,7 @@ Vision chat on the same main endpoint:
 curl http://127.0.0.1:8091/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf",
+    "model": "Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf",
     "messages": [
       {
         "role": "user",
@@ -252,7 +246,7 @@ from openai import OpenAI
 
 chat = OpenAI(base_url="http://127.0.0.1:8091/v1", api_key="unused")
 reply = chat.chat.completions.create(
-    model="Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf",
+    model="Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf",
     messages=[{"role": "user", "content": "Suggest a clean Python project layout."}],
     temperature=0.2,
 )
@@ -275,11 +269,11 @@ For a coding-agent harness, the usual split is:
 
 These are the built-in defaults for the scripts unless you override them with environment variables:
 
-- main model: `Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf`
-- main `mmproj`: `Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf`
+- main model: `Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf`
+- main `mmproj`: `mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf`
 - embedding model: `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf`
 - separate router service: off by default
-- router model if you opt in: `Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf`
+- router model if you opt in: set `ROUTER_MODEL` explicitly
 - ports: `8091`, `8092`, `8093`
 - main device defaults: `CUDA0` with `--gpu-layers auto` and `--fit on`
 - embedding device defaults: `none` with `--gpu-layers 0` and no `--fit`
@@ -287,16 +281,16 @@ These are the built-in defaults for the scripts unless you override them with en
 
 ## Current Preferred Stack
 
-For this host, the current preferred `9B` stack is:
+For this host, the current preferred main stack is:
 
-- main: `Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf`
-- main `mmproj`: `Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf`
+- main: `Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf`
+- main `mmproj`: `mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf`
 - embedding: `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf`
 - router: no separate router service by default; this host usually reuses the main endpoint when a router decision is needed
 
 Current tuning:
 
-- main runs on `CUDA0` with `-t 10 -c 131072 -np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on`
+- main runs on `CUDA0` with `-t 10 -c 47104 -np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --no-warmup`
 - no reasoning budget is set on the current main service
 - embeddings run mostly on CPU with `--device none --gpu-layers 0 -t 8 -c 2048 -ub 128 -np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off`
 
@@ -311,12 +305,14 @@ Useful additional knobs exposed by `llama-server` and compatible with the `*_EXT
 - `--slots` and `--props` for deeper runtime introspection and live tuning
 - draft/speculative decoding flags such as `--model-draft`, `--draft`, and `--spec-type`
 
-Why the current main tuning changed:
+Why the current main tuning looks like this:
 
 - `--threads-http 6` increases the HTTP worker pool so request handling overhead is less likely to bottleneck the model server.
 - `-ctk q8_0` stores the KV cache K tensors in `q8_0` instead of `f16`, reducing memory pressure.
 - `-ctv q8_0` stores the KV cache V tensors in `q8_0` instead of `f16`, reducing memory pressure further.
-- On this host, that combination improved a simple chat probe from roughly `0.57 s` to `0.13 s` and increased free VRAM from roughly `262 MiB` to `594 MiB`.
+- `-b 2048 -ub 512 -cram 512` keeps the `8B` multimodal profile stable on this RTX 3080 while still allowing a larger-context fit than the earlier `24K` setting.
+- `-rea on` keeps the server in reasoning-capable mode so the same endpoint can serve both thinking and non-thinking turns.
+- `--no-warmup` removes startup warmup work and matched the direct probe profile that proved stable for this candidate.
 
 Reasoning mode note:
 
@@ -324,16 +320,27 @@ Reasoning mode note:
 - No `--reasoning-budget` is configured on the current main service, so thinking is not artificially capped at startup.
 - Generic OpenAI-style request fields such as `reasoning_effort` and `reasoning: false` were not the correct switch for this setup.
 - For Qwen-style switching, the correct request knob is `chat_template_kwargs.enable_thinking`.
-- In direct tests against this `llama-server`, `chat_template_kwargs: {"enable_thinking": false}` returned a plain answer without `reasoning_content`, while `chat_template_kwargs: {"enable_thinking": true}` returned thinking output.
+- On the current `Huihui-Qwen3-VL-8B-Thinking-abliterated` stack, `chat_template_kwargs: {"enable_thinking": true}` returns a visible answer plus separate `reasoning_content`.
+- On the same stack, `chat_template_kwargs: {"enable_thinking": false}` is not a clean no-thinking mode: the model may still inline a `<think> ... </think>` block into `content` before the final answer.
+- Any client that wants a strict no-thinking user-visible reply on this stack should be prepared to strip inline `<think>` blocks from `content` or otherwise normalize the response.
 - If your client can pass arbitrary request fields through to the OpenAI-compatible server, one endpoint can support both thinking and non-thinking turns.
 - Example no-thinking request body:
-  `{"model":"Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":false}}`
+  `{"model":"Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":false}}`
 - Example thinking-on request body:
-  `{"model":"Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":true}}`
+  `{"model":"Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf","messages":[{"role":"user","content":"Reply with exactly OK."}],"chat_template_kwargs":{"enable_thinking":true}}`
+
+OpenWendy handoff note:
+
+- Treat this as a thinking-first model, not a reliably switchable hybrid.
+- Prefer `chat_template_kwargs.enable_thinking=true` if you want structured `reasoning_content`.
+- If you send `enable_thinking=false`, still normalize the reply by stripping any inline `<think> ... </think>` block from `message.content` before showing it to the user.
+- Do not rely on the absence of `reasoning_content` alone to decide whether hidden reasoning was emitted.
 
 Observed steady-state footprint:
 
-- main GPU usage: about `9.4 GiB`
+- at `-c 47104`, the model still loads cleanly with normal `auto` offload on this host and leaves about `372 MiB` free on the GPU with embeddings still active
+- targeted sweeps found this to be the highest tested context that both matched the requested VRAM headroom band and completed a tiny direct probe cleanly
+- a `131072` retry did load, but it dropped to partial GPU offload and immediately degraded a tiny smoke test, so it is not the recommended live setting for this machine
 - embedding GPU usage: about `214 MiB`
 - embedding RAM usage: about `1.08 GiB` RSS
 
@@ -345,17 +352,16 @@ Preferred `llama-server` binary path:
 
 - `~/.local/share/localllm/llama.cpp/bin/llama-server`
 
-## Current Cached Models
+## Current Stack Files
 
-These are the model files currently present under the active GGUF cache.
+These are the model files the current preferred stack expects under the active GGUF cache.
 On this host today, that active cache root still resolves to `~/.cache/openwendy/gguf` via the compatibility fallback.
 
 ### Main / Vision
 
-- `Huihui-Qwen3.5-9B-abliterated.Q4_K_S.gguf`
-- `Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf`
-- `Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf`
-- source: https://huggingface.co/mradermacher/Huihui-Qwen3.5-9B-abliterated-GGUF
+- `Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf`
+- `mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf`
+- source: https://huggingface.co/noctrex/Huihui-Qwen3-VL-8B-Thinking-abliterated-GGUF
 
 ### Embeddings
 

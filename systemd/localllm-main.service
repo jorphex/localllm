@@ -6,14 +6,14 @@ Type=simple
 WorkingDirectory=%h/projects/localllm
 Environment=MAIN_HOST=127.0.0.1
 Environment=MAIN_PORT=8091
-Environment=MAIN_MODEL=Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf
-Environment=MAIN_MMPROJ=Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf
+Environment=MAIN_MODEL=Huihui-Qwen3-VL-8B-Thinking-abliterated-Q4_K_M.noctrex.gguf
+Environment=MAIN_MMPROJ=mmproj-Huihui-Qwen3-VL-8B-Thinking-abliterated-F16.noctrex.gguf
 Environment=MAIN_THREADS=10
-Environment=MAIN_CONTEXT=131072
+Environment=MAIN_CONTEXT=47104
 Environment=MAIN_DEVICE=CUDA0
 Environment=MAIN_GPU_LAYERS=auto
 Environment=MAIN_FIT=true
-Environment="MAIN_EXTRA_ARGS=-np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on"
+Environment="MAIN_EXTRA_ARGS=-np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q8_0 -ctv q8_0 -rea on --no-warmup"
 ExecStart=%h/projects/localllm/scripts/serve-main.sh
 Restart=always
 RestartSec=3

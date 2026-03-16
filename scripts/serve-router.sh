@@ -6,13 +6,18 @@ source "${SCRIPT_DIR}/common.sh"
 
 ROUTER_HOST="${ROUTER_HOST:-127.0.0.1}"
 ROUTER_PORT="${ROUTER_PORT:-8093}"
-ROUTER_MODEL="${ROUTER_MODEL:-Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf}"
+ROUTER_MODEL="${ROUTER_MODEL:-}"
 ROUTER_THREADS="${ROUTER_THREADS:-10}"
 ROUTER_CONTEXT="${ROUTER_CONTEXT:-4096}"
 ROUTER_DEVICE="${ROUTER_DEVICE:-CUDA0}"
 ROUTER_GPU_LAYERS="${ROUTER_GPU_LAYERS:-auto}"
 ROUTER_FIT="${ROUTER_FIT:-true}"
 ROUTER_EXTRA_ARGS="${ROUTER_EXTRA_ARGS:--np 1 -tb 20 -b 4096 -ub 1024 -cram 1024 -fa on}"
+
+if [[ -z "${ROUTER_MODEL}" ]]; then
+  echo "Set ROUTER_MODEL explicitly before starting the optional router service." >&2
+  exit 1
+fi
 
 ROUTER_MODEL_PATH="${MODEL_DIR}/${ROUTER_MODEL}"
 require_file "${LLAMA_SERVER_BIN}"
