@@ -90,21 +90,22 @@ Start the current default stack:
 ```
 
 This now means:
-- `Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf` main on `CUDA0`
-- `Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf`
+- `Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf` main on `CUDA0`
+- `Huihui-GLM-4.6V-Flash-abliterated-mmproj-f16.gguf`
 - `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf` embeddings on CPU
 - no separate router service by default
 
-This is the durable repo default stack, not the temporary experimental candidate that may be manually loaded on `8091` during live testing.
+This is the durable repo default stack.
 
 Start the same stack with the full proven `8B` profile explicitly:
 
 ```bash
-MAIN_MODEL=Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf \
-MAIN_MMPROJ=Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf \
+MAIN_MODEL=Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf \
+MAIN_ALIAS=glm-4.6v \
+MAIN_MMPROJ=Huihui-GLM-4.6V-Flash-abliterated-mmproj-f16.gguf \
 MAIN_THREADS=10 \
-MAIN_CONTEXT=98304 \
-MAIN_EXTRA_ARGS='-np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup' \
+MAIN_CONTEXT=131072 \
+MAIN_EXTRA_ARGS='-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup' \
 EMBED_MODEL=Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf \
 EMBED_DEVICE=none \
 EMBED_GPU_LAYERS=0 \
@@ -304,8 +305,9 @@ For a coding-agent harness, the usual split is:
 
 These are the built-in defaults for the scripts unless you override them with environment variables:
 
-- main model: `Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf`
-- main `mmproj`: `Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf`
+- main model: `Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf`
+- main alias: `glm-4.6v`
+- main `mmproj`: `Huihui-GLM-4.6V-Flash-abliterated-mmproj-f16.gguf`
 - embedding model: `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf`
 - separate router service: off by default
 - router model if you opt in: set `ROUTER_MODEL` explicitly
@@ -318,14 +320,15 @@ These are the built-in defaults for the scripts unless you override them with en
 
 For this host, the current preferred main stack is:
 
-- main: `Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf`
-- main `mmproj`: `Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf`
+- main: `Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf`
+- main alias: `glm-4.6v`
+- main `mmproj`: `Huihui-GLM-4.6V-Flash-abliterated-mmproj-f16.gguf`
 - embedding: `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf`
 - router: no separate router service by default; this host usually reuses the main endpoint when a router decision is needed
 
 Current tuning:
 
-- main runs on `CUDA0` with `-t 10 -c 98304 -np 1 -tb 20 -b 2048 -ub 512 -cram 512 -fa on --threads-http 6 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup`
+- main runs on `CUDA0` with `-t 10 -c 131072 -np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup`
 - no reasoning budget is set on the current main service
 - embeddings run mostly on CPU with `--device none --gpu-layers 0 -t 8 -c 2048 -ub 128 -np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off`
 
@@ -449,9 +452,9 @@ On this host today, that active cache root still resolves to `~/.cache/openwendy
 
 ### Main / Vision
 
-- `Huihui-Qwen3-VL-8B-Thinking-abliterated.Q4_K_M.gguf`
-- `Huihui-Qwen3-VL-8B-Thinking-abliterated.mmproj-Q8_0.gguf`
-- source: https://huggingface.co/mradermacher/Huihui-Qwen3-VL-8B-Thinking-abliterated-GGUF
+- `Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf`
+- `Huihui-GLM-4.6V-Flash-abliterated-mmproj-f16.gguf`
+- source: https://huggingface.co/huihui-ai/Huihui-GLM-4.6V-Flash-abliterated-GGUF
 
 ### Embeddings
 
