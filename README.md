@@ -118,6 +118,8 @@ Main runtime scripts:
 Preset-switching scripts:
 
 - `scripts/load-main-preset.sh`
+- `scripts/list-presets.sh`
+- `scripts/current-main.sh`
 - `scripts/load-qwen-3.5.sh`
 - `scripts/load-qwen-3.5-abl.sh`
 - `scripts/load-glm-4.6v.sh`
