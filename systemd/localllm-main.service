@@ -6,15 +6,7 @@ Type=simple
 WorkingDirectory=%h/projects/localllm
 Environment=MAIN_HOST=127.0.0.1
 Environment=MAIN_PORT=8091
-Environment=MAIN_MODEL=Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf
-Environment=MAIN_ALIAS=glm-4.6v
-Environment=MAIN_MMPROJ=Huihui-GLM-4.6V-Flash-abliterated-mmproj-f16.gguf
-Environment=MAIN_THREADS=10
-Environment=MAIN_CONTEXT=131072
-Environment=MAIN_DEVICE=CUDA0
-Environment=MAIN_GPU_LAYERS=auto
-Environment=MAIN_FIT=true
-Environment="MAIN_EXTRA_ARGS=-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup"
+EnvironmentFile=%h/projects/localllm/config/localllm-main.env
 ExecStart=%h/projects/localllm/scripts/serve-main.sh
 Restart=always
 RestartSec=3

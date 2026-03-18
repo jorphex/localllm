@@ -20,8 +20,13 @@ default_llama_server_bin() {
 }
 
 default_model_dir() {
+  local repo_models="${HOME}/projects/localllm/models"
   local localllm_models="${HOME}/.cache/localllm/gguf"
   local legacy_models="${HOME}/.cache/openwendy/gguf"
+  if [[ -d "${repo_models}" ]]; then
+    printf '%s\n' "${repo_models}"
+    return
+  fi
   if [[ -d "${localllm_models}" ]]; then
     printf '%s\n' "${localllm_models}"
     return

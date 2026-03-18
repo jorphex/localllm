@@ -6,8 +6,9 @@ source "${SCRIPT_DIR}/common.sh"
 
 OUT_DIR="${OUT_DIR:-/tmp/localllm-coding-compare}"
 THINKING_BUDGET="${THINKING_BUDGET:-1000}"
+THINKING_BUDGETS="${THINKING_BUDGETS:-}"
 CURL_TIMEOUT="${CURL_TIMEOUT:-300}"
-PROMPTS="${PROMPTS:-simple_edit retry_bug task_runner}"
+PROMPTS="${PROMPTS:-simple_edit retry_bug task_runner merge_intervals}"
 CANDIDATE_SPECS="${CANDIDATE_SPECS:-}"
 
 declare -A prompt_text
@@ -56,6 +57,18 @@ Design and implement one self-contained Python file that defines a TaskRunner cl
 Use concise comments and practical structure. Return code only.
 TXT
 )
+prompt_text[merge_intervals]=$(cat <<'TXT'
+Return only Python code.
+
+Write a function `merge_intervals(intervals)` that:
+- accepts a list of `[start, end]` integer pairs
+- merges overlaps and touching ranges
+- returns ranges sorted by start
+- preserves single-item ranges
+
+Include 4 short doctest-style examples at the end.
+TXT
+)
 
 if [[ -z "${CANDIDATE_SPECS}" ]]; then
   echo "Set CANDIDATE_SPECS to semicolon-separated candidate specs." >&2
@@ -65,6 +78,13 @@ fi
 
 mkdir -p "${OUT_DIR}"
 IFS=';' read -r -a candidates <<< "${CANDIDATE_SPECS}"
+
+declare -a budgets
+if [[ -n "${THINKING_BUDGETS}" ]]; then
+  read -r -a budgets <<< "${THINKING_BUDGETS}"
+else
+  budgets=("${THINKING_BUDGET}")
+fi
 
 run_candidate() {
   local alias="$1"
@@ -89,38 +109,46 @@ run_candidate() {
   wait_for_server "${port}" 180
   echo "MODEL ${alias} PORT ${port} READY"
 
-  local prompt_name response_json
-  for prompt_name in ${PROMPTS}; do
-    response_json="$(
-      jq -cn \
-        --arg model "${alias}" \
-        --arg prompt "${prompt_text[$prompt_name]}" \
-        --argjson temp "${temp}" \
-        --argjson top_p "${top_p}" \
-        --argjson top_k "${top_k}" \
-        --argjson presence "${presence}" \
-        --argjson repeat_penalty "${repeat_penalty}" \
-        --argjson thinking_budget "${THINKING_BUDGET}" \
-        '{
-          model: $model,
-          messages: [{role:"user", content:$prompt}],
-          temperature: $temp,
-          top_p: $top_p,
-          top_k: $top_k,
-          presence_penalty: $presence,
-          repeat_penalty: $repeat_penalty,
-          thinking_budget_tokens: $thinking_budget,
-          chat_template_kwargs: {enable_thinking: true},
-          stream: false
-        }' \
-      | curl -sS --max-time "${CURL_TIMEOUT}" "http://127.0.0.1:${port}/v1/chat/completions" \
-          -H 'Content-Type: application/json' \
-          -d @-
-    )"
-    printf '%s' "${response_json}" > "${OUT_DIR}/${alias}_${prompt_name}.json"
-    jq -r '.choices[0].message.content // ""' "${OUT_DIR}/${alias}_${prompt_name}.json" > "${OUT_DIR}/${alias}_${prompt_name}.txt"
-    jq -c '{alias:$alias,prompt:$prompt,finish_reason:(.choices[0].finish_reason // ""),content_len:((.choices[0].message.content // "")|length),reasoning_len:((.choices[0].message.reasoning_content // "")|length),predicted_per_second:(.timings.predicted_per_second // 0)}' \
-      --arg alias "${alias}" --arg prompt "${prompt_name}" "${OUT_DIR}/${alias}_${prompt_name}.json"
+  local budget prompt_name response_json budget_label request_json
+  for budget in "${budgets[@]}"; do
+    budget_label="${budget}"
+    if [[ -z "${budget_label}" || "${budget_label}" == "uncapped" ]]; then
+      budget_label="uncapped"
+    fi
+    for prompt_name in ${PROMPTS}; do
+      request_json="$(
+        jq -cn \
+          --arg model "${alias}" \
+          --arg prompt "${prompt_text[$prompt_name]}" \
+          --argjson temp "${temp}" \
+          --argjson top_p "${top_p}" \
+          --argjson top_k "${top_k}" \
+          --argjson presence "${presence}" \
+          --argjson repeat_penalty "${repeat_penalty}" \
+          --arg budget "${budget}" \
+          '{
+            model: $model,
+            messages: [{role:"user", content:$prompt}],
+            temperature: $temp,
+            top_p: $top_p,
+            top_k: $top_k,
+            presence_penalty: $presence,
+            repeat_penalty: $repeat_penalty,
+            chat_template_kwargs: {enable_thinking: true},
+            stream: false
+          } + (if $budget == "" or $budget == "uncapped" then {} else {thinking_budget_tokens: ($budget|tonumber)} end)'
+      )"
+      response_json="$(
+        printf '%s' "${request_json}" \
+        | curl -sS --max-time "${CURL_TIMEOUT}" "http://127.0.0.1:${port}/v1/chat/completions" \
+            -H 'Content-Type: application/json' \
+            -d @-
+      )"
+      printf '%s' "${response_json}" > "${OUT_DIR}/${alias}_${prompt_name}_${budget_label}.json"
+      jq -r '.choices[0].message.content // ""' "${OUT_DIR}/${alias}_${prompt_name}_${budget_label}.json" > "${OUT_DIR}/${alias}_${prompt_name}_${budget_label}.txt"
+      jq -c '{alias:$alias,prompt:$prompt,budget:$budget,finish_reason:(.choices[0].finish_reason // ""),content_len:((.choices[0].message.content // "")|length),reasoning_len:((.choices[0].message.reasoning_content // "")|length),predicted_per_second:(.timings.predicted_per_second // 0)}' \
+        --arg alias "${alias}" --arg prompt "${prompt_name}" --arg budget "${budget_label}" "${OUT_DIR}/${alias}_${prompt_name}_${budget_label}.json"
+    done
   done
 
   stop_temp_server "${pid}"
