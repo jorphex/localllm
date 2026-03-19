@@ -389,14 +389,18 @@ def main() -> None:
                 )
                 tool_result: dict | None = None
                 if tool_name == "run_tests":
-                    tool_result = json.loads(tool_output)
-                    normalized_verify = normalize_test_command(scenario["verify_command"])
-                    normalized_seen = normalize_test_command(tool_result["command"])
-                    if (
-                        tool_result["returncode"] == 0
-                        and test_targets(normalized_seen) == test_targets(normalized_verify)
-                    ):
-                        solved = True
+                    try:
+                        tool_result = json.loads(tool_output)
+                    except json.JSONDecodeError:
+                        tool_result = None
+                    if tool_result is not None:
+                        normalized_verify = normalize_test_command(scenario["verify_command"])
+                        normalized_seen = normalize_test_command(tool_result["command"])
+                        if (
+                            tool_result["returncode"] == 0
+                            and test_targets(normalized_seen) == test_targets(normalized_verify)
+                        ):
+                            solved = True
                 for index, follow_up in enumerate(scenario.get("follow_ups", [])):
                     if index in fired_follow_ups:
                         continue

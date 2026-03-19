@@ -8,6 +8,10 @@ from pathlib import Path
 import httpx
 
 
+def normalize_finish_reason(value: str) -> str:
+    return value.replace("-", "_")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", required=True)
@@ -32,7 +36,7 @@ def summary_for_turn(turn: dict, payload: dict, response: dict, elapsed: float) 
     return {
         "turn": turn["name"],
         "elapsed_seconds": elapsed,
-        "finish_reason": response["choices"][0].get("finish_reason", ""),
+        "finish_reason": normalize_finish_reason(response["choices"][0].get("finish_reason", "")),
         "content_len": len(message.get("content", "")),
         "reasoning_len": len(message.get("reasoning_content", "")),
         "predicted_per_second": response.get("timings", {}).get("predicted_per_second", 0),
@@ -41,7 +45,8 @@ def summary_for_turn(turn: dict, payload: dict, response: dict, elapsed: float) 
         "expect": expected,
         "matches_finish_reason": (
             expected.get("finish_reason") is None
-            or expected.get("finish_reason") == response["choices"][0].get("finish_reason", "")
+            or normalize_finish_reason(expected.get("finish_reason", ""))
+            == normalize_finish_reason(response["choices"][0].get("finish_reason", ""))
         ),
         "matches_tool_names": (
             not expected.get("tool_names")

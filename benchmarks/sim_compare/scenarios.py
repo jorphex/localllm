@@ -62,6 +62,19 @@ SCENARIOS = {
         "verify_command": "python3 -m unittest tests.test_retry",
         "expected_modified_files": ["worker/retry.py"],
     },
+    "command_denial_recovery": {
+        "title": "Recover after a denied test command",
+        "prompt": (
+            "You are fixing a retry-helper regression in a small Python repo inside a "
+            "disposable benchmark workspace. A stale runbook suggests trying "
+            "`pytest tests/test_retry.py::FetchWithRetryTests::test_raises_last_error_after_final_attempt -q` "
+            "first, but the harness may reject unsupported test-command shapes. "
+            "Recover cleanly if that happens, keep the patch minimal, and verify with "
+            "the smallest allowed targeted test command before stopping."
+        ),
+        "verify_command": "python3 -m unittest tests.test_retry",
+        "expected_modified_files": ["worker/retry.py"],
+    },
     "batch_tail_recovery": {
         "title": "Batch helper recovery after a bad first patch",
         "prompt": (
