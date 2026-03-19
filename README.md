@@ -1,17 +1,21 @@
 # localllm
 
-`localllm` is a local `llama.cpp` service layer for any client that can speak OpenAI-style HTTP.
+`localllm` is a local `llama.cpp` service layer for OpenAI-style clients.
 
-This repo now keeps durable GGUF assets under the repo-local `models/` directory instead of treating `~/.cache/openwendy/gguf` as the primary model store. Legacy fallback support still exists for older consumers, but the preferred layout on this host is:
+## Current Host State
+
+Current runtime layout on this host:
 
 - models: `~/projects/localllm/models`
-- binary: `~/.local/share/localllm/llama.cpp/bin/llama-server`
-- legacy fallback models: `~/.cache/openwendy/gguf`
-- legacy fallback binary: `~/.local/share/openwendy/llama.cpp/bin/llama-server`
+- source checkout: `~/.local/src/llama.cpp`
+- runtime binary: `~/.local/share/localllm/llama.cpp/bin/llama-server`
+- PATH shim: `~/.local/bin/llama-server`
+
+The old `~/.local/share/openwendy/llama.cpp` runtime path is no longer used on this host.
 
 ## Current Main Presets
 
-The repo keeps three durable main-model presets:
+Retained durable main-model presets:
 
 - `qwen-3.5-abl`
   - model: `Huihui-Qwen3.5-9B-abliterated-Q4_K_M.mradermacher.gguf`
@@ -23,30 +27,81 @@ The repo keeps three durable main-model presets:
   - `mmproj`: `mmproj-Qwen3.5-9B-F16.unsloth.gguf`
   - context: `131072`
   - extra args: `-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288`
-- `glm-4.6v`
-  - model: `Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf`
-  - `mmproj`: `Huihui-GLM-4.6V-Flash-abliterated-mmproj-f16.gguf`
+- `omnicoder-9b`
+  - model: `OmniCoder-9B.Q4_K_M.gguf`
+  - `mmproj`: `OmniCoder-9B.mmproj-Q8_0.gguf`
   - context: `131072`
-  - extra args: `-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 1792`
+  - extra args: `-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288`
 
-The active default preset in `config/localllm-main.env` is now `qwen-3.5-abl`.
+Current default baseline:
 
-## Why DeepSeek Was Removed
+- `qwen-3.5-abl`
 
-`DeepSeek-Coder-V2-Lite-Instruct-Q4_K_M.gguf` was tested heavily and then removed from disk.
+Any new candidate should beat this baseline in real client behavior, not just synthetic fit or speed.
 
-Measured result on this 10 GB GPU:
+## Recommended Qwen 3.5 Request Shape
 
-- `128k` technically fit, but only by spilling more layers to CPU
-- large first-turn `~10k` preload timed out at `128k`, `96k`, and `88k`
-- even at improved `-b 128 -ub 64`, `128k` DeepSeek still did not return a first byte within `450s`
-- agentic barrage behavior stayed clean, but tool-taking was weak compared with plain Qwen
+Recommended defaults for Qwen 3.5 family requests on this host:
 
-Practical conclusion: DeepSeek was not a good operational fit for this host and workload.
+- do not set `max_tokens` by default for viability comparisons or real agent tests
+- set `chat_template_kwargs.enable_thinking` explicitly instead of relying on template defaults
+- prefer uncapped runs for natural behavior
+- if a controlled reasoning cap is needed, use `thinking_budget_tokens` explicitly and conservatively
+- keep `tool_choice:"auto"` unless the router has already decided a tool must be called
+- preserve assistant `tool_calls` and tool messages exactly in follow-up turns
+
+Useful starting request body for thinking-enabled turns:
+
+```json
+{
+  "model": "qwen-3.5-abl",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Codex, a coding agent. Workflow: plan -> implement -> check -> fix -> verify -> review."
+    },
+    {
+      "role": "user",
+      "content": "..."
+    }
+  ],
+  "temperature": 0.2,
+  "top_p": 0.95,
+  "top_k": 20,
+  "repeat_penalty": 1.05,
+  "chat_template_kwargs": {
+    "enable_thinking": true
+  },
+  "stream": false
+}
+```
+
+Useful starting request body for tool-sensitive or answer-first turns:
+
+```json
+{
+  "model": "qwen-3.5-abl",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are Codex, a coding agent. Use tools when needed and keep the visible answer concrete."
+    },
+    {
+      "role": "user",
+      "content": "..."
+    }
+  ],
+  "tool_choice": "auto",
+  "chat_template_kwargs": {
+    "enable_thinking": true
+  },
+  "stream": false
+}
+```
 
 ## Model Switching
 
-The main user service now reads its model config from:
+The main user service reads model config from:
 
 - `config/localllm-main.env`
 
@@ -54,43 +109,27 @@ Preset files live under:
 
 - `config/presets/`
 
-Use these helper scripts to switch models:
-
-```bash
-./scripts/load-qwen-3.5-abl.sh
-./scripts/load-qwen-3.5.sh
-./scripts/load-glm-4.6v.sh
-./scripts/unload-main.sh
-```
-
-These scripts:
-
-- stop the current `localllm-main.service`
-- replace `config/localllm-main.env` with the chosen preset
-- restart the service
-- wait for `/health`
-
-If you want the generic entry point instead:
+Generic preset switching:
 
 ```bash
 ./scripts/load-main-preset.sh qwen-3.5-abl
 ./scripts/load-main-preset.sh qwen-3.5
-./scripts/load-main-preset.sh glm-4.6v
+./scripts/load-main-preset.sh omnicoder-9b
+```
+
+Inspection helpers:
+
+```bash
+./scripts/current-main.sh
+./scripts/list-presets.sh
 ```
 
 ## Services
 
-Intended runtime shape:
+Runtime shape:
 
-- main chat or chat+vision service on `8091`
+- main service on `8091`
 - embedding service on `8092`
-- optional router service on `8093`
-
-Current local URLs:
-
-- main base URL: `http://127.0.0.1:8091/v1`
-- embedding base URL: `http://127.0.0.1:8092/v1`
-- optional router base URL: `http://127.0.0.1:8093/v1`
 
 Useful endpoints:
 
@@ -101,61 +140,7 @@ Useful endpoints:
 - `POST http://127.0.0.1:8091/v1/chat/completions`
 - `POST http://127.0.0.1:8092/v1/embeddings`
 
-The local service does not require a real API key. If a client insists on one, use a placeholder string such as `unused`.
-
-## Scripts
-
-Main runtime scripts:
-
-- `scripts/serve-main.sh`
-- `scripts/serve-embedding.sh`
-- `scripts/serve-router.sh`
-- `scripts/start-stack.sh`
-- `scripts/stop-stack.sh`
-- `scripts/status.sh`
-- `scripts/chat.sh`
-
-Preset-switching scripts:
-
-- `scripts/load-main-preset.sh`
-- `scripts/list-presets.sh`
-- `scripts/current-main.sh`
-- `scripts/load-qwen-3.5.sh`
-- `scripts/load-qwen-3.5-abl.sh`
-- `scripts/load-glm-4.6v.sh`
-- `scripts/unload-main.sh`
-
-## systemd --user
-
-The durable main user unit now loads model-specific settings from `config/localllm-main.env`.
-
-Install or refresh the units:
-
-```bash
-mkdir -p ~/.config/systemd/user
-ln -sf ~/projects/localllm/systemd/localllm-main.service ~/.config/systemd/user/localllm-main.service
-ln -sf ~/projects/localllm/systemd/localllm-embedding.service ~/.config/systemd/user/localllm-embedding.service
-systemctl --user daemon-reload
-systemctl --user enable --now localllm-main.service localllm-embedding.service
-```
-
-Useful commands:
-
-```bash
-systemctl --user status localllm-main.service localllm-embedding.service
-systemctl --user restart localllm-main.service
-systemctl --user restart localllm-embedding.service
-journalctl --user -u localllm-main.service -f
-journalctl --user -u localllm-embedding.service -f
-```
-
-Important benchmark rule:
-
-- for fair scratch benchmarks, stop the main user service first
-- use `scripts/unload-main.sh` or `systemctl --user stop localllm-main.service`
-- otherwise the auto-restarting service can contaminate fit or preload results
-
-If `systemctl --user` complains about the bus in a shell, export:
+If a shell cannot see the user bus:
 
 ```bash
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
@@ -164,76 +149,29 @@ export DBUS_SESSION_BUS_ADDRESS=unix:path=$XDG_RUNTIME_DIR/bus
 
 ## Benchmarks
 
-Repo-managed benchmark entry points:
+Current repo-managed benchmark entry points:
 
 - `benchmarks/sweep_profiles.sh`
-  - compare launch profiles for one model at a fixed context
 - `benchmarks/sweep_contexts.sh`
-  - climb context until VRAM headroom reaches a target band
 - `benchmarks/coding_compare.sh`
-  - coding prompt comparison
-  - now supports budget matrices through `THINKING_BUDGETS="uncapped 500 1000"`
-  - now includes `merge_intervals` in addition to the older coding prompts
 - `benchmarks/agentic_barrage.sh`
-  - live-endpoint multi-turn coding-agent barrage
 - `benchmarks/agentic_barrage_compare.sh`
-  - scratch compare runner for the current durable three-model set
 - `benchmarks/final_decision_round.sh`
-  - optional mixed-scenario tie-breaker round for final model choices
 
-## Current Findings
+Important benchmark rule:
 
-On this host, the most important current results are:
-
-- `qwen-3.5`
-  - best tool user in the barrage
-  - strongest candidate when harness tool-taking behavior matters most
-- `qwen-3.5-abl`
-  - strong practical local default
-  - much faster than expected on the practical large preload-follow-up test
-  - still drifts more than plain `qwen-3.5` in some long planning outputs
-- `glm-4.6v`
-  - fastest and most stable on the practical preload-follow-up path
-  - weaker than plain Qwen on sustained agent/tool workflow
-  - vision VRAM is sticky after larger image workloads, so keep `--image-max-tokens 1792`
-
-Current practical ranking on this machine:
-
-- best tool-using agent behavior: `qwen-3.5`
-- best durable default for the user right now: `qwen-3.5-abl`
-- best preload/follow-up speed: `glm-4.6v`
-
-## Vision Safety
-
-Qwen presets:
-
-- keep `--image-max-tokens 12288`
-- this preserved useful detail while keeping comfortable VRAM headroom on the 10 GB card
-- `14336` worked, but pushed plain `qwen-3.5` too close to the danger band
-
-GLM preset:
-
-- keep `--image-max-tokens 1792`
-- larger image-token caps moved too close to OOM on this host
-- GLM vision allocations can ratchet upward and stay resident until restart
-
-Text-only note:
-
-- large text prompts mainly spend the already reserved context/KV budget
-- the sticky high-water-mark problem observed on this host came from vision, not text-only turns
+- stop the managed main service before scratch GPU benchmarking
+- keep only one GPU-backed chat model loaded at a time
+- avoid `max_tokens` caps unless the explicit goal is truncation behavior
 
 ## Current Model Store
 
 Current durable GGUF files under `models/`:
 
-- `Huihui-GLM-4.6V-Flash-abliterated-Q4_K_M.gguf`
-- `Huihui-GLM-4.6V-Flash-abliterated-mmproj-f16.gguf`
 - `Huihui-Qwen3.5-9B-abliterated-Q4_K_M.mradermacher.gguf`
 - `mmproj-Huihui-Qwen3.5-9B-abliterated-Q8_0.mradermacher.gguf`
+- `OmniCoder-9B.Q4_K_M.gguf`
+- `OmniCoder-9B.mmproj-Q8_0.gguf`
 - `Qwen3.5-9B-Q4_K_M.unsloth.gguf`
 - `mmproj-Qwen3.5-9B-F16.unsloth.gguf`
 - `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf`
-- `Qwen3.5-35B-A3B-Q4_K_M.gguf`
-- `mmproj-F16-Qwen3.5-35B-A3B.gguf`
-
-`Qwen3-Coder-30B-A3B` and DeepSeek are no longer present in the model store.

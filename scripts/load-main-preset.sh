@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
 if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <qwen-3.5|qwen-3.5-abl|glm-4.6v>" >&2
+  echo "Usage: $0 <preset-name>" >&2
   exit 1
 fi
 
