@@ -1,19 +1,18 @@
 # Goal
-- Stage the new 4B web-dev candidates as CPU-only side models while keeping `qwen-3.5-abl` live on GPU.
+- Remove the failed WEBGEN/UIGEN web-dev trial cleanly so the repo and host state only reflect models that are still in use.
 
 # Success Criteria
-- The practical `Q4_K_M` artifacts for both web-dev candidates are downloaded into `models/`.
-- `qwen-3.5-abl` remains live on `8091`.
-- Each candidate has a tuned CPU-only launch profile based on live probes.
-- Both candidates are loaded simultaneously on separate ports in CPU-only mode.
-- `NOTES.md` records the corrected ports, profiles, and behavioral differences with no stale GPU-side contradiction.
+- The WEBGEN and UIGEN sidecar servers are no longer running.
+- Both WEBGEN/UIGEN GGUF files are deleted.
+- `NOTES.md` no longer describes WEBGEN/UIGEN as currently staged.
+- `README.md` contains no stale WEBGEN/UIGEN guidance.
 
 # Constraints
-- Keep Qwen on GPU.
-- Optimize the side models for concurrent CPU residency instead of isolated single-model peak numbers.
+- Keep `qwen-3.5-abl` live on `8091`.
+- Remove only the WEBGEN/UIGEN trial artifacts and stale notes.
 
 # Implementation Items
-- [x] 1. Inspect the two Hugging Face repos and identify the intended `Q4_K_M` artifacts.
-- [x] 2. Download both `Q4_K_M` checkpoints into `models/` and verify they landed intact.
-- [x] 3. Sweep CPU-only thread, context, and batch settings to find practical side-model profiles.
-- [x] 4. Restore Qwen on `8091`, load both tuned CPU-only models on separate ports, and record the final state in `NOTES.md`.
+- [x] 1. Stop the WEBGEN/UIGEN sidecar servers on `9541` and `9542`.
+- [x] 2. Delete both WEBGEN/UIGEN GGUF files from `models/`.
+- [x] 3. Remove or replace stale WEBGEN/UIGEN notes so `NOTES.md` matches the current host state.
+- [x] 4. Confirm `README.md` has no WEBGEN/UIGEN mentions and leave Qwen running on `8091`.
