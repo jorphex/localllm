@@ -40,8 +40,8 @@ candidate_json() {
     }'
 }
 
-QWEN_SPEC="${QWEN_SPEC:-$(candidate_json "qwen-3.5-abl" "Huihui-Qwen3.5-9B-abliterated-Q4_K_M.mradermacher.gguf" "mmproj-Huihui-Qwen3.5-9B-abliterated-Q8_0.mradermacher.gguf" 9521)}"
-OMNICODER_SPEC="${OMNICODER_SPEC:-$(candidate_json "omnicoder-9b" "OmniCoder-9B.Q4_K_M.gguf" "OmniCoder-9B.mmproj-Q8_0.gguf" 9522)}"
+QWEN_SPEC="${QWEN_SPEC:-$(candidate_json "qwen-3.5-abl" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-Q4_K_M-mradermacher.gguf" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-mmproj-Q8_0-mradermacher.gguf" 9521)}"
+OMNICODER_SPEC="${OMNICODER_SPEC:-$(candidate_json "omnicoder-9b" "qwen-3.5-9b/OmniCoder-9B-Q4_K_M-upstream.gguf" "qwen-3.5-9b/OmniCoder-9B-mmproj-Q8_0-upstream.gguf" 9522)}"
 NEMOTRON_SPEC="${NEMOTRON_SPEC:-$(candidate_json "nemotron-30b" "Nemotron-3-Nano-30B-A3B-Q4_K_M.gguf" "" 9523)}"
 
 restore_main() {

@@ -18,18 +18,18 @@ The old `~/.local/share/openwendy/llama.cpp` runtime path is no longer used on t
 Retained durable main-model presets:
 
 - `qwen-3.5-abl`
-  - model: `Huihui-Qwen3.5-9B-abliterated-Q4_K_M.mradermacher.gguf`
-  - `mmproj`: `mmproj-Huihui-Qwen3.5-9B-abliterated-Q8_0.mradermacher.gguf`
+  - model: `qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-Q4_K_M-mradermacher.gguf`
+  - `mmproj`: `qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-mmproj-Q8_0-mradermacher.gguf`
   - context: `131072`
   - extra args: `-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288`
 - `qwen-3.5`
-  - model: `Qwen3.5-9B-Q4_K_M.unsloth.gguf`
-  - `mmproj`: `mmproj-Qwen3.5-9B-F16.unsloth.gguf`
+  - model: `qwen-3.5-9b/Qwen3.5-9B-Q4_K_M-unsloth.gguf`
+  - `mmproj`: `qwen-3.5-9b/Qwen3.5-9B-mmproj-F16-unsloth.gguf`
   - context: `131072`
   - extra args: `-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288`
 - `omnicoder-9b`
-  - model: `OmniCoder-9B.Q4_K_M.gguf`
-  - `mmproj`: `OmniCoder-9B.mmproj-Q8_0.gguf`
+  - model: `qwen-3.5-9b/OmniCoder-9B-Q4_K_M-upstream.gguf`
+  - `mmproj`: `qwen-3.5-9b/OmniCoder-9B-mmproj-Q8_0-upstream.gguf`
   - context: `131072`
   - extra args: `-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288`
 
@@ -124,6 +124,33 @@ Inspection helpers:
 ./scripts/list-presets.sh
 ```
 
+## Temporary Chat TUI
+
+For a lightweight terminal chat client against the currently loaded local model:
+
+```bash
+./scripts/chat-tui.sh
+```
+
+Behavior:
+
+- full-screen terminal UI
+- no client-side context trimming
+- no client-side `max_tokens` cap
+- default `thinking_budget_tokens` of `1000`
+- streamed reasoning in gray
+- streamed visible answer in white
+- model line breaks preserved
+
+Keys:
+
+- `Enter` send
+- `Ctrl-N` insert newline
+- `PgUp` and `PgDn` scroll transcript
+- `Ctrl-R` reset conversation
+- `Ctrl-U` clear the composer
+- `Ctrl-C` quit
+
 ## Services
 
 Runtime shape:
@@ -168,10 +195,15 @@ Important benchmark rule:
 
 Current durable GGUF files under `models/`:
 
-- `Huihui-Qwen3.5-9B-abliterated-Q4_K_M.mradermacher.gguf`
-- `mmproj-Huihui-Qwen3.5-9B-abliterated-Q8_0.mradermacher.gguf`
-- `OmniCoder-9B.Q4_K_M.gguf`
-- `OmniCoder-9B.mmproj-Q8_0.gguf`
-- `Qwen3.5-9B-Q4_K_M.unsloth.gguf`
-- `mmproj-Qwen3.5-9B-F16.unsloth.gguf`
-- `Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf`
+- `embedding/Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf`
+- `qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-Q4_K_M-mradermacher.gguf`
+- `qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-i1-Q6_K-mradermacher.gguf`
+- `qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-mmproj-Q8_0-mradermacher.gguf`
+- `qwen-3.5-9b/OmniCoder-9B-Q4_K_M-upstream.gguf`
+- `qwen-3.5-9b/OmniCoder-9B-mmproj-Q8_0-upstream.gguf`
+- `qwen-3.5-9b/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-Q4_K_M-jackrong.gguf`
+- `qwen-3.5-9b/Qwen3.5-9B-Claude-4.6-Opus-Reasoning-Distilled-v2-mmproj-BF16-jackrong.gguf`
+- `qwen-3.5-9b/Qwen3.5-9B-Gemini-3.1-Pro-Reasoning-Distill-Q4_K_M-jackrong.gguf`
+- `qwen-3.5-9b/Qwen3.5-9B-Gemini-3.1-Pro-Reasoning-Distill-mmproj-BF16-jackrong.gguf`
+- `qwen-3.5-9b/Qwen3.5-9B-Q4_K_M-unsloth.gguf`
+- `qwen-3.5-9b/Qwen3.5-9B-mmproj-F16-unsloth.gguf`

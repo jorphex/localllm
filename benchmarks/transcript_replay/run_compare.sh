@@ -42,8 +42,8 @@ candidate_json() {
     }'
 }
 
-QWEN_SPEC="${QWEN_SPEC:-$(candidate_json "qwen-3.5-abl" "Huihui-Qwen3.5-9B-abliterated-Q4_K_M.mradermacher.gguf" "mmproj-Huihui-Qwen3.5-9B-abliterated-Q8_0.mradermacher.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9531)}"
-OMNICODER_SPEC="${OMNICODER_SPEC:-$(candidate_json "omnicoder-9b" "OmniCoder-9B.Q4_K_M.gguf" "OmniCoder-9B.mmproj-Q8_0.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9532)}"
+QWEN_SPEC="${QWEN_SPEC:-$(candidate_json "qwen-3.5-abl" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-Q4_K_M-mradermacher.gguf" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-mmproj-Q8_0-mradermacher.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9531)}"
+OMNICODER_SPEC="${OMNICODER_SPEC:-$(candidate_json "omnicoder-9b" "qwen-3.5-9b/OmniCoder-9B-Q4_K_M-upstream.gguf" "qwen-3.5-9b/OmniCoder-9B-mmproj-Q8_0-upstream.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9532)}"
 NEMOTRON_SPEC="${NEMOTRON_SPEC:-$(candidate_json "nemotron-30b" "Nemotron-3-Nano-30B-A3B-Q4_K_M.gguf" "" 65536 "-np 1 -tb 8 -b 128 -ub 64 -cram 0 -fa on --threads-http 4 --metrics --no-warmup --n-cpu-moe 48" 9533)}"
 
 restore_main() {

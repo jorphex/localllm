@@ -16,8 +16,8 @@ COMPARE_LOAD_RESTORE="${COMPARE_LOAD_RESTORE:-true}"
 DEFAULT_EXTRA_ARGS="-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288"
 DEFAULT_CONTEXT=131072
 
-QWEN_SPEC="${QWEN_SPEC:-$(candidate_spec_json "qwen-3.5-abl" "Huihui-Qwen3.5-9B-abliterated-Q4_K_M.mradermacher.gguf" "mmproj-Huihui-Qwen3.5-9B-abliterated-Q8_0.mradermacher.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9511)}"
-OMNICODER_SPEC="${OMNICODER_SPEC:-$(candidate_spec_json "omnicoder-9b" "OmniCoder-9B.Q4_K_M.gguf" "OmniCoder-9B.mmproj-Q8_0.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9512)}"
+QWEN_SPEC="${QWEN_SPEC:-$(candidate_spec_json "qwen-3.5-abl" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-Q4_K_M-mradermacher.gguf" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-mmproj-Q8_0-mradermacher.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9511)}"
+OMNICODER_SPEC="${OMNICODER_SPEC:-$(candidate_spec_json "omnicoder-9b" "qwen-3.5-9b/OmniCoder-9B-Q4_K_M-upstream.gguf" "qwen-3.5-9b/OmniCoder-9B-mmproj-Q8_0-upstream.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9512)}"
 NEMOTRON_SPEC="${NEMOTRON_SPEC:-$(candidate_spec_json "nemotron-30b" "Nemotron-3-Nano-30B-A3B-Q4_K_M.gguf" "" 65536 "-np 1 -tb 8 -b 128 -ub 64 -cram 0 -fa on --threads-http 4 --metrics --no-warmup --n-cpu-moe 48" 9513)}"
 
 mkdir -p "${COMPARE_RESULTS_DIR}"
