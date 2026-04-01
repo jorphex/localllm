@@ -59,6 +59,41 @@ require_file() {
   fi
 }
 
+env_file_value() {
+  local file="$1"
+  local key="$2"
+  grep "^${key}=" "${file}" | head -n1 | cut -d= -f2-
+}
+
+validate_main_preset_file() {
+  local preset_file="$1"
+  local model mmproj
+  model="$(env_file_value "${preset_file}" "MAIN_MODEL")"
+  mmproj="$(env_file_value "${preset_file}" "MAIN_MMPROJ")"
+
+  if [[ -z "${model}" ]]; then
+    echo "Preset missing MAIN_MODEL: ${preset_file}" >&2
+    return 1
+  fi
+  if [[ ! -f "${MODEL_DIR}/${model}" ]]; then
+    echo "Preset model missing: ${MODEL_DIR}/${model}" >&2
+    return 1
+  fi
+  if [[ -n "${mmproj}" && ! -f "${MODEL_DIR}/${mmproj}" ]]; then
+    echo "Preset mmproj missing: ${MODEL_DIR}/${mmproj}" >&2
+    return 1
+  fi
+}
+
+preset_file_status() {
+  local preset_file="$1"
+  if validate_main_preset_file "${preset_file}" >/dev/null 2>&1; then
+    printf 'ok\n'
+  else
+    printf 'stale\n'
+  fi
+}
+
 truthy() {
   local value="${1:-}"
   case "${value,,}" in

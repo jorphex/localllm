@@ -5,11 +5,14 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
 OUT_DIR="${OUT_DIR:-/tmp/localllm-coding-compare}"
-THINKING_BUDGET="${THINKING_BUDGET:-1000}"
+THINKING_BUDGET="${THINKING_BUDGET:-}"
 THINKING_BUDGETS="${THINKING_BUDGETS:-}"
 CURL_TIMEOUT="${CURL_TIMEOUT:-300}"
 PROMPTS="${PROMPTS:-simple_edit retry_bug task_runner merge_intervals}"
 CANDIDATE_SPECS="${CANDIDATE_SPECS:-}"
+CODING_STOP_MAIN="${CODING_STOP_MAIN:-true}"
+CODING_RESTORE_PRESET="${CODING_RESTORE_PRESET:-}"
+CODING_LOAD_RESTORE="${CODING_LOAD_RESTORE:-false}"
 
 declare -A prompt_text
 prompt_text[simple_edit]=$(cat <<'TXT'
@@ -79,6 +82,20 @@ fi
 mkdir -p "${OUT_DIR}"
 IFS=';' read -r -a candidates <<< "${CANDIDATE_SPECS}"
 
+CURRENT_PID=""
+RESTORE_DONE=0
+
+cleanup_coding_compare() {
+  if [[ -n "${CURRENT_PID}" ]]; then
+    stop_temp_server "${CURRENT_PID}"
+    CURRENT_PID=""
+  fi
+  if [[ "${RESTORE_DONE}" -eq 0 ]] && truthy "${CODING_LOAD_RESTORE}" && [[ -n "${CODING_RESTORE_PRESET}" ]]; then
+    bash "${SCRIPT_DIR}/../scripts/load-main-preset.sh" "${CODING_RESTORE_PRESET}" >/dev/null
+    RESTORE_DONE=1
+  fi
+}
+
 declare -a budgets
 if [[ -n "${THINKING_BUDGETS}" ]]; then
   read -r -a budgets <<< "${THINKING_BUDGETS}"
@@ -105,7 +122,7 @@ run_candidate() {
   require_benchmark_env
   local pid
   pid="$(start_temp_server "${port}" "${context}" "${extra_args}" "${alias}" "${log}")"
-  trap 'stop_temp_server "${pid}"' EXIT
+  CURRENT_PID="${pid}"
   wait_for_server "${port}" 180
   echo "MODEL ${alias} PORT ${port} READY"
 
@@ -152,8 +169,14 @@ run_candidate() {
   done
 
   stop_temp_server "${pid}"
-  trap - EXIT
+  CURRENT_PID=""
 }
+
+trap cleanup_coding_compare EXIT
+
+if truthy "${CODING_STOP_MAIN}"; then
+  bash "${SCRIPT_DIR}/../scripts/unload-main.sh"
+fi
 
 for candidate in "${candidates[@]}"; do
   [[ -z "${candidate}" ]] && continue

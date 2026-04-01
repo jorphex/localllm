@@ -6,10 +6,22 @@ PROJECT_ROOT="$(cd -- "${BENCHMARK_DIR}/.." && pwd)"
 source "${PROJECT_ROOT}/scripts/common.sh"
 
 BENCH_THREADS="${BENCH_THREADS:-10}"
-BENCH_DEVICE="${BENCH_DEVICE:-CUDA0}"
+BENCH_DEVICE="${BENCH_DEVICE:-}"
 BENCH_GPU_LAYERS="${BENCH_GPU_LAYERS:-auto}"
 BENCH_FIT="${BENCH_FIT:-true}"
 BENCH_HOST="${BENCH_HOST:-127.0.0.1}"
+
+benchmark_gpu_backend() {
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    printf 'nvidia\n'
+    return
+  fi
+  if command -v rocm-smi >/dev/null 2>&1; then
+    printf 'rocm\n'
+    return
+  fi
+  printf 'unknown\n'
+}
 
 require_benchmark_env() {
   : "${BENCH_MODEL:?Set BENCH_MODEL to a GGUF filename}"
@@ -64,8 +76,64 @@ wait_for_server() {
   wait_for_health "http://${BENCH_HOST}:${port}/health" "${timeout}"
 }
 
+gpu_mem_json() {
+  local backend
+  backend="$(benchmark_gpu_backend)"
+  case "${backend}" in
+    nvidia)
+      local sample
+      sample="$(nvidia-smi --query-gpu=memory.used,memory.free --format=csv,noheader,nounits | head -n1)"
+      jq -cn --arg backend "${backend}" --arg sample "${sample}" '
+        ($sample | split(",") | map(gsub("^ +| +$"; ""))) as $parts
+        | {
+            backend:$backend,
+            used_mib:(($parts[0] // "0") | tonumber),
+            free_mib:(($parts[1] // "0") | tonumber)
+          }'
+      ;;
+    rocm)
+      local sample
+      sample="$(rocm-smi --showmeminfo vram --json 2>/dev/null | jq -c '
+        to_entries
+        | map(select(.key | startswith("card")))
+        | first
+        | .value as $card
+        | {
+            used_mib: (
+              (
+                $card["VRAM Total Used Memory (B)"]
+                // $card["VRAM Total Used Memory"]
+                // 0
+              ) / 1048576
+            ),
+            total_mib: (
+              (
+                $card["VRAM Total Memory (B)"]
+                // $card["VRAM Total Memory"]
+                // 0
+              ) / 1048576
+            )
+          }
+      ' || true)"
+      if [[ -n "${sample}" && "${sample}" != "null" ]]; then
+        jq -cn --arg backend "${backend}" --argjson sample "${sample}" '
+          {
+            backend:$backend,
+            used_mib:($sample.used_mib | floor),
+            free_mib:(($sample.total_mib - $sample.used_mib) | floor)
+          }'
+      else
+        jq -cn --arg backend "${backend}" '{backend:$backend, used_mib:null, free_mib:null}'
+      fi
+      ;;
+    *)
+      jq -cn --arg backend "${backend}" '{backend:$backend, used_mib:null, free_mib:null}'
+      ;;
+  esac
+}
+
 gpu_mem() {
-  nvidia-smi --query-gpu=memory.used,memory.free --format=csv,noheader | head -n1
+  jq -r '[.used_mib, .free_mib] | @csv' <<< "$(gpu_mem_json)" | tr -d '"'
 }
 
 probe_chat() {
@@ -91,6 +159,9 @@ probe_chat() {
 
 stop_temp_server() {
   local pid="$1"
+  if [[ -z "${pid}" ]]; then
+    return
+  fi
   kill "${pid}" 2>/dev/null || true
   wait "${pid}" 2>/dev/null || true
 }

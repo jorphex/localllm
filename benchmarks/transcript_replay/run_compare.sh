@@ -6,17 +6,22 @@ BENCHMARK_DIR="$(cd -- "${REPLAY_DIR}/.." && pwd)"
 PROJECT_ROOT="$(cd -- "${REPLAY_DIR}/../.." && pwd)"
 source "${BENCHMARK_DIR}/common.sh"
 
-REPLAY_LABEL="${REPLAY_LABEL:-transcript-replay-qwen}"
+REPLAY_LABEL="${REPLAY_LABEL:-transcript-replay-retained-9b}"
 REPLAY_RESULTS_DIR="${REPLAY_RESULTS_DIR:-${REPLAY_DIR}/results/$(date -u +%Y%m%dT%H%M%SZ)-${REPLAY_LABEL}}"
 REPLAY_FIXTURES="${REPLAY_FIXTURES:-retry_tool_followthrough}"
 REPLAY_CANDIDATES="${REPLAY_CANDIDATES:-qwen-3.5-abl}"
 REPLAY_RESTORE_PRESET="${REPLAY_RESTORE_PRESET:-qwen-3.5-abl}"
+REPLAY_LOAD_RESTORE="${REPLAY_LOAD_RESTORE:-true}"
 
 DEFAULT_EXTRA_ARGS="-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288"
 DEFAULT_CONTEXT=131072
 
 mkdir -p "${REPLAY_RESULTS_DIR}"
 export_llama_runtime_env
+export PYTHONPATH="${PROJECT_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
+
+CURRENT_PID=""
+RESTORE_DONE=0
 
 candidate_json() {
   local alias="$1"
@@ -43,11 +48,67 @@ candidate_json() {
 }
 
 QWEN_SPEC="${QWEN_SPEC:-$(candidate_json "qwen-3.5-abl" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-Q4_K_M-mradermacher.gguf" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-mmproj-Q8_0-mradermacher.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9531)}"
-OMNICODER_SPEC="${OMNICODER_SPEC:-$(candidate_json "omnicoder-9b" "qwen-3.5-9b/OmniCoder-9B-Q4_K_M-upstream.gguf" "qwen-3.5-9b/OmniCoder-9B-mmproj-Q8_0-upstream.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9532)}"
-NEMOTRON_SPEC="${NEMOTRON_SPEC:-$(candidate_json "nemotron-30b" "Nemotron-3-Nano-30B-A3B-Q4_K_M.gguf" "" 65536 "-np 1 -tb 8 -b 128 -ub 64 -cram 0 -fa on --threads-http 4 --metrics --no-warmup --n-cpu-moe 48" 9533)}"
+GEMINI_SPEC="${GEMINI_SPEC:-$(candidate_json "qwen-3.5-g" "qwen-3.5-9b/Qwen3.5-9B-Gemini-3.1-Pro-Reasoning-Distill-Q4_K_M-jackrong.gguf" "qwen-3.5-9b/Qwen3.5-9B-Gemini-3.1-Pro-Reasoning-Distill-mmproj-BF16-jackrong.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9532)}"
+UNSLOTH_SPEC="${UNSLOTH_SPEC:-$(candidate_json "qwen-3.5" "qwen-3.5-9b/Qwen3.5-9B-Q4_K_M-unsloth.gguf" "qwen-3.5-9b/Qwen3.5-9B-mmproj-F16-unsloth.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9533)}"
+
+write_run_manifest() {
+  jq -cn \
+    --arg results_dir "${REPLAY_RESULTS_DIR}" \
+    --arg label "${REPLAY_LABEL}" \
+    --arg restore_preset "${REPLAY_RESTORE_PRESET}" \
+    --arg fixtures "${REPLAY_FIXTURES}" \
+    --arg candidates "${REPLAY_CANDIDATES}" \
+    --arg llama_server_bin "${LLAMA_SERVER_BIN}" \
+    --arg model_dir "${MODEL_DIR}" \
+    --argjson qwen "${QWEN_SPEC}" \
+    --argjson gemini "${GEMINI_SPEC}" \
+    --argjson unsloth "${UNSLOTH_SPEC}" \
+    '{
+      family:"general_agentic",
+      suite:"transcript_replay",
+      results_dir:$results_dir,
+      label:$label,
+      restore_preset:$restore_preset,
+      requested_fixtures:($fixtures | split(" ") | map(select(length > 0))),
+      requested_candidates:($candidates | split(" ") | map(select(length > 0))),
+      llama_server_bin:$llama_server_bin,
+      model_dir:$model_dir,
+      candidates:[$qwen, $gemini, $unsloth]
+    }' > "${REPLAY_RESULTS_DIR}/run_manifest.json"
+}
+
+write_summary() {
+  python3 - <<'PY' "${REPLAY_RESULTS_DIR}" "${REPLAY_CANDIDATES}" "${REPLAY_FIXTURES}"
+import json
+import sys
+from pathlib import Path
+
+from benchmarks.result_summaries import replay_run_summary
+
+results_dir = Path(sys.argv[1])
+candidates = [item for item in sys.argv[2].split() if item]
+fixtures = [item for item in sys.argv[3].split() if item]
+summary = replay_run_summary(results_dir, candidates, fixtures)
+(results_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+PY
+}
 
 restore_main() {
-  bash "${PROJECT_ROOT}/scripts/load-main-preset.sh" "${REPLAY_RESTORE_PRESET}" >/dev/null
+  if [[ "${RESTORE_DONE}" -eq 1 ]]; then
+    return
+  fi
+  if truthy "${REPLAY_LOAD_RESTORE}" && [[ -n "${REPLAY_RESTORE_PRESET}" ]]; then
+    bash "${PROJECT_ROOT}/scripts/load-main-preset.sh" "${REPLAY_RESTORE_PRESET}" >/dev/null
+  fi
+  RESTORE_DONE=1
+}
+
+cleanup_replay_compare() {
+  if [[ -n "${CURRENT_PID}" ]]; then
+    stop_temp_server "${CURRENT_PID}"
+    CURRENT_PID=""
+  fi
+  restore_main
 }
 
 run_candidate() {
@@ -68,7 +129,7 @@ run_candidate() {
   require_benchmark_env
 
   pid="$(start_temp_server "${port}" "${context}" "${extra_args}" "${alias}" "${log_path}")"
-  trap "stop_temp_server '${pid}'; restore_main" EXIT
+  CURRENT_PID="${pid}"
   wait_for_server "${port}" 180
 
   for fixture in ${REPLAY_FIXTURES}; do
@@ -80,17 +141,19 @@ run_candidate() {
   done
 
   stop_temp_server "${pid}"
-  trap "restore_main" EXIT
+  CURRENT_PID=""
 }
 
 bash "${PROJECT_ROOT}/scripts/unload-main.sh"
 pkill -f 'llama-server.*--port 8091' || true
+trap cleanup_replay_compare EXIT
+write_run_manifest
 
 for candidate in ${REPLAY_CANDIDATES}; do
   case "${candidate}" in
     qwen-3.5-abl) run_candidate "${QWEN_SPEC}" ;;
-    omnicoder-9b) run_candidate "${OMNICODER_SPEC}" ;;
-    nemotron-30b) run_candidate "${NEMOTRON_SPEC}" ;;
+    qwen-3.5-g) run_candidate "${GEMINI_SPEC}" ;;
+    qwen-3.5) run_candidate "${UNSLOTH_SPEC}" ;;
     *)
       echo "Unknown candidate: ${candidate}" >&2
       exit 1
@@ -98,6 +161,7 @@ for candidate in ${REPLAY_CANDIDATES}; do
   esac
 done
 
+write_summary
 restore_main
 trap - EXIT
 printf 'REPLAY_RESULTS_DIR %s\n' "${REPLAY_RESULTS_DIR}"
