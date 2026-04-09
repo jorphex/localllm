@@ -7,7 +7,7 @@ WorkingDirectory=%h/projects/localllm
 Environment=TTS_HOST=127.0.0.1
 Environment=TTS_PORT=8094
 Environment=TTS_MODEL=k2-fsa/OmniVoice
-Environment=TTS_DEVICE=cuda
+Environment=TTS_DEVICE=cpu
 Environment=TTS_DTYPE=float16
 Environment=TTS_VENV=%h/.venvs/omnivoice-rocm
 ExecStart=%h/projects/localllm/scripts/serve-omnivoice.sh
