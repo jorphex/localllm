@@ -6,7 +6,7 @@ Type=simple
 WorkingDirectory=%h/projects/localllm
 Environment=EMBED_HOST=127.0.0.1
 Environment=EMBED_PORT=8092
-Environment=EMBED_MODEL=embedding/Qwen3-Embedding-0.6B-Q4_K_M-imat.gguf
+Environment=EMBED_MODEL=embedding/Qwen3-Embedding-4B-Q4_K_M.gguf
 Environment=EMBED_THREADS=8
 Environment=EMBED_CONTEXT=2048
 Environment=EMBED_UBATCH=128

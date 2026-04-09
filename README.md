@@ -50,6 +50,38 @@ Recommended defaults for Qwen 3.5 family requests on this host:
 - keep `tool_choice:"auto"` unless the router has already decided a tool must be called
 - preserve assistant `tool_calls` and tool messages exactly in follow-up turns
 
+## Prompt Caching
+
+Prompt caching is relevant on this stack, but the server and the client do different jobs:
+
+- `llama-server` handles the actual prompt-cache reuse
+- apps, bots, and harnesses decide whether requests keep a stable enough prefix for that reuse to hit
+
+Current local policy:
+
+- the managed main service now exposes explicit prompt-cache controls and defaults to cache-friendly behavior for real app use
+- scratch benchmark servers default to `BENCH_CACHE_PROMPT=false` so replay/sim/speed comparisons do not silently inherit cache hits across requests unless a run opts in deliberately
+
+Useful server env vars:
+
+- `MAIN_CACHE_PROMPT=true|false`
+- `MAIN_CACHE_REUSE=<tokens>`
+- `MAIN_SLOT_PROMPT_SIMILARITY=<0.0-1.0>`
+- `MAIN_SLOT_SAVE_PATH=<path>`
+- `MAIN_SLOTS=true|false`
+
+Scratch benchmark equivalents:
+
+- `BENCH_CACHE_PROMPT=true|false`
+- `BENCH_CACHE_REUSE=<tokens>`
+- `BENCH_SLOT_PROMPT_SIMILARITY=<0.0-1.0>`
+- `BENCH_SLOT_SAVE_PATH=<path>`
+- `BENCH_SLOTS=true|false`
+
+Client-side rule:
+
+- keep system prompts, tool schemas, tool ordering, and preserved history stable unless behavior really needs them to change
+
 Useful starting request body for thinking-enabled turns:
 
 ```json
@@ -178,12 +210,29 @@ export DBUS_SESSION_BUS_ADDRESS=unix:path=$XDG_RUNTIME_DIR/bus
 
 Current repo-managed benchmark entry points:
 
+- `benchmarks/run_model_eval.sh`
 - `benchmarks/sweep_profiles.sh`
 - `benchmarks/sweep_contexts.sh`
 - `benchmarks/coding_compare.sh`
 - `benchmarks/agentic_barrage.sh`
 - `benchmarks/agentic_barrage_compare.sh`
 - `benchmarks/final_decision_round.sh`
+
+Recommended candidate-eval flow:
+
+- use `benchmarks/run_model_eval.sh` as the top-level orchestrator
+- pass semicolon-separated candidate specs via `MODEL_EVAL_CANDIDATE_SPECS`
+- let it load one candidate, run the requested suites, unload it, and move to the next candidate
+- read the top-level `run_manifest.json` and `summary.json` under `benchmarks/model_eval/results/...`
+
+Important scoring rule:
+
+- do not collapse the benchmark surface into one blended score
+- treat `transcript_replay` and `sim_compare` as separate primary score families
+- automate per-test or per-scenario scores instead:
+  - replay: fixture pass status and matched-turn count
+  - sim: scenario pass status, scope-clean status, and tool-error-free status
+  - barrage: per-scenario request summaries, not a single ranking score
 
 Important benchmark rule:
 

@@ -56,4 +56,9 @@ for context in ${BENCH_CONTEXTS}; do
   index=$((index + 1))
 done
 
+if [[ "${RESTORE_DONE}" -eq 0 ]] && truthy "${BENCH_LOAD_RESTORE}" && [[ -n "${BENCH_RESTORE_PRESET}" ]]; then
+  bash "${SCRIPT_DIR}/../scripts/load-main-preset.sh" "${BENCH_RESTORE_PRESET}" >/dev/null
+  RESTORE_DONE=1
+fi
+
 trap - EXIT

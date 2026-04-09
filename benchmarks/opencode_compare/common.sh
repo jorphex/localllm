@@ -14,7 +14,6 @@ compare_require_tools() {
   require_file "${LLAMA_SERVER_BIN}"
   command -v jq >/dev/null 2>&1 || { echo "Missing jq" >&2; exit 1; }
   command -v curl >/dev/null 2>&1 || { echo "Missing curl" >&2; exit 1; }
-  command -v nvidia-smi >/dev/null 2>&1 || { echo "Missing nvidia-smi" >&2; exit 1; }
 }
 
 compare_timestamp() {
@@ -26,17 +25,6 @@ compare_results_dir() {
   local stamp
   stamp="$(compare_timestamp)"
   printf '%s\n' "${COMPARE_OUT_DIR}/${stamp}-${label}"
-}
-
-gpu_mem_json() {
-  local sample
-  sample="$(nvidia-smi --query-gpu=memory.used,memory.free --format=csv,noheader,nounits | head -n1)"
-  jq -cn --arg sample "${sample}" '
-    ($sample | split(",") | map(gsub("^ +| +$"; ""))) as $parts
-    | {
-        used_mib: (($parts[0] // "0") | tonumber),
-        free_mib: (($parts[1] // "0") | tonumber)
-      }'
 }
 
 candidate_spec_json() {
@@ -94,14 +82,39 @@ compare_chat() {
   local request_path="$2"
   local response_path="$3"
   local metrics_path="$4"
+  local curl_output curl_exit_code
 
-  curl -sS \
-    --max-time "${COMPARE_TIMEOUT}" \
-    --output "${response_path}" \
-    --write-out '{"http_code":"%{http_code}","time_total":%{time_total},"time_starttransfer":%{time_starttransfer},"size_download":%{size_download}}\n' \
-    "http://${COMPARE_HOST}:${port}/v1/chat/completions" \
-    -H 'Content-Type: application/json' \
-    -d @"${request_path}" > "${metrics_path}"
+  set +e
+  curl_output="$(
+    curl -sS \
+      --max-time "${COMPARE_TIMEOUT}" \
+      --output "${response_path}" \
+      --write-out '{"http_code":"%{http_code}","time_total":%{time_total},"time_starttransfer":%{time_starttransfer},"size_download":%{size_download}}\n' \
+      "http://${COMPARE_HOST}:${port}/v1/chat/completions" \
+      -H 'Content-Type: application/json' \
+      -d @"${request_path}"
+  )"
+  curl_exit_code=$?
+  set -e
+
+  if [[ ! -s "${response_path}" ]]; then
+    printf '{}\n' > "${response_path}"
+  fi
+  if [[ -z "${curl_output}" ]]; then
+    curl_output='{}'
+  fi
+
+  jq -cn \
+    --argjson curl_exit_code "${curl_exit_code}" \
+    --argjson curl_metrics "${curl_output}" \
+    '{
+      curl_exit_code:$curl_exit_code,
+      http_code:($curl_metrics.http_code // "000"),
+      time_total:($curl_metrics.time_total // 0),
+      time_starttransfer:($curl_metrics.time_starttransfer // 0),
+      size_download:($curl_metrics.size_download // 0),
+      timed_out:($curl_exit_code == 28)
+    }' > "${metrics_path}"
 }
 
 compare_tool_names() {
@@ -132,6 +145,8 @@ compare_result_json() {
       scenario:$scenario,
       turn:$turn,
       metrics:{
+        curl_exit_code:$metrics.curl_exit_code,
+        timed_out:($metrics.timed_out // false),
         http_code:$metrics.http_code,
         time_total:$metrics.time_total,
         time_starttransfer:$metrics.time_starttransfer,

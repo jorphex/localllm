@@ -1,0 +1,359 @@
+import json
+import tempfile
+import unittest
+
+from pathlib import Path
+
+from benchmarks import harness_catalog
+from benchmarks import model_eval
+from benchmarks import result_summaries
+from benchmarks.sim_compare import run_agentic_sim
+from benchmarks.transcript_replay import run_replay
+
+
+class GitFixtureMixin:
+    def _git_init(self, workspace: Path) -> None:
+        import subprocess
+
+        subprocess.run(["git", "init"], cwd=workspace, check=True, capture_output=True)
+        subprocess.run(["git", "add", "."], cwd=workspace, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "-c", "user.name=Tests", "-c", "user.email=tests@example.com", "commit", "-m", "fixture"],
+            cwd=workspace,
+            check=True,
+            capture_output=True,
+        )
+
+
+class HarnessCatalogTests(unittest.TestCase):
+    def test_primary_suites_split_general_and_coding_agentic(self):
+        general = [suite.name for suite in harness_catalog.primary_suites("general_agentic")]
+        coding = [suite.name for suite in harness_catalog.primary_suites("coding_agentic")]
+
+        self.assertEqual(general, ["transcript_replay"])
+        self.assertEqual(coding, ["sim_compare"])
+
+    def test_external_cli_policy_prefers_local_harnesses(self):
+        policy = harness_catalog.external_cli_policy()
+        self.assertIn("local harnesses", policy)
+        self.assertIn("OpenCode or PI CLI", policy)
+
+
+class ReplayHarnessTests(unittest.TestCase):
+    def test_turn_matches_expectations_requires_both_finish_reason_and_tool_names(self):
+        self.assertTrue(
+            run_replay.turn_matches_expectations(
+                {"matches_finish_reason": True, "matches_tool_names": True}
+            )
+        )
+        self.assertFalse(
+            run_replay.turn_matches_expectations(
+                {"matches_finish_reason": True, "matches_tool_names": False}
+            )
+        )
+
+    def test_summary_for_turn_tracks_expected_tool_names(self):
+        turn = {"name": "turn1", "expect": {"finish_reason": "tool_calls", "tool_names": ["read"]}}
+        payload = {"messages": [{"role": "user", "content": "hi"}]}
+        response = {
+            "choices": [
+                {
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "tool_calls": [{"function": {"name": "read"}}],
+                        "content": "",
+                        "reasoning_content": "inspect",
+                    },
+                }
+            ],
+            "timings": {"predicted_per_second": 12.5, "prompt_per_second": 98.0},
+        }
+
+        summary = run_replay.summary_for_turn(turn, payload, response, 1.2)
+
+        self.assertTrue(summary["matches_finish_reason"])
+        self.assertTrue(summary["matches_tool_names"])
+        self.assertTrue(summary["matches_expectations"])
+        self.assertEqual(summary["tool_names"], ["read"])
+        self.assertTrue(summary["request_digest"])
+        self.assertTrue(summary["response_digest"])
+
+    def test_replay_fixture_metadata_counts_turn_types(self):
+        fixture = {
+            "name": "sample",
+            "turns": [
+                {"name": "turn1", "expect": {"finish_reason": "tool_calls"}},
+                {"name": "turn2", "expect": {"finish_reason": "stop"}},
+            ],
+        }
+
+        metadata = result_summaries.replay_fixture_metadata(fixture)
+
+        self.assertEqual(metadata["turn_count"], 2)
+        self.assertEqual(metadata["expected_tool_call_turns"], 1)
+        self.assertEqual(metadata["expected_stop_turns"], 1)
+        self.assertTrue(metadata["fixture_digest"])
+
+
+class SimHarnessTests(GitFixtureMixin, unittest.TestCase):
+    def test_normalize_test_command_rejects_non_test_commands(self):
+        with self.assertRaises(ValueError):
+            run_agentic_sim.normalize_test_command("bash scripts/run.sh")
+
+    def test_should_fire_follow_up_respects_returncode_filter(self):
+        follow_up = {
+            "trigger": {
+                "tool_name": "run_tests",
+                "count": 1,
+                "returncode_nonzero": True,
+            }
+        }
+
+        self.assertFalse(
+            run_agentic_sim.should_fire_follow_up(
+                follow_up,
+                {"run_tests": 1},
+                "run_tests",
+                {"returncode": 0},
+            )
+        )
+        self.assertTrue(
+            run_agentic_sim.should_fire_follow_up(
+                follow_up,
+                {"run_tests": 1},
+                "run_tests",
+                {"returncode": 1},
+            )
+        )
+
+    def test_verify_scenario_normalizes_verify_command_without_shell(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            workspace = Path(tempdir)
+            (workspace / "worker").mkdir()
+            (workspace / "worker" / "retry.py").write_text("print('ok')\n", encoding="utf-8")
+            (workspace / "tests").mkdir()
+            (workspace / "tests" / "test_retry.py").write_text(
+                "import unittest\n\n\nclass RetryTests(unittest.TestCase):\n"
+                "    def test_ok(self):\n"
+                "        self.assertTrue(True)\n",
+                encoding="utf-8",
+            )
+            self._git_init(workspace)
+
+            verification = run_agentic_sim.verify_scenario(
+                workspace,
+                {
+                    "verify_command": "python -m unittest tests.test_retry",
+                    "expected_modified_files": [],
+                },
+            )
+
+        self.assertEqual(
+            verification["normalized_verify_command"],
+            ["python3", "-m", "unittest", "tests.test_retry"],
+        )
+        self.assertEqual(verification["verify_returncode"], 0)
+
+    def test_verify_scenario_marks_scope_clean_only_for_expected_files(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            workspace = Path(tempdir)
+            (workspace / "worker").mkdir()
+            (workspace / "worker" / "retry.py").write_text("print('ok')\n", encoding="utf-8")
+            (workspace / "tests").mkdir()
+            (workspace / "tests" / "test_retry.py").write_text(
+                "import unittest\n\n\nclass RetryTests(unittest.TestCase):\n"
+                "    def test_ok(self):\n"
+                "        self.assertTrue(True)\n",
+                encoding="utf-8",
+            )
+            self._git_init(workspace)
+            (workspace / "worker" / "retry.py").write_text("print('changed')\n", encoding="utf-8")
+
+            verification = run_agentic_sim.verify_scenario(
+                workspace,
+                {
+                    "verify_command": "python3 -m unittest tests.test_retry",
+                    "expected_modified_files": ["worker/retry.py"],
+                },
+            )
+
+        self.assertEqual(verification["verify_returncode"], 0)
+        self.assertTrue(verification["expected_files_only"])
+        self.assertEqual(verification["changed_files"], ["worker/retry.py"])
+
+    def test_summarize_result_includes_scope_and_pass_scorecard(self):
+        summary = run_agentic_sim.summarize_result(
+            "retry_bugfix",
+            {
+                "title": "Retry helper bugfix",
+                "prompt": "Fix the retry helper.",
+                "verify_command": "python3 -m unittest tests.test_retry",
+                "expected_modified_files": ["worker/retry.py"],
+            },
+            transcript=[{"turn": 1}, {"turn": 2}],
+            verification={
+                "verify_returncode": 0,
+                "normalized_verify_command": ["python3", "-m", "unittest", "tests.test_retry"],
+                "changed_files": ["worker/retry.py"],
+                "expected_files_only": True,
+            },
+            total_elapsed=4.5,
+            tool_error_count=0,
+        )
+
+        self.assertEqual(summary["scenario_family"], "coding_core")
+        self.assertTrue(summary["scorecard"]["pass"])
+        self.assertTrue(summary["scorecard"]["scope_clean"])
+        self.assertTrue(summary["scorecard"]["tool_error_free"])
+
+    def test_tool_counts_tracks_called_tools(self):
+        transcript = [
+            {
+                "response": {
+                    "choices": [
+                        {
+                            "message": {
+                                "tool_calls": [
+                                    {"function": {"name": "read_file"}},
+                                    {"function": {"name": "run_tests"}},
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "response": {
+                    "choices": [
+                        {
+                            "message": {
+                                "tool_calls": [
+                                    {"function": {"name": "run_tests"}},
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+        ]
+
+        counts = run_agentic_sim.tool_counts(transcript)
+
+        self.assertEqual(counts, {"read_file": 1, "run_tests": 2})
+
+
+class CompareSummaryTests(GitFixtureMixin, unittest.TestCase):
+    def test_replay_run_summary_counts_fixture_and_turn_matches(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            results_dir = Path(tempdir)
+            candidate_dir = results_dir / "qwen" / "fixture_a"
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "result.json").write_text(
+                json.dumps(
+                    {
+                        "all_expectations_met": True,
+                        "turns": [
+                            {"matches_expectations": True, "elapsed_seconds": 1.0},
+                            {"matches_expectations": True, "elapsed_seconds": 2.0},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            summary = result_summaries.replay_run_summary(results_dir, ["qwen"], ["fixture_a"])
+
+        candidate = summary["candidates"][0]
+        self.assertEqual(candidate["passed_fixtures"], 1)
+        self.assertEqual(candidate["matched_turns"], 2)
+        self.assertEqual(candidate["turn_count"], 2)
+
+    def test_sim_run_summary_counts_pass_scope_and_tool_hygiene(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            results_dir = Path(tempdir)
+            candidate_dir = results_dir / "qwen" / "retry_bugfix"
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "summary.json").write_text(
+                json.dumps(
+                    {
+                        "scenario_family": "coding_core",
+                        "turns": 3,
+                        "total_elapsed_seconds": 4.0,
+                        "scorecard": {
+                            "pass": True,
+                            "scope_clean": True,
+                            "tool_error_free": False,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            summary = result_summaries.sim_run_summary(results_dir, ["qwen"], ["retry_bugfix"])
+
+        candidate = summary["candidates"][0]
+        self.assertEqual(candidate["pass_count"], 1)
+        self.assertEqual(candidate["scope_clean_count"], 1)
+        self.assertEqual(candidate["tool_error_free_count"], 0)
+
+
+class ModelEvalTests(unittest.TestCase):
+    def test_parse_candidate_specs_assigns_ports_when_missing(self):
+        candidates = model_eval.parse_candidate_specs(
+            "alpha|models/a.gguf||32768|-b 256;beta|models/b.gguf|proj.gguf|65536|-b 128",
+            base_port=9800,
+        )
+
+        self.assertEqual(candidates[0]["alias"], "alpha")
+        self.assertEqual(candidates[0]["port"], 9800)
+        self.assertEqual(candidates[1]["alias"], "beta")
+        self.assertEqual(candidates[1]["port"], 9801)
+
+    def test_parse_candidate_specs_keeps_explicit_port(self):
+        candidates = model_eval.parse_candidate_specs(
+            "alpha|models/a.gguf||32768|-b 256|9950",
+            base_port=9800,
+        )
+
+        self.assertEqual(candidates[0]["port"], 9950)
+
+    def test_build_model_eval_summary_collects_suite_artifacts(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            results_dir = Path(tempdir)
+            suite_dir = results_dir / "alpha" / "transcript_replay"
+            suite_dir.mkdir(parents=True)
+            (suite_dir / "summary.json").write_text(
+                json.dumps({"family": "general_agentic", "suite": "transcript_replay"}),
+                encoding="utf-8",
+            )
+            (suite_dir / "run_manifest.json").write_text(
+                json.dumps({"requested_candidates": ["alpha"]}),
+                encoding="utf-8",
+            )
+            barrage_dir = results_dir / "alpha" / "agentic_barrage"
+            barrage_dir.mkdir(parents=True)
+            (barrage_dir / "results.ndjson").write_text('{"label":"turn1"}\n{"label":"turn2"}\n', encoding="utf-8")
+
+            summary = model_eval.build_model_eval_summary(
+                results_dir,
+                [
+                    {
+                        "alias": "alpha",
+                        "model": "models/a.gguf",
+                        "mmproj": "",
+                        "context": 32768,
+                        "extra_args": "-b 256",
+                        "port": 9800,
+                    }
+                ],
+                ["transcript_replay", "agentic_barrage"],
+            )
+
+        suites = summary["candidates"][0]["suites"]
+        self.assertEqual(suites["transcript_replay"]["summary"]["suite"], "transcript_replay")
+        self.assertEqual(suites["agentic_barrage"]["result_count"], 2)
+
+
+
+if __name__ == "__main__":
+    unittest.main()

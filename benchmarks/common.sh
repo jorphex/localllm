@@ -9,14 +9,17 @@ BENCH_THREADS="${BENCH_THREADS:-10}"
 BENCH_DEVICE="${BENCH_DEVICE:-}"
 BENCH_GPU_LAYERS="${BENCH_GPU_LAYERS:-auto}"
 BENCH_FIT="${BENCH_FIT:-true}"
+BENCH_CACHE_PROMPT="${BENCH_CACHE_PROMPT:-false}"
+BENCH_CACHE_REUSE="${BENCH_CACHE_REUSE:-0}"
+BENCH_SLOT_PROMPT_SIMILARITY="${BENCH_SLOT_PROMPT_SIMILARITY:-0.10}"
 BENCH_HOST="${BENCH_HOST:-127.0.0.1}"
 
 benchmark_gpu_backend() {
-  if command -v nvidia-smi >/dev/null 2>&1; then
+  if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
     printf 'nvidia\n'
     return
   fi
-  if command -v rocm-smi >/dev/null 2>&1; then
+  if command -v rocm-smi >/dev/null 2>&1 && rocm-smi >/dev/null 2>&1; then
     printf 'rocm\n'
     return
   fi
@@ -65,6 +68,7 @@ start_temp_server() {
   if truthy "${BENCH_FIT}"; then
     command+=(--fit on)
   fi
+  append_cache_args BENCH command
   append_extra_args "${extra_args}" command
   "${command[@]}" >"${log_path}" 2>&1 &
   echo $!
@@ -104,6 +108,7 @@ gpu_mem_json() {
                 $card["VRAM Total Used Memory (B)"]
                 // $card["VRAM Total Used Memory"]
                 // 0
+              | tonumber
               ) / 1048576
             ),
             total_mib: (
@@ -111,6 +116,7 @@ gpu_mem_json() {
                 $card["VRAM Total Memory (B)"]
                 // $card["VRAM Total Memory"]
                 // 0
+              | tonumber
               ) / 1048576
             )
           }
@@ -141,9 +147,15 @@ probe_chat() {
   local prompt="$2"
   local max_tokens="${3:-256}"
   local enable_thinking="${4:-true}"
-  local extra_json="${5:-{}}"
+  local extra_json="${5:-}"
+  local prompt_file
+  if [[ -z "${extra_json}" ]]; then
+    extra_json='{}'
+  fi
+  prompt_file="$(mktemp)"
+  printf '%s' "${prompt}" > "${prompt_file}"
   jq -cn \
-    --arg prompt "${prompt}" \
+    --rawfile prompt "${prompt_file}" \
     --argjson max_tokens "${max_tokens}" \
     --argjson enable_thinking "$( [[ "${enable_thinking}" == "true" ]] && echo true || echo false )" \
     --argjson extra "${extra_json}" \
@@ -155,6 +167,7 @@ probe_chat() {
   | curl -sS "http://${BENCH_HOST}:${port}/v1/chat/completions" \
       -H 'Content-Type: application/json' \
       -d @-
+  rm -f "${prompt_file}"
 }
 
 stop_temp_server() {

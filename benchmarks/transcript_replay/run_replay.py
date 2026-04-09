@@ -7,9 +7,15 @@ from pathlib import Path
 
 import httpx
 
+from benchmarks.result_summaries import replay_fixture_metadata, stable_digest
+
 
 def normalize_finish_reason(value: str) -> str:
     return value.replace("-", "_")
+
+
+def turn_matches_expectations(summary: dict) -> bool:
+    return summary["matches_finish_reason"] and summary["matches_tool_names"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,9 +39,11 @@ def summary_for_turn(turn: dict, payload: dict, response: dict, elapsed: float) 
     message = response["choices"][0]["message"]
     observed_tool_names = [call["function"]["name"] for call in message.get("tool_calls", [])]
     expected = turn.get("expect", {})
-    return {
+    summary = {
         "turn": turn["name"],
         "elapsed_seconds": elapsed,
+        "request_digest": stable_digest(payload),
+        "response_digest": stable_digest(response),
         "finish_reason": normalize_finish_reason(response["choices"][0].get("finish_reason", "")),
         "content_len": len(message.get("content", "")),
         "reasoning_len": len(message.get("reasoning_content", "")),
@@ -54,6 +62,37 @@ def summary_for_turn(turn: dict, payload: dict, response: dict, elapsed: float) 
         ),
         "request_message_count": len(payload.get("messages", [])),
     }
+    summary["matches_expectations"] = turn_matches_expectations(summary)
+    return summary
+
+
+def failed_summary_for_turn(
+    turn: dict,
+    payload: dict,
+    elapsed: float,
+    error_type: str,
+    error_message: str,
+) -> dict:
+    expected = turn.get("expect", {})
+    return {
+        "turn": turn["name"],
+        "elapsed_seconds": elapsed,
+        "request_digest": stable_digest(payload),
+        "response_digest": "",
+        "finish_reason": "error",
+        "content_len": 0,
+        "reasoning_len": 0,
+        "predicted_per_second": 0,
+        "prompt_per_second": 0,
+        "tool_names": [],
+        "expect": expected,
+        "matches_finish_reason": False,
+        "matches_tool_names": False,
+        "request_message_count": len(payload.get("messages", [])),
+        "matches_expectations": False,
+        "error_type": error_type,
+        "error_message": error_message,
+    }
 
 
 def main() -> None:
@@ -63,7 +102,9 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     results = {
+        "schema_version": replay_fixture_metadata(fixture)["schema_version"],
         "fixture": fixture["name"],
+        "fixture_metadata": replay_fixture_metadata(fixture),
         "model": args.model,
         "turns": [],
     }
@@ -78,22 +119,52 @@ def main() -> None:
                 payload["tools"] = turn["tools"]
             if "tool_choice" in turn:
                 payload["tool_choice"] = turn["tool_choice"]
+            stem = turn["name"]
+            (out_dir / f"{stem}.request.json").write_text(
+                json.dumps(payload, indent=2), encoding="utf-8"
+            )
+            started = time.perf_counter()
+            try:
+                response = client.post(
+                    f"{args.base_url}/v1/chat/completions",
+                    json=payload,
+                    timeout=300.0,
+                )
+                elapsed = time.perf_counter() - started
+                response.raise_for_status()
+                response_json = response.json()
+            except httpx.HTTPError as exc:
+                elapsed = time.perf_counter() - started
+                summary = failed_summary_for_turn(
+                    turn,
+                    payload,
+                    elapsed,
+                    type(exc).__name__,
+                    str(exc),
+                )
+                results["turns"].append(summary)
+                (out_dir / f"{stem}.summary.json").write_text(
+                    json.dumps(summary, indent=2), encoding="utf-8"
+                )
+                print(json.dumps(summary))
+                break
 
-            response, elapsed = chat_once(client, args.base_url, payload)
-            summary = summary_for_turn(turn, payload, response, elapsed)
+            summary = summary_for_turn(turn, payload, response_json, elapsed)
             results["turns"].append(summary)
 
-            stem = turn["name"]
-            (out_dir / f"{stem}.request.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
-            (out_dir / f"{stem}.response.json").write_text(json.dumps(response, indent=2), encoding="utf-8")
-            (out_dir / f"{stem}.summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+            (out_dir / f"{stem}.response.json").write_text(
+                json.dumps(response_json, indent=2), encoding="utf-8"
+            )
+            (out_dir / f"{stem}.summary.json").write_text(
+                json.dumps(summary, indent=2), encoding="utf-8"
+            )
             print(json.dumps(summary))
     finally:
         client.close()
 
-    results["all_expectations_met"] = all(
-        turn["matches_finish_reason"] and turn["matches_tool_names"] for turn in results["turns"]
-    )
+    results["all_expectations_met"] = all(turn["matches_expectations"] for turn in results["turns"])
+    results["matched_turns"] = sum(1 for turn in results["turns"] if turn["matches_expectations"])
+    results["turn_count"] = len(results["turns"])
     (out_dir / "result.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
     print(json.dumps({"fixture": fixture["name"], "model": args.model, "all_expectations_met": results["all_expectations_met"]}))
 

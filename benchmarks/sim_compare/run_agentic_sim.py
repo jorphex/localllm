@@ -11,7 +11,12 @@ from pathlib import Path
 
 import httpx
 
-from scenarios import SCENARIOS
+from benchmarks.result_summaries import SCHEMA_VERSION, stable_digest
+
+try:
+    from .scenarios import SCENARIOS
+except ImportError:  # pragma: no cover - script entrypoint fallback
+    from scenarios import SCENARIOS
 
 
 MAX_TURNS = 12
@@ -34,6 +39,16 @@ def parse_args() -> argparse.Namespace:
 
 def scenario_max_turns(scenario: dict) -> int:
     return int(scenario.get("max_turns", MAX_TURNS))
+
+
+def scenario_family(scenario_name: str) -> str:
+    if scenario_name in {"retry_bugfix", "queue_bugfix", "tool_error_recovery", "command_denial_recovery"}:
+        return "coding_core"
+    if scenario_name in {"retry_review_feedback", "batch_tail_recovery"}:
+        return "coding_recovery"
+    if scenario_name in {"flush_report_two_file_fix", "session_store_exploration"}:
+        return "coding_scope"
+    return "coding_misc"
 
 
 def ensure_within_workspace(workspace: Path, raw_path: str) -> Path:
@@ -276,10 +291,10 @@ def chat_once(client: httpx.Client, base_url: str, payload: dict) -> tuple[dict,
 
 
 def verify_scenario(workspace: Path, scenario: dict) -> dict:
+    normalized_verify = normalize_test_command(scenario["verify_command"])
     result = subprocess.run(
-        scenario["verify_command"],
+        normalized_verify,
         cwd=workspace,
-        shell=True,
         check=False,
         capture_output=True,
         text=True,
@@ -287,12 +302,55 @@ def verify_scenario(workspace: Path, scenario: dict) -> dict:
     changed_files = current_changed_files(workspace)
     return {
         "verify_command": scenario["verify_command"],
+        "normalized_verify_command": normalized_verify,
         "verify_returncode": result.returncode,
         "verify_stdout": result.stdout,
         "verify_stderr": result.stderr,
         "changed_files": changed_files,
         "expected_modified_files": scenario["expected_modified_files"],
         "expected_files_only": sorted(changed_files) == sorted(scenario["expected_modified_files"]),
+    }
+
+
+def summarize_result(
+    scenario_name: str,
+    scenario: dict,
+    transcript: list[dict],
+    verification: dict,
+    total_elapsed: float,
+    tool_error_count: int,
+) -> dict:
+    solved = verification["verify_returncode"] == 0
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "scenario": scenario_name,
+        "scenario_family": scenario_family(scenario_name),
+        "scenario_digest": stable_digest(
+            {
+                "title": scenario["title"],
+                "prompt": scenario["prompt"],
+                "verify_command": scenario["verify_command"],
+                "expected_modified_files": scenario["expected_modified_files"],
+                "follow_ups": scenario.get("follow_ups", []),
+                "max_turns": scenario.get("max_turns"),
+            }
+        ),
+        "title": scenario["title"],
+        "model": None,
+        "total_elapsed_seconds": total_elapsed,
+        "turns": len(transcript),
+        "verify_returncode": verification["verify_returncode"],
+        "normalized_verify_command": verification["normalized_verify_command"],
+        "changed_files": verification["changed_files"],
+        "expected_files_only": verification["expected_files_only"],
+        "tool_error_count": tool_error_count,
+        "solved": solved,
+        "tool_counts": tool_counts(transcript),
+        "scorecard": {
+            "pass": solved,
+            "scope_clean": verification["expected_files_only"],
+            "tool_error_free": tool_error_count == 0,
+        },
     }
 
 
@@ -309,6 +367,16 @@ def init_workspace(fixture_root: Path) -> Path:
         capture_output=True,
     )
     return workspace
+
+
+def tool_counts(transcript: list[dict]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for turn in transcript:
+        message = turn.get("response", {}).get("choices", [{}])[0].get("message", {})
+        for tool_call in message.get("tool_calls") or []:
+            tool_name = tool_call["function"]["name"]
+            counts[tool_name] = counts.get(tool_name, 0) + 1
+    return counts
 
 
 def main() -> None:
@@ -337,6 +405,7 @@ def main() -> None:
     solved = False
     event_counts: dict[str, int] = {}
     fired_follow_ups: set[int] = set()
+    tool_error_count = 0
 
     client = httpx.Client()
     try:
@@ -380,6 +449,8 @@ def main() -> None:
                     tool_name,
                     arguments,
                 )
+                if tool_output.startswith("ERROR: "):
+                    tool_error_count += 1
                 messages.append(
                     {
                         "role": "tool",
@@ -414,24 +485,35 @@ def main() -> None:
 
     verification = verify_scenario(workspace, scenario)
     result = {
+        "schema_version": SCHEMA_VERSION,
         "scenario": args.scenario,
+        "scenario_family": scenario_family(args.scenario),
+        "title": scenario["title"],
         "model": args.model,
+        "scenario_digest": stable_digest(
+            {
+                "title": scenario["title"],
+                "prompt": scenario["prompt"],
+                "verify_command": scenario["verify_command"],
+                "expected_modified_files": scenario["expected_modified_files"],
+                "follow_ups": scenario.get("follow_ups", []),
+                "max_turns": scenario.get("max_turns"),
+            }
+        ),
         "workspace": str(workspace),
         "total_elapsed_seconds": total_elapsed,
         "turns": len(transcript),
+        "tool_error_count": tool_error_count,
+        "tool_counts": tool_counts(transcript),
+        "solved_during_run": solved,
         "transcript": transcript,
         "verification": verification,
     }
+    summary = summarize_result(args.scenario, scenario, transcript, verification, total_elapsed, tool_error_count)
+    summary["model"] = args.model
     (out_dir / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
-    print(json.dumps({
-        "scenario": args.scenario,
-        "model": args.model,
-        "turns": len(transcript),
-        "total_elapsed_seconds": total_elapsed,
-        "verify_returncode": verification["verify_returncode"],
-        "changed_files": verification["changed_files"],
-        "expected_files_only": verification["expected_files_only"],
-    }))
+    (out_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    print(json.dumps(summary))
 
 
 if __name__ == "__main__":

@@ -4,6 +4,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 active_file="${PROJECT_ROOT}/config/localllm-main.env"
+runtime_file="${PROJECT_ROOT}/config/localllm-runtime.env"
+
+if [[ -f "${runtime_file}" ]]; then
+  echo "RUNTIME_ENV ${runtime_file}"
+  grep -E '^LOCALLLM_RUNTIME_(BACKEND|DEVICE)=' "${runtime_file}" || true
+fi
 
 if [[ -f "${active_file}" ]]; then
   echo "ACTIVE_ENV ${active_file}"

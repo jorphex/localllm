@@ -4,10 +4,42 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 LOG_DIR="${LOCALLLM_LOG_DIR:-${PROJECT_ROOT}/logs}"
+RUNTIME_ENV_FILE="${PROJECT_ROOT}/config/localllm-runtime.env"
+
+if [[ -f "${RUNTIME_ENV_FILE}" ]]; then
+  # shellcheck disable=SC1090
+  source "${RUNTIME_ENV_FILE}"
+fi
 
 default_llama_server_bin() {
+  local runtime_backend="${LOCALLLM_RUNTIME_BACKEND:-}"
+  local explicit_runtime_bin="${LOCALLLM_RUNTIME_BIN:-}"
   local localllm_bin="${HOME}/.local/share/localllm/llama.cpp/bin/llama-server"
   local legacy_bin="${HOME}/.local/share/openwendy/llama.cpp/bin/llama-server"
+  local hip_bin="${HOME}/.local/src/llama.cpp/build-hip/bin/llama-server"
+  local vulkan_bin="${HOME}/.local/src/llama.cpp/build-vulkan-r9700/bin/llama-server"
+  local cuda_bin="${HOME}/.local/src/llama.cpp/build-cuda/bin/llama-server"
+
+  if [[ -n "${explicit_runtime_bin}" ]]; then
+    printf '%s\n' "${explicit_runtime_bin}"
+    return
+  fi
+  case "${runtime_backend}" in
+    hip)
+      printf '%s\n' "${hip_bin}"
+      return
+      ;;
+    vulkan)
+      printf '%s\n' "${vulkan_bin}"
+      return
+      ;;
+    cuda)
+      if [[ -f "${cuda_bin}" ]]; then
+        printf '%s\n' "${cuda_bin}"
+        return
+      fi
+      ;;
+  esac
   if [[ -f "${localllm_bin}" ]]; then
     printf '%s\n' "${localllm_bin}"
     return
@@ -108,7 +140,7 @@ append_offload_args() {
   local device_var="${prefix}_DEVICE"
   local gpu_layers_var="${prefix}_GPU_LAYERS"
   local fit_var="${prefix}_FIT"
-  local device="${!device_var:-}"
+  local device="${!device_var:-${LOCALLLM_RUNTIME_DEVICE:-}}"
   local gpu_layers="${!gpu_layers_var:-}"
   local fit="${!fit_var:-true}"
 
@@ -120,6 +152,50 @@ append_offload_args() {
   fi
   if truthy "${fit}"; then
     command_ref+=(--fit on)
+  fi
+}
+
+append_cache_args() {
+  local prefix="$1"
+  local -n command_ref="$2"
+  local cache_prompt_var="${prefix}_CACHE_PROMPT"
+  local cache_reuse_var="${prefix}_CACHE_REUSE"
+  local cache_ram_var="${prefix}_CACHE_RAM"
+  local slot_similarity_var="${prefix}_SLOT_PROMPT_SIMILARITY"
+  local slot_save_path_var="${prefix}_SLOT_SAVE_PATH"
+  local slots_var="${prefix}_SLOTS"
+  local cache_prompt="${!cache_prompt_var:-}"
+  local cache_reuse="${!cache_reuse_var:-}"
+  local cache_ram="${!cache_ram_var:-}"
+  local slot_similarity="${!slot_similarity_var:-}"
+  local slot_save_path="${!slot_save_path_var:-}"
+  local slots="${!slots_var:-}"
+
+  if [[ -n "${cache_prompt}" ]]; then
+    if truthy "${cache_prompt}"; then
+      command_ref+=(--cache-prompt)
+    else
+      command_ref+=(--no-cache-prompt)
+    fi
+  fi
+  if [[ -n "${cache_reuse}" ]]; then
+    command_ref+=(--cache-reuse "${cache_reuse}")
+  fi
+  if [[ -n "${cache_ram}" ]]; then
+    command_ref+=(--cache-ram "${cache_ram}")
+  fi
+  if [[ -n "${slot_similarity}" ]]; then
+    command_ref+=(--slot-prompt-similarity "${slot_similarity}")
+  fi
+  if [[ -n "${slot_save_path}" ]]; then
+    command_ref+=(--slot-save-path "${slot_save_path}")
+  fi
+  if [[ -n "${slots}" ]]; then
+    if truthy "${slots}"; then
+      command_ref+=(--slots)
+    else
+      command_ref+=(--no-slots)
+    fi
   fi
 }
 

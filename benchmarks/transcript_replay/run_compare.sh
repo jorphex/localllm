@@ -50,8 +50,31 @@ candidate_json() {
 QWEN_SPEC="${QWEN_SPEC:-$(candidate_json "qwen-3.5-abl" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-Q4_K_M-mradermacher.gguf" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-mmproj-Q8_0-mradermacher.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9531)}"
 GEMINI_SPEC="${GEMINI_SPEC:-$(candidate_json "qwen-3.5-g" "qwen-3.5-9b/Qwen3.5-9B-Gemini-3.1-Pro-Reasoning-Distill-Q4_K_M-jackrong.gguf" "qwen-3.5-9b/Qwen3.5-9B-Gemini-3.1-Pro-Reasoning-Distill-mmproj-BF16-jackrong.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9532)}"
 UNSLOTH_SPEC="${UNSLOTH_SPEC:-$(candidate_json "qwen-3.5" "qwen-3.5-9b/Qwen3.5-9B-Q4_K_M-unsloth.gguf" "qwen-3.5-9b/Qwen3.5-9B-mmproj-F16-unsloth.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9533)}"
+AVAILABLE_SPECS=()
+[[ -n "${QWEN_SPEC}" ]] && AVAILABLE_SPECS+=("${QWEN_SPEC}")
+[[ -n "${GEMINI_SPEC}" ]] && AVAILABLE_SPECS+=("${GEMINI_SPEC}")
+[[ -n "${UNSLOTH_SPEC}" ]] && AVAILABLE_SPECS+=("${UNSLOTH_SPEC}")
+
+available_specs_json() {
+  printf '%s\n' "${AVAILABLE_SPECS[@]}" | jq -s '.'
+}
+
+find_candidate_spec() {
+  local requested_alias="$1"
+  local spec alias
+  for spec in "${AVAILABLE_SPECS[@]}"; do
+    alias="$(jq -r '.alias' <<< "${spec}")"
+    if [[ "${alias}" == "${requested_alias}" ]]; then
+      printf '%s\n' "${spec}"
+      return 0
+    fi
+  done
+  return 1
+}
 
 write_run_manifest() {
+  local specs_json
+  specs_json="$(available_specs_json)"
   jq -cn \
     --arg results_dir "${REPLAY_RESULTS_DIR}" \
     --arg label "${REPLAY_LABEL}" \
@@ -60,9 +83,7 @@ write_run_manifest() {
     --arg candidates "${REPLAY_CANDIDATES}" \
     --arg llama_server_bin "${LLAMA_SERVER_BIN}" \
     --arg model_dir "${MODEL_DIR}" \
-    --argjson qwen "${QWEN_SPEC}" \
-    --argjson gemini "${GEMINI_SPEC}" \
-    --argjson unsloth "${UNSLOTH_SPEC}" \
+    --argjson specs "${specs_json}" \
     '{
       family:"general_agentic",
       suite:"transcript_replay",
@@ -73,7 +94,7 @@ write_run_manifest() {
       requested_candidates:($candidates | split(" ") | map(select(length > 0))),
       llama_server_bin:$llama_server_bin,
       model_dir:$model_dir,
-      candidates:[$qwen, $gemini, $unsloth]
+      candidates:$specs
     }' > "${REPLAY_RESULTS_DIR}/run_manifest.json"
 }
 
@@ -150,15 +171,11 @@ trap cleanup_replay_compare EXIT
 write_run_manifest
 
 for candidate in ${REPLAY_CANDIDATES}; do
-  case "${candidate}" in
-    qwen-3.5-abl) run_candidate "${QWEN_SPEC}" ;;
-    qwen-3.5-g) run_candidate "${GEMINI_SPEC}" ;;
-    qwen-3.5) run_candidate "${UNSLOTH_SPEC}" ;;
-    *)
-      echo "Unknown candidate: ${candidate}" >&2
-      exit 1
-      ;;
-  esac
+  if ! spec="$(find_candidate_spec "${candidate}")"; then
+    echo "Unknown candidate: ${candidate}" >&2
+    exit 1
+  fi
+  run_candidate "${spec}"
 done
 
 write_summary

@@ -1,0 +1,19 @@
+[Unit]
+Description=localllm OmniVoice TTS service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/localllm
+Environment=TTS_HOST=127.0.0.1
+Environment=TTS_PORT=8094
+Environment=TTS_MODEL=k2-fsa/OmniVoice
+Environment=TTS_DEVICE=cuda
+Environment=TTS_DTYPE=float16
+Environment=TTS_VENV=%h/.venvs/omnivoice-rocm
+ExecStart=%h/projects/localllm/scripts/serve-omnivoice.sh
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

@@ -14,7 +14,11 @@ MAIN_CONTEXT="${MAIN_CONTEXT:-131072}"
 MAIN_DEVICE="${MAIN_DEVICE:-}"
 MAIN_GPU_LAYERS="${MAIN_GPU_LAYERS:-auto}"
 MAIN_FIT="${MAIN_FIT:-true}"
-MAIN_EXTRA_ARGS="${MAIN_EXTRA_ARGS:--np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288}"
+MAIN_CACHE_PROMPT="${MAIN_CACHE_PROMPT:-true}"
+MAIN_CACHE_REUSE="${MAIN_CACHE_REUSE:-0}"
+MAIN_CACHE_RAM="${MAIN_CACHE_RAM:-8192}"
+MAIN_SLOT_PROMPT_SIMILARITY="${MAIN_SLOT_PROMPT_SIMILARITY:-0.10}"
+MAIN_EXTRA_ARGS="${MAIN_EXTRA_ARGS:--np 1 -tb 8 -b 512 -ub 256 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288}"
 
 MAIN_MODEL_PATH="${MODEL_DIR}/${MAIN_MODEL}"
 require_file "${LLAMA_SERVER_BIN}"
@@ -41,6 +45,7 @@ if [[ -n "${MAIN_ALIAS}" ]]; then
 fi
 
 append_offload_args MAIN command
+append_cache_args MAIN command
 append_extra_args "${MAIN_EXTRA_ARGS}" command
 
 exec "${command[@]}"
