@@ -1,0 +1,11 @@
+[Unit]
+Description=Apply AMD GPU power cap for localllm host
+After=multi-user.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/default/localllm-amd-power-cap
+ExecStart=/bin/sh -c 'echo "${GPU_POWER_CAP_UW:-210000000}" > /sys/class/drm/card0/device/hwmon/hwmon1/power1_cap'
+
+[Install]
+WantedBy=multi-user.target
