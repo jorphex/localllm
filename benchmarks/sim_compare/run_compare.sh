@@ -6,15 +6,15 @@ BENCHMARK_DIR="$(cd -- "${SIM_DIR}/.." && pwd)"
 PROJECT_ROOT="$(cd -- "${SIM_DIR}/../.." && pwd)"
 source "${BENCHMARK_DIR}/common.sh"
 
-SIM_LABEL="${SIM_LABEL:-sim-retained-9b}"
+SIM_LABEL="${SIM_LABEL:-sim-qwen36-35b-unsloth}"
 SIM_RESULTS_DIR="${SIM_RESULTS_DIR:-${SIM_DIR}/results/$(date -u +%Y%m%dT%H%M%SZ)-${SIM_LABEL}}"
 SIM_SCENARIOS="${SIM_SCENARIOS:-retry_bugfix queue_bugfix retry_review_feedback session_store_exploration}"
-SIM_CANDIDATES="${SIM_CANDIDATES:-qwen-3.5-abl qwen-3.5-g}"
-SIM_RESTORE_PRESET="${SIM_RESTORE_PRESET:-qwen-3.5-abl}"
+SIM_CANDIDATES="${SIM_CANDIDATES:-qwen36-35b-unsloth}"
+SIM_RESTORE_PRESET="${SIM_RESTORE_PRESET:-qwen-3.6-35b-a3b-unsloth-q6}"
 SIM_LOAD_RESTORE="${SIM_LOAD_RESTORE:-true}"
 
-DEFAULT_EXTRA_ARGS="-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288"
-DEFAULT_CONTEXT=131072
+DEFAULT_EXTRA_ARGS="-np 1 -tb 8 -b 1024 -ub 512 -fa on --threads-http 4 -ctk q8_0 -ctv q8_0 -rea on --metrics --no-warmup --no-mmap --image-max-tokens 12288 --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.0 --presence-penalty 0.0 --repeat-penalty 1.0 --spec-default --slot-save-path /home/j/projects/localllm/state/main-slots"
+DEFAULT_CONTEXT=262144
 
 mkdir -p "${SIM_RESULTS_DIR}"
 export_llama_runtime_env
@@ -45,9 +45,9 @@ candidate_json() {
     }'
 }
 
-QWEN_SPEC="${QWEN_SPEC:-$(candidate_json "qwen-3.5-abl" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-Q4_K_M-mradermacher.gguf" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-mmproj-Q8_0-mradermacher.gguf" 9521)}"
-GEMINI_SPEC="${GEMINI_SPEC:-$(candidate_json "qwen-3.5-g" "qwen-3.5-9b/Qwen3.5-9B-Gemini-3.1-Pro-Reasoning-Distill-Q4_K_M-jackrong.gguf" "qwen-3.5-9b/Qwen3.5-9B-Gemini-3.1-Pro-Reasoning-Distill-mmproj-BF16-jackrong.gguf" 9522)}"
-UNSLOTH_SPEC="${UNSLOTH_SPEC:-$(candidate_json "qwen-3.5" "qwen-3.5-9b/Qwen3.5-9B-Q4_K_M-unsloth.gguf" "qwen-3.5-9b/Qwen3.5-9B-mmproj-F16-unsloth.gguf" 9523)}"
+QWEN_SPEC="${QWEN_SPEC:-$(candidate_json "qwen36-35b-unsloth" "qwen-3.6/Qwen3.6-35B-A3B-UD-Q6_K-unsloth.gguf" "qwen-3.6/Qwen3.6-35B-A3B-mmproj-F16-unsloth.gguf" 9521)}"
+GEMINI_SPEC="${GEMINI_SPEC:-}"
+UNSLOTH_SPEC="${UNSLOTH_SPEC:-}"
 AVAILABLE_SPECS=()
 [[ -n "${QWEN_SPEC}" ]] && AVAILABLE_SPECS+=("${QWEN_SPEC}")
 [[ -n "${GEMINI_SPEC}" ]] && AVAILABLE_SPECS+=("${GEMINI_SPEC}")

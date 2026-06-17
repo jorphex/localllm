@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 
 import httpx
 
 from benchmarks.result_summaries import replay_fixture_metadata, stable_digest
+
+
+REQUEST_TIMEOUT_SECONDS = float(os.environ.get("LOCALLLM_BENCH_REQUEST_TIMEOUT", "1800"))
 
 
 def normalize_finish_reason(value: str) -> str:
@@ -29,7 +33,11 @@ def parse_args() -> argparse.Namespace:
 
 def chat_once(client: httpx.Client, base_url: str, payload: dict) -> tuple[dict, float]:
     started = time.perf_counter()
-    response = client.post(f"{base_url}/v1/chat/completions", json=payload, timeout=300.0)
+    response = client.post(
+        f"{base_url}/v1/chat/completions",
+        json=payload,
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
     elapsed = time.perf_counter() - started
     response.raise_for_status()
     return response.json(), elapsed
@@ -128,7 +136,7 @@ def main() -> None:
                 response = client.post(
                     f"{args.base_url}/v1/chat/completions",
                     json=payload,
-                    timeout=300.0,
+                    timeout=REQUEST_TIMEOUT_SECONDS,
                 )
                 elapsed = time.perf_counter() - started
                 response.raise_for_status()

@@ -5,20 +5,20 @@ COMPARE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${COMPARE_DIR}/common.sh"
 source "${COMPARE_DIR}/scenarios.sh"
 
-COMPARE_LABEL="${COMPARE_LABEL:-qwen-vs-gemini}"
+COMPARE_LABEL="${COMPARE_LABEL:-qwen36-35b-unsloth}"
 COMPARE_RESULTS_DIR="${COMPARE_RESULTS_DIR:-$(compare_results_dir "${COMPARE_LABEL}")}"
 COMPARE_SCENARIOS="${COMPARE_SCENARIOS:-$(opencode_scenarios | tr '\n' ' ')}"
-COMPARE_CANDIDATES="${COMPARE_CANDIDATES:-qwen-3.5-abl qwen-3.5-g}"
-COMPARE_RESTORE_PRESET="${COMPARE_RESTORE_PRESET:-qwen-3.5-abl}"
+COMPARE_CANDIDATES="${COMPARE_CANDIDATES:-qwen36-35b-unsloth}"
+COMPARE_RESTORE_PRESET="${COMPARE_RESTORE_PRESET:-qwen-3.6-35b-a3b-unsloth-q6}"
 COMPARE_STOP_MAIN="${COMPARE_STOP_MAIN:-true}"
 COMPARE_LOAD_RESTORE="${COMPARE_LOAD_RESTORE:-true}"
 
-DEFAULT_EXTRA_ARGS="-np 1 -tb 8 -b 512 -ub 256 -cram 0 -fa on --threads-http 4 -ctk q4_0 -ctv q4_0 -rea on --metrics --no-warmup --image-max-tokens 12288"
-DEFAULT_CONTEXT=131072
+DEFAULT_EXTRA_ARGS="-np 1 -tb 8 -b 1024 -ub 512 -fa on --threads-http 4 -ctk q8_0 -ctv q8_0 -rea on --metrics --no-warmup --no-mmap --image-max-tokens 12288 --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.0 --presence-penalty 0.0 --repeat-penalty 1.0 --spec-default --slot-save-path /home/j/projects/localllm/state/main-slots"
+DEFAULT_CONTEXT=262144
 
-QWEN_SPEC="${QWEN_SPEC:-$(candidate_spec_json "qwen-3.5-abl" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-Q4_K_M-mradermacher.gguf" "qwen-3.5-9b/Huihui-Qwen3.5-9B-abliterated-mmproj-Q8_0-mradermacher.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9511)}"
-GEMINI_SPEC="${GEMINI_SPEC:-$(candidate_spec_json "qwen-3.5-g" "qwen-3.5-9b/Qwen3.5-9B-Gemini-3.1-Pro-Reasoning-Distill-Q4_K_M-jackrong.gguf" "qwen-3.5-9b/Qwen3.5-9B-Gemini-3.1-Pro-Reasoning-Distill-mmproj-BF16-jackrong.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9512)}"
-UNSLOTH_SPEC="${UNSLOTH_SPEC:-$(candidate_spec_json "qwen-3.5" "qwen-3.5-9b/Qwen3.5-9B-Q4_K_M-unsloth.gguf" "qwen-3.5-9b/Qwen3.5-9B-mmproj-F16-unsloth.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9513)}"
+QWEN_SPEC="${QWEN_SPEC:-$(candidate_spec_json "qwen36-35b-unsloth" "qwen-3.6/Qwen3.6-35B-A3B-UD-Q6_K-unsloth.gguf" "qwen-3.6/Qwen3.6-35B-A3B-mmproj-F16-unsloth.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9511)}"
+GEMINI_SPEC="${GEMINI_SPEC:-}"
+UNSLOTH_SPEC="${UNSLOTH_SPEC:-}"
 AVAILABLE_SPECS=()
 [[ -n "${QWEN_SPEC}" ]] && AVAILABLE_SPECS+=("${QWEN_SPEC}")
 [[ -n "${GEMINI_SPEC}" ]] && AVAILABLE_SPECS+=("${GEMINI_SPEC}")
