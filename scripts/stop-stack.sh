@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MAIN_SESSION="${MAIN_SESSION:-localllm-main}"
-EMBED_SESSION="${EMBED_SESSION:-localllm-embedding}"
-ROUTER_SESSION="${ROUTER_SESSION:-localllm-router}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
 
-for session in "${ROUTER_SESSION}" "${EMBED_SESSION}" "${MAIN_SESSION}"; do
-  screen -S "${session}" -X quit >/dev/null 2>&1 || true
-done
+systemctl --user stop \
+  localllm-tts.service \
+  localllm-reranker.service \
+  localllm-embedding.service \
+  localllm-main.service
 
-screen -wipe >/dev/null 2>&1 || true
-echo "localllm stack stop requested."
+echo "localllm services stop requested."

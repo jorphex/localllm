@@ -16,7 +16,7 @@ default_llama_server_bin() {
   local explicit_runtime_bin="${LOCALLLM_RUNTIME_BIN:-}"
   local localllm_bin="${HOME}/.local/share/localllm/llama.cpp/bin/llama-server"
   local legacy_bin="${HOME}/.local/share/openwendy/llama.cpp/bin/llama-server"
-  local hip_bin="${HOME}/.local/src/llama.cpp/build-hip/bin/llama-server"
+  local hip_bin="${HOME}/.local/src/llama.cpp/build-hip-r9700-current/bin/llama-server"
   local vulkan_bin="${HOME}/.local/src/llama.cpp/build-vulkan-r9700/bin/llama-server"
   local cuda_bin="${HOME}/.local/src/llama.cpp/build-cuda/bin/llama-server"
 
@@ -196,6 +196,47 @@ append_cache_args() {
     else
       command_ref+=(--no-slots)
     fi
+  fi
+}
+
+append_speculative_args() {
+  local prefix="$1"
+  local -n command_ref="$2"
+  local spec_type_var="${prefix}_SPEC_TYPE"
+  local spec_ngram_size_n_var="${prefix}_SPEC_NGRAM_SIZE_N"
+  local spec_ngram_size_m_var="${prefix}_SPEC_NGRAM_SIZE_M"
+  local spec_ngram_min_hits_var="${prefix}_SPEC_NGRAM_MIN_HITS"
+  local draft_min_var="${prefix}_DRAFT_MIN"
+  local draft_max_var="${prefix}_DRAFT_MAX"
+  local draft_p_min_var="${prefix}_DRAFT_P_MIN"
+  local spec_type="${!spec_type_var:-}"
+  local spec_ngram_size_n="${!spec_ngram_size_n_var:-}"
+  local spec_ngram_size_m="${!spec_ngram_size_m_var:-}"
+  local spec_ngram_min_hits="${!spec_ngram_min_hits_var:-}"
+  local draft_min="${!draft_min_var:-}"
+  local draft_max="${!draft_max_var:-}"
+  local draft_p_min="${!draft_p_min_var:-}"
+
+  if [[ -n "${spec_type}" ]]; then
+    command_ref+=(--spec-type "${spec_type}")
+  fi
+  if [[ -n "${spec_ngram_size_n}" ]]; then
+    command_ref+=(--spec-ngram-size-n "${spec_ngram_size_n}")
+  fi
+  if [[ -n "${spec_ngram_size_m}" ]]; then
+    command_ref+=(--spec-ngram-size-m "${spec_ngram_size_m}")
+  fi
+  if [[ -n "${spec_ngram_min_hits}" ]]; then
+    command_ref+=(--spec-ngram-min-hits "${spec_ngram_min_hits}")
+  fi
+  if [[ -n "${draft_min}" ]]; then
+    command_ref+=(--draft-min "${draft_min}")
+  fi
+  if [[ -n "${draft_max}" ]]; then
+    command_ref+=(--draft-max "${draft_max}")
+  fi
+  if [[ -n "${draft_p_min}" ]]; then
+    command_ref+=(--draft-p-min "${draft_p_min}")
   fi
 }
 

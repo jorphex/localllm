@@ -13,7 +13,7 @@ EMBED_UBATCH="${EMBED_UBATCH:-128}"
 EMBED_DEVICE="${EMBED_DEVICE:-none}"
 EMBED_GPU_LAYERS="${EMBED_GPU_LAYERS:-0}"
 EMBED_FIT="${EMBED_FIT:-false}"
-EMBED_EXTRA_ARGS="${EMBED_EXTRA_ARGS:--np 1 -b 256 -tb 4 -cram 0 --no-warmup -fa off}"
+EMBED_EXTRA_ARGS="${EMBED_EXTRA_ARGS:--np 1 -b 128 -tb 4 -cram 0 --no-warmup -fa off --threads-http 2}"
 
 EMBED_MODEL_PATH="${MODEL_DIR}/${EMBED_MODEL}"
 require_file "${LLAMA_SERVER_BIN}"

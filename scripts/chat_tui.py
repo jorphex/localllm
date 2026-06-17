@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import curses
 import json
+import os
 import textwrap
 from dataclasses import dataclass, field
 
@@ -42,6 +43,7 @@ class ChatState:
     repeat_penalty: float | None
     presence_penalty: float | None
     thinking_budget: int
+    api_key: str | None = None
     messages: list[dict] = field(default_factory=list)
     transcript: list[TranscriptEntry] = field(default_factory=list)
     input_lines: list[str] = field(default_factory=lambda: [""])
@@ -58,6 +60,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Tiny curses chat client for a local OpenAI-style model.")
     parser.add_argument("--endpoint", default="http://127.0.0.1:8091", help="Base URL for the local model API")
     parser.add_argument("--model", default="", help="Model id to use; defaults to /props model_alias")
+    parser.add_argument(
+        "--api-key",
+        default=os.environ.get("LOCALLLM_CHAT_API_KEY", ""),
+        help="Bearer token for authenticated endpoints",
+    )
     parser.add_argument("--system", default=DEFAULT_SYSTEM_PROMPT, help="System prompt")
     parser.add_argument("--temp", type=float, default=None, help="Sampling temperature")
     parser.add_argument("--top-p", type=float, default=None, dest="top_p", help="Sampling top_p")
@@ -67,10 +74,17 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def discover_model(endpoint: str) -> str:
+def request_headers(api_key: str | None) -> dict[str, str]:
+    headers: dict[str, str] = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    return headers
+
+
+def discover_model(endpoint: str, api_key: str | None) -> str:
     props_url = endpoint.rstrip("/") + "/props"
     with httpx.Client(timeout=5.0) as client:
-        response = client.get(props_url)
+        response = client.get(props_url, headers=request_headers(api_key))
         response.raise_for_status()
         data = response.json()
     model = str(data.get("model_alias") or "").strip()
@@ -287,6 +301,7 @@ def stream_assistant(stdscr: curses.window, state: ChatState) -> None:
             with client.stream(
                 "POST",
                 state.endpoint.rstrip("/") + "/v1/chat/completions",
+                headers=request_headers(state.api_key),
                 json=build_request(state),
             ) as response:
                 response.raise_for_status()
@@ -358,10 +373,11 @@ def run_chat(stdscr: curses.window, state: ChatState) -> None:
 
 def main() -> None:
     args = parse_args()
-    model = args.model or discover_model(args.endpoint)
+    model = args.model or discover_model(args.endpoint, args.api_key or None)
     state = ChatState(
         endpoint=args.endpoint,
         model=model,
+        api_key=args.api_key or None,
         system_prompt=args.system,
         temperature=args.temp,
         top_p=args.top_p,

@@ -17,6 +17,15 @@ from omnivoice import OmniVoice
 LOG = logging.getLogger("omnivoice_server")
 
 
+def parse_optional_positive_int(value: str | None, name: str) -> int | None:
+    if value is None or not value.strip():
+        return None
+    parsed = int(value)
+    if parsed < 1:
+        raise ValueError(f"{name} must be >= 1")
+    return parsed
+
+
 def parse_dtype(value: str):
     normalized = (value or "float16").strip().lower()
     mapping = {
@@ -38,21 +47,44 @@ def read_env():
     model_id = os.environ.get("TTS_MODEL", "k2-fsa/OmniVoice")
     device = os.environ.get("TTS_DEVICE", "cuda")
     dtype = parse_dtype(os.environ.get("TTS_DTYPE", "float16"))
+    torch_threads = parse_optional_positive_int(
+        os.environ.get("TTS_TORCH_THREADS"),
+        "TTS_TORCH_THREADS",
+    )
+    torch_interop_threads = parse_optional_positive_int(
+        os.environ.get("TTS_TORCH_INTEROP_THREADS"),
+        "TTS_TORCH_INTEROP_THREADS",
+    )
     return {
         "host": host,
         "port": port,
         "model_id": model_id,
         "device": device,
         "dtype": dtype,
+        "torch_threads": torch_threads,
+        "torch_interop_threads": torch_interop_threads,
     }
 
 
 class OmniVoiceState:
-    def __init__(self, model_id: str, device: str, dtype):
+    def __init__(
+        self,
+        model_id: str,
+        device: str,
+        dtype,
+        torch_threads: int | None,
+        torch_interop_threads: int | None,
+    ):
         self.model_id = model_id
         self.device = device
         self.dtype = dtype
+        self.torch_threads = torch_threads
+        self.torch_interop_threads = torch_interop_threads
         self.lock = Lock()
+        if torch_threads is not None:
+            torch.set_num_threads(torch_threads)
+        if torch_interop_threads is not None:
+            torch.set_num_interop_threads(torch_interop_threads)
         LOG.info("Loading OmniVoice model %s on %s", model_id, device)
         self.model = OmniVoice.from_pretrained(
             model_id,
@@ -118,6 +150,8 @@ class Handler(BaseHTTPRequestHandler):
                     "status": "ok",
                     "model": self.state.model_id,
                     "device": self.state.device,
+                    "torch_threads": torch.get_num_threads(),
+                    "torch_interop_threads": torch.get_num_interop_threads(),
                     "sampling_rate": self.state.sampling_rate,
                 },
             )
@@ -198,6 +232,8 @@ def main():
         model_id=config["model_id"],
         device=config["device"],
         dtype=config["dtype"],
+        torch_threads=config["torch_threads"],
+        torch_interop_threads=config["torch_interop_threads"],
     )
     server = ThreadingHTTPServer((config["host"], config["port"]), Handler)
     server.state = state

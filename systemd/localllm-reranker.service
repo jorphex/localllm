@@ -1,0 +1,14 @@
+[Unit]
+Description=localllm reranker llama.cpp service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/localllm
+EnvironmentFile=%h/projects/localllm/config/localllm-reranker.env
+ExecStart=%h/projects/localllm/scripts/serve-reranker.sh
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

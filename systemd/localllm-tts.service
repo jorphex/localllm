@@ -9,6 +9,8 @@ Environment=TTS_PORT=8094
 Environment=TTS_MODEL=k2-fsa/OmniVoice
 Environment=TTS_DEVICE=cpu
 Environment=TTS_DTYPE=float16
+Environment=TTS_TORCH_THREADS=6
+Environment=TTS_TORCH_INTEROP_THREADS=2
 Environment=TTS_VENV=%h/.venvs/omnivoice-rocm
 ExecStart=%h/projects/localllm/scripts/serve-omnivoice.sh
 Restart=always

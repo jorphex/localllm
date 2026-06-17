@@ -1,0 +1,12 @@
+[Unit]
+Description=localllm main idle slot flush
+After=localllm-main.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/localllm
+Environment=MAIN_HOST=127.0.0.1
+Environment=MAIN_PORT=8091
+Environment=MAIN_IDLE_FLUSH_SECONDS=900
+Environment=MAIN_IDLE_FLUSH_MIN_SLOT_TOKENS=8192
+ExecStart=%h/projects/localllm/scripts/idle-flush-main.sh
