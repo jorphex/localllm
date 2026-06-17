@@ -1,17 +1,22 @@
 # Goal
-- Find why repeated long-prompt requests on the current `llama.cpp` server path still report `cache_n=0` and do not benefit from prompt-cache reuse.
+- Organize the current dirty localllm tree into coherent, verified commits without losing the completed Qwen 3.6 runtime work.
 
-# Success Criteria
-- The blocking condition is identified in either `llama.cpp` behavior or the benchmark request shape.
-- A minimal fix or workaround is applied if feasible.
-- A repeated-prompt verification shows either real cache reuse or a clearly documented hard limitation.
+# Plan
+- [x] Inspect the dirty tree and identify independent change groups.
+- [x] Fix any documentation/config drift found during organization.
+- [x] Run focused lint, syntax, unit, and service verification.
+- [x] Stage and commit each coherent group with descriptive messages.
+- [x] Confirm the final tree is clean and services remain healthy.
 
 # Constraints
-- Keep the active model as `qwen-3.5-27b-huihui-claude-q4`.
-- Do not guess from theory alone; verify with direct server behavior.
-- Restore the managed live service after scratch experiments.
+- Do not modify `/home/j/projects/openwendy`.
+- Do not revert user or prior-session work while organizing.
+- Keep commits scoped by behavior area rather than by file type alone.
+- Do not stop running healthy production services solely for commit organization.
+- For Python changes, run `ruff check --fix`, `ruff check`, and relevant compile/tests.
 
-# Implementation Items
-- [completed] 1. Inspect local `llama.cpp` cache behavior and server logs around repeated prompts.
-- [completed] 2. Check whether our request shape or benchmark harness is preventing reuse.
-- [completed] 3. Document the blocking slot-selection/request-state conditions that keep `cache_n=0` on repeated prompts.
+# Result
+- Committed runtime/service changes as `3ccd85b Promote Qwen 3.6 service stack`.
+- Committed benchmark tooling as `445c7c6 Add Qwen runtime benchmark tooling`.
+- Committed generated social assets as `1494afb Add Qwen stack social assets`.
+- Verification passed before commit organization: `ruff check --fix .`, `ruff check .`, shell syntax checks, `uv run python -m py_compile ...`, `pytest -q`, and `systemd-analyze --user verify systemd/*.service systemd/*.timer`.
