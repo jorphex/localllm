@@ -92,6 +92,7 @@ def sim_run_summary(results_dir: Path, requested_candidates: list[str], scenario
         scope_clean_count = 0
         tool_error_free_count = 0
         composite_sum = 0.0
+        scope_score_sum = 0.0
         for scenario in scenarios:
             summary_path = results_dir / candidate / scenario / "summary.json"
             if not summary_path.exists():
@@ -105,12 +106,14 @@ def sim_run_summary(results_dir: Path, requested_candidates: list[str], scenario
             if scorecard.get("tool_error_free"):
                 tool_error_free_count += 1
             composite_sum += float(scorecard.get("composite", 0.0))
+            scope_score_sum += float(scorecard.get("scope_score", 0.0))
             scenario_summaries.append(
                 {
                     "scenario": scenario,
                     "scenario_family": summary.get("scenario_family"),
                     "pass": bool(scorecard.get("pass")),
                     "scope_clean": bool(scorecard.get("scope_clean")),
+                    "scope_score": round(float(scorecard.get("scope_score", 0.0)), 4),
                     "tool_error_free": bool(scorecard.get("tool_error_free")),
                     "efficiency": float(scorecard.get("efficiency", 0.0)),
                     "agent_score": round(float(scorecard.get("composite", 0.0)), 4),
@@ -127,6 +130,7 @@ def sim_run_summary(results_dir: Path, requested_candidates: list[str], scenario
                 "pass_count": pass_count,
                 "scope_clean_count": scope_clean_count,
                 "tool_error_free_count": tool_error_free_count,
+                "scope_score_avg": round(scope_score_sum / scenario_count, 4) if scenario_count else 0.0,
                 "agent_score_avg": round(composite_sum / scenario_count, 4) if scenario_count else 0.0,
             }
         )

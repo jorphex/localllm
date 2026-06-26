@@ -283,6 +283,7 @@ class SimHarnessTests(GitFixtureMixin, unittest.TestCase):
         self.assertEqual(verification["scope_details"]["extra_files"], ["worker/extra.py"])
         self.assertEqual(verification["scope_details"]["missing_files"], ["worker/missing.py"])
         self.assertEqual(verification["scope_details"]["overlap_count"], 1)
+        self.assertAlmostEqual(verification["scope_score"], 1 / 3, places=4)
 
     def test_tool_counts_tracks_called_tools(self):
         transcript = [

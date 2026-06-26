@@ -314,6 +314,8 @@ def verify_scenario(workspace: Path, scenario: dict) -> dict:
     expected_files = scenario["expected_modified_files"]
     changed_set = set(changed_files)
     expected_set = set(expected_files)
+    union = changed_set | expected_set
+    scope_score = len(changed_set & expected_set) / len(union) if union else 1.0
     return {
         "verify_command": scenario["verify_command"],
         "normalized_verify_command": normalized_verify,
@@ -323,6 +325,7 @@ def verify_scenario(workspace: Path, scenario: dict) -> dict:
         "changed_files": changed_files,
         "expected_modified_files": expected_files,
         "expected_files_only": sorted(changed_files) == sorted(expected_files),
+        "scope_score": round(scope_score, 4),
         "scope_details": {
             "extra_files": sorted(changed_set - expected_set),
             "missing_files": sorted(expected_set - changed_set),
@@ -368,10 +371,12 @@ def summarize_result(
     turns_taken = len(transcript)
     efficiency = min(1.0, max_turns / turns_taken) if solved and turns_taken > 0 else 0.0
     scope_clean = verification["expected_files_only"]
+    scope_score = verification.get("scope_score", 1.0 if scope_clean else 0.0)
     tool_error_free = tool_error_count == 0
     scorecard = {
         "pass": solved,
         "scope_clean": scope_clean,
+        "scope_score": round(scope_score, 4),
         "tool_error_free": tool_error_free,
         "efficiency": round(efficiency, 4),
     }
