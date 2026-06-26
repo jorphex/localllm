@@ -4,6 +4,7 @@ import unittest
 
 from pathlib import Path
 
+from benchmarks import config
 from benchmarks import harness_catalog
 from benchmarks import model_eval
 from benchmarks import result_summaries
@@ -361,6 +362,110 @@ class CompareSummaryTests(GitFixtureMixin, unittest.TestCase):
         self.assertEqual(candidate["scope_clean_count"], 1)
         self.assertEqual(candidate["tool_error_free_count"], 0)
         self.assertEqual(candidate["agent_score_avg"], 0.85)
+
+
+class ConfigTests(unittest.TestCase):
+    def test_config_provides_server_defaults_and_suite_items(self):
+        self.assertEqual(config.default_context(), 262144)
+        self.assertIn("retry_triage_real", config.suite_items("transcript_replay"))
+        extra = config.server_extra_args()
+        self.assertIn("--reasoning on", extra)
+        self.assertIn("--spec-default", extra)
+
+    def test_agentic_sampling_matches_config(self):
+        sampling = config.agentic_sampling()
+        self.assertEqual(sampling["temperature"], 0.2)
+        self.assertTrue(sampling["chat_template_kwargs"]["enable_thinking"])
+
+
+class BarrageScoreTests(unittest.TestCase):
+    def test_tool_restraint_scores_no_tool_call(self):
+        from benchmarks import agentic_barrage_score as scorer
+
+        ok = {"choices": [{"message": {"content": "I should not call tools", "tool_calls": []}}]}
+        bad = {"choices": [{"message": {"content": "", "tool_calls": [{"function": {"name": "run_tests"}}]}}]}
+        self.assertEqual(scorer.tool_names(ok), [])
+        self.assertEqual(scorer.tool_names(bad), ["run_tests"])
+
+    def test_full_barrage_scoring_writes_summary(self):
+        from benchmarks import agentic_barrage_score as scorer
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "tool_restraint_uncapped_turn1.json").write_text(
+                json.dumps({"choices": [{"message": {"content": "skip tools", "tool_calls": []}}]}),
+                encoding="utf-8",
+            )
+            (out / "tool_followthrough_uncapped_turn1.json").write_text(
+                json.dumps({"choices": [{"message": {"content": "", "tool_calls": [{"function": {"name": "add", "arguments": "{}"}}]}}]}),
+                encoding="utf-8",
+            )
+            (out / "tool_followthrough_uncapped_turn2.json").write_text(
+                json.dumps({"choices": [{"message": {"content": "The answer is 4.", "tool_calls": []}}]}),
+                encoding="utf-8",
+            )
+
+            with patch("sys.argv", ["agentic_barrage_score.py", str(out)]):
+                scorer.main()
+
+            summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["suite"], "agentic_barrage")
+            self.assertGreater(summary["average_score"], 0.0)
+
+
+class CodingScoreTests(unittest.TestCase):
+    def test_clean_code_strips_fences(self):
+        from benchmarks import coding_compare_score as scorer
+
+        raw = "```python\ndef f():\n    pass\n```"
+        self.assertEqual(scorer.clean_code(raw), "def f():\n    pass")
+
+    def test_simple_edit_passes_hidden_test(self):
+        from benchmarks import coding_compare_score as scorer
+
+        code = "def normalize_tags(tags):\n    return [t.strip().lower() for t in tags if t.strip()]\n"
+        result = scorer.run_test("simple_edit", code, scorer.HIDDEN_TESTS["simple_edit"])
+        self.assertTrue(result["passed"], result["stderr"])
+
+
+class PublishSummaryTests(unittest.TestCase):
+    def test_publish_summary_copies_summary_and_manifest(self):
+        from benchmarks import publish_summary
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "src"
+            src.mkdir()
+            (src / "summary.json").write_text(json.dumps({"score": 1.0}), encoding="utf-8")
+            (src / "run_manifest.json").write_text(json.dumps({"run": 1}), encoding="utf-8")
+
+            summaries_root = Path(tmp) / "summaries"
+            with patch("benchmarks.publish_summary.SUMMARIES_DIR", summaries_root):
+                with patch("sys.argv", ["publish_summary.py", str(src), "transcript_replay", "run1"]):
+                    publish_summary.main()
+
+            self.assertTrue((summaries_root / "transcript_replay" / "run1" / "summary.json").exists())
+            self.assertTrue((summaries_root / "transcript_replay" / "run1" / "run_manifest.json").exists())
+
+
+class ResultsMdTests(unittest.TestCase):
+    def test_generate_results_md_preserves_marker_and_appends(self):
+        from benchmarks import generate_results_md
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            summaries = Path(tmp) / "summaries"
+            output = Path(tmp) / "BENCHMARK_RESULTS.md"
+            output.write_text("# Old\n\n<!-- BENCHMARK-AUTO-GENERATED -->\n", encoding="utf-8")
+
+            with patch("benchmarks.generate_results_md.SUMMARIES_DIR", summaries):
+                with patch("benchmarks.generate_results_md.OUTPUT", output):
+                    generate_results_md.main()
+
+            text = output.read_text(encoding="utf-8")
+            self.assertIn("# Old", text)
+            self.assertIn("# Latest auto-generated results", text)
 
 
 class ModelEvalTests(unittest.TestCase):

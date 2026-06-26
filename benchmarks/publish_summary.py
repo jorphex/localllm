@@ -19,15 +19,16 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+SUMMARIES_DIR = Path(load_config()["paths"]["summaries_dir"]).resolve()
+
+
 def main() -> None:
     args = parse_args()
     results_dir = args.results_dir.resolve()
     suite = args.suite
     label = args.label
 
-    cfg = load_config()
-    summaries_dir = Path(cfg["paths"]["summaries_dir"]).resolve()
-    dest_dir = summaries_dir / suite / f"{label}"
+    dest_dir = SUMMARIES_DIR / suite / f"{label}"
     dest_dir.mkdir(parents=True, exist_ok=True)
 
     manifest_src = results_dir / "run_manifest.json"
