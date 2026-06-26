@@ -42,12 +42,13 @@ def render_transcript_replay(summary: dict) -> str:
 
 
 def render_sim_compare(summary: dict) -> str:
-    lines = ["| Candidate | Pass | Scope clean | Tool clean | Agent score |",
-             "| --- | --- | --- | --- | --- |"]
+    lines = ["| Candidate | Pass | Scope clean | Scope score | Tool clean | Agent score |",
+             "| --- | --- | --- | --- | --- | --- |"]
     for cand in summary.get("candidates", []):
         lines.append(
             f"| {cand['candidate']} | {cand['pass_count']}/{cand['scenario_count']} | "
             f"{cand['scope_clean_count']}/{cand['scenario_count']} | "
+            f"{cand.get('scope_score_avg', 0.0)} | "
             f"{cand['tool_error_free_count']}/{cand['scenario_count']} | "
             f"{cand.get('agent_score_avg', 0.0)} |"
         )
