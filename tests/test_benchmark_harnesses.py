@@ -80,6 +80,21 @@ class ReplayHarnessTests(unittest.TestCase):
         self.assertTrue(summary["response_digest"])
         self.assertEqual(summary["partial_score"], 1.0)
 
+    def test_partial_credit_is_neutral_when_no_tools_expected(self):
+        turn = {"name": "turn1", "expect": {"finish_reason": "stop"}}
+        payload = {"messages": [{"role": "user", "content": "hi"}]}
+        response = {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {"content": "ok", "tool_calls": []},
+                }
+            ],
+            "timings": {},
+        }
+        summary = run_replay.summary_for_turn(turn, payload, response, 1.0)
+        self.assertEqual(summary["partial_score"], 1.0)
+
     def test_partial_credit_rewards_set_overlap_not_order(self):
         turn = {"name": "turn1", "expect": {"finish_reason": "tool_calls", "tool_names": ["read", "write"]}}
         payload = {"messages": [{"role": "user", "content": "hi"}]}

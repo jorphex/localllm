@@ -33,7 +33,10 @@ def partial_credit(summary: dict) -> dict[str, float]:
     observed_tools = summary["tool_names"]
     finish_match = float(summary["matches_finish_reason"])
     jaccard = tool_set_jaccard(expected_tools, observed_tools)
-    count_match = 1.0 if len(expected_tools) == len(observed_tools) else 0.0
+    if not expected_tools:
+        count_match = 1.0
+    else:
+        count_match = 1.0 if len(expected_tools) == len(observed_tools) else 0.0
     return {
         "finish_reason_match": finish_match,
         "tool_set_jaccard": jaccard,
