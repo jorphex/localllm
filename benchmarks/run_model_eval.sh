@@ -18,6 +18,8 @@ MODEL_EVAL_SIM_SCENARIOS="${MODEL_EVAL_SIM_SCENARIOS:-$(benchmark_suite_items si
 MODEL_EVAL_OPENCODE_SCENARIOS="${MODEL_EVAL_OPENCODE_SCENARIOS:-$(benchmark_suite_items opencode_compare | tr '\n' ' ')}"
 MODEL_EVAL_BARRAGE_SCENARIOS="${MODEL_EVAL_BARRAGE_SCENARIOS:-$(benchmark_suite_items agentic_barrage | tr '\n' ' ')}"
 MODEL_EVAL_CODING_PROMPTS="${MODEL_EVAL_CODING_PROMPTS:-$(benchmark_suite_items coding_compare | tr '\n' ' ')}"
+MODEL_EVAL_STOP_STACK="${MODEL_EVAL_STOP_STACK:-true}"
+MODEL_EVAL_START_STACK_AFTER="${MODEL_EVAL_START_STACK_AFTER:-${MODEL_EVAL_STOP_STACK}}"
 
 if [[ -z "${MODEL_EVAL_CANDIDATE_SPECS}" ]]; then
   echo "Set MODEL_EVAL_CANDIDATE_SPECS to semicolon-separated alias|model|mmproj|context|extra_args[|port] specs." >&2
@@ -29,12 +31,29 @@ export_llama_runtime_env
 export PYTHONPATH="${PROJECT_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
 
 CURRENT_PID=""
+STACK_WAS_STOPPED=0
+STACK_WAS_RESTARTED=0
+
+maybe_stop_stack() {
+  if truthy "${MODEL_EVAL_STOP_STACK}"; then
+    bash "${PROJECT_ROOT}/scripts/stop-stack.sh"
+    STACK_WAS_STOPPED=1
+  fi
+}
+
+maybe_start_stack() {
+  if truthy "${MODEL_EVAL_START_STACK_AFTER}" && [[ "${STACK_WAS_STOPPED}" -eq 1 ]] && [[ "${STACK_WAS_RESTARTED}" -eq 0 ]]; then
+    STACK_WAS_RESTARTED=1
+    bash "${PROJECT_ROOT}/scripts/start-stack.sh" || true
+  fi
+}
 
 cleanup_model_eval() {
   if [[ -n "${CURRENT_PID}" ]]; then
     stop_temp_server "${CURRENT_PID}"
     CURRENT_PID=""
   fi
+  maybe_start_stack
 }
 
 trap cleanup_model_eval EXIT
@@ -222,7 +241,7 @@ PY
 }
 
 write_run_manifest
-bash "${PROJECT_ROOT}/scripts/unload-main.sh"
+maybe_stop_stack
 
 for candidate in "${NORMALIZED_CANDIDATES[@]}"; do
   IFS='|' read -r alias model mmproj context extra_args port <<< "${candidate}"
