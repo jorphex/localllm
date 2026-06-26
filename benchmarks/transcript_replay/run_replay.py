@@ -18,6 +18,30 @@ def normalize_finish_reason(value: str) -> str:
     return value.replace("-", "_")
 
 
+def tool_set_jaccard(expected: list[str], observed: list[str]) -> float:
+    expected_set = set(expected)
+    observed_set = set(observed)
+    union = expected_set | observed_set
+    if not union:
+        return 1.0
+    intersection = expected_set & observed_set
+    return len(intersection) / len(union)
+
+
+def partial_credit(summary: dict) -> dict[str, float]:
+    expected_tools = summary["expect"].get("tool_names") or []
+    observed_tools = summary["tool_names"]
+    finish_match = float(summary["matches_finish_reason"])
+    jaccard = tool_set_jaccard(expected_tools, observed_tools)
+    count_match = 1.0 if len(expected_tools) == len(observed_tools) else 0.0
+    return {
+        "finish_reason_match": finish_match,
+        "tool_set_jaccard": jaccard,
+        "tool_count_match": count_match,
+        "partial_score": round((finish_match + jaccard + count_match) / 3.0, 4),
+    }
+
+
 def turn_matches_expectations(summary: dict) -> bool:
     return summary["matches_finish_reason"] and summary["matches_tool_names"]
 
@@ -71,6 +95,7 @@ def summary_for_turn(turn: dict, payload: dict, response: dict, elapsed: float) 
         "request_message_count": len(payload.get("messages", [])),
     }
     summary["matches_expectations"] = turn_matches_expectations(summary)
+    summary.update(partial_credit(summary))
     return summary
 
 

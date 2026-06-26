@@ -3,12 +3,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
+source "${SCRIPT_DIR}/config.sh"
 
 OUT_DIR="${OUT_DIR:-/tmp/localllm-coding-compare}"
 THINKING_BUDGET="${THINKING_BUDGET:-}"
 THINKING_BUDGETS="${THINKING_BUDGETS:-}"
 CURL_TIMEOUT="${CURL_TIMEOUT:-300}"
-PROMPTS="${PROMPTS:-simple_edit retry_bug task_runner merge_intervals}"
+PROMPTS="${PROMPTS:-$(benchmark_suite_items coding_compare | tr '\n' ' ')}"
 CANDIDATE_SPECS="${CANDIDATE_SPECS:-}"
 CODING_STOP_MAIN="${CODING_STOP_MAIN:-true}"
 CODING_RESTORE_PRESET="${CODING_RESTORE_PRESET:-}"
@@ -170,6 +171,9 @@ run_candidate() {
 
   stop_temp_server "${pid}"
   CURRENT_PID=""
+
+  python3 "${SCRIPT_DIR}/coding_compare_score.py" "${OUT_DIR}"
+  python3 "${SCRIPT_DIR}/publish_summary.py" "${OUT_DIR}" coding_compare "$(basename "${OUT_DIR}")"
 }
 
 trap cleanup_coding_compare EXIT

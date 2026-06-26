@@ -21,63 +21,63 @@ Target state:
 
 ## Phase 1: Centralize config
 
-- [ ] Create `benchmarks/config.json` with shared server defaults, sampling parameters, and scenario/fixture lists.
-- [ ] Add `benchmarks/config.sh` loader so bash harnesses can source shared values.
-- [ ] Replace duplicated `DEFAULT_EXTRA_ARGS` / `DEFAULT_CONTEXT` in `transcript_replay/run_compare.sh`, `sim_compare/run_compare.sh`, `opencode_compare/run_compare.sh`.
-- [ ] Update `run_model_eval.sh` to read defaults from config and allow per-candidate override.
+- [x] Create `benchmarks/config.json` with shared server defaults, sampling parameters, and scenario/fixture lists.
+- [x] Add `benchmarks/config.sh` loader so bash harnesses can source shared values.
+- [x] Replace duplicated `DEFAULT_EXTRA_ARGS` / `DEFAULT_CONTEXT` in `transcript_replay/run_compare.sh`, `sim_compare/run_compare.sh`, `opencode_compare/run_compare.sh`.
+- [x] Update `run_model_eval.sh` to read defaults from config and allow per-candidate override.
 
 ## Phase 2: Improve transcript_replay scoring
 
-- [ ] Keep exact-match `matches_expectations` as the primary metric.
-- [ ] Add partial-credit metrics:
+- [x] Keep exact-match `matches_expectations` as the primary metric.
+- [x] Add partial-credit metrics:
   - `finish_reason_match`
   - `tool_set_jaccard` (set overlap of expected vs observed tool names, ignoring order)
   - `tool_count_match`
-- [ ] Track per-fixture and aggregate `partial_score` (average of the above).
-- [ ] Update `result_summaries.replay_run_summary` to include both exact and partial metrics.
-- [ ] Add tests for partial-credit math in `test_benchmark_harnesses.py`.
+- [x] Track per-fixture and aggregate `partial_score` (average of the above).
+- [x] Update `result_summaries.replay_run_summary` to include both exact and partial metrics.
+- [x] Add tests for partial-credit math in `test_benchmark_harnesses.py`.
 
 ## Phase 3: Improve sim_compare scoring
 
-- [ ] Keep `pass`, `scope_clean`, and `tool_error_free`.
-- [ ] Add `efficiency_score` = `1 / median(turns_to_solve)` capped at a sensible max.
-- [ ] Add `scope_details` reporting extra files and missing files separately.
-- [ ] Compute composite `agent_score` = `0.40*pass + 0.25*scope_clean + 0.20*tool_error_free + 0.15*efficiency`.
-- [ ] Update `result_summaries.sim_run_summary` to include composite and component scores.
-- [ ] Add tests for composite scoring.
+- [x] Keep `pass`, `scope_clean`, and `tool_error_free`.
+- [x] Add `efficiency_score` = `1 / median(turns_to_solve)` capped at a sensible max.
+- [x] Add `scope_details` reporting extra files and missing files separately.
+- [x] Compute composite `agent_score` = `0.40*pass + 0.25*scope_clean + 0.20*tool_error_free + 0.15*efficiency`.
+- [x] Update `result_summaries.sim_run_summary` to include composite and component scores.
+- [x] Add tests for composite scoring.
 
 ## Phase 4: Score the diagnostic harnesses
 
-- [ ] `agentic_barrage`: replace regex keyword checks with scenario-specific rubrics.
+- [x] `agentic_barrage`: replace regex keyword checks with scenario-specific rubrics.
   - `plan_then_revise`: did the plan mention scope, evidence, validation, and stop condition?
   - `codex_workflow`: did it call `read_file` before `apply_patch`?
   - `tool_restraint`: did it avoid calling `run_tests`?
   - `tool_followthrough`: did it call `add` and then answer correctly on turn 2?
-- [ ] `opencode_compare`: add pass/fail rubrics for `repo_triage`, `revise_after_feedback`, and `tool_followthrough`.
-- [ ] `coding_compare`: execute generated code against hidden unit tests for each prompt.
-- [ ] Emit `summary.json` for each diagnostic harness.
+- [x] `opencode_compare`: add pass/fail rubrics for `repo_triage`, `revise_after_feedback`, and `tool_followthrough`.
+- [x] `coding_compare`: execute generated code against hidden unit tests for each prompt.
+- [x] Emit `summary.json` for each diagnostic harness.
 
 ## Phase 5: Lock environment metadata
 
-- [ ] Add helpers to capture:
+- [x] Add helpers to capture:
   - `llama-server --version`
   - `llama.cpp` git commit hash
   - GPU driver / backend version
   - Candidate GGUF file hash (sha256 or size+mtime)
   - Benchmark config digest
-- [ ] Write this metadata into every `run_manifest.json`.
+- [x] Write this metadata into every `run_manifest.json`.
 
 ## Phase 6: Store and publish results
 
-- [ ] Move committed summaries to `benchmarks/results/<suite>/<timestamp>-<label>/`.
-- [ ] Add a script `benchmarks/generate_results_md.py` that reads stored summaries and regenerates `BENCHMARK_RESULTS.md`.
-- [ ] Update `.gitignore` if needed so that only `summary.json`, `run_manifest.json`, and per-run `summary.json` are kept; full per-turn dumps stay in `/tmp` or ignored.
-- [ ] Run a calibration pass on the current retained model to produce the first committed summaries.
+- [x] Move committed summaries to `benchmarks/results/<suite>/<timestamp>-<label>/`.
+- [x] Add a script `benchmarks/generate_results_md.py` that reads stored summaries and regenerates `BENCHMARK_RESULTS.md`.
+- [x] Update `.gitignore` if needed so that only `summary.json`, `run_manifest.json`, and per-run `summary.json` are kept; full per-turn dumps stay in `/tmp` or ignored.
+- [x] Run a calibration pass on the current retained model to produce the first committed summaries.
 
 ## Phase 7: Add calibration and relative scoring
 
-- [ ] Include a baseline candidate in `run_model_eval.sh` runs.
-- [ ] Report relative metrics (e.g., `replay_relative_to_baseline`, `agent_score_relative_to_baseline`) alongside absolute scores.
+- [x] Include a baseline candidate in `run_model_eval.sh` runs.
+- [x] Report relative metrics (e.g., `replay_relative_to_baseline`, `agent_score_relative_to_baseline`) alongside absolute scores.
 
 ## Out of scope for this pass
 

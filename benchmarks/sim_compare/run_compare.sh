@@ -5,16 +5,17 @@ SIM_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BENCHMARK_DIR="$(cd -- "${SIM_DIR}/.." && pwd)"
 PROJECT_ROOT="$(cd -- "${SIM_DIR}/../.." && pwd)"
 source "${BENCHMARK_DIR}/common.sh"
+source "${BENCHMARK_DIR}/config.sh"
 
 SIM_LABEL="${SIM_LABEL:-sim-qwen36-35b-unsloth}"
 SIM_RESULTS_DIR="${SIM_RESULTS_DIR:-${SIM_DIR}/results/$(date -u +%Y%m%dT%H%M%SZ)-${SIM_LABEL}}"
-SIM_SCENARIOS="${SIM_SCENARIOS:-retry_bugfix queue_bugfix retry_review_feedback session_store_exploration}"
+SIM_SCENARIOS="${SIM_SCENARIOS:-$(benchmark_suite_items sim_compare | tr '\n' ' ')}"
 SIM_CANDIDATES="${SIM_CANDIDATES:-qwen36-35b-unsloth}"
 SIM_RESTORE_PRESET="${SIM_RESTORE_PRESET:-qwen-3.6-35b-a3b-unsloth-q6}"
 SIM_LOAD_RESTORE="${SIM_LOAD_RESTORE:-true}"
 
-DEFAULT_EXTRA_ARGS="-np 1 -tb 8 -b 1024 -ub 512 -fa on --threads-http 4 -ctk q8_0 -ctv q8_0 -rea on --metrics --no-warmup --no-mmap --image-max-tokens 12288 --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.0 --presence-penalty 0.0 --repeat-penalty 1.0 --spec-default --slot-save-path /home/j/projects/localllm/state/main-slots"
-DEFAULT_CONTEXT=262144
+DEFAULT_EXTRA_ARGS="${DEFAULT_EXTRA_ARGS:-$(benchmark_server_extra_args)}"
+DEFAULT_CONTEXT="${DEFAULT_CONTEXT:-$(benchmark_default_context)}"
 
 mkdir -p "${SIM_RESULTS_DIR}"
 export_llama_runtime_env
@@ -71,8 +72,10 @@ find_candidate_spec() {
 }
 
 write_run_manifest() {
-  local specs_json
+  local specs_json metadata_json model_path
   specs_json="$(available_specs_json)"
+  model_path="${MODEL_DIR}/$(jq -r '.[0].model' <<< "${specs_json}")"
+  metadata_json="$(benchmark_env_metadata_json "${LLAMA_SERVER_BIN}" "${model_path}")"
   jq -cn \
     --arg results_dir "${SIM_RESULTS_DIR}" \
     --arg label "${SIM_LABEL}" \
@@ -83,6 +86,7 @@ write_run_manifest() {
     --arg llama_server_bin "${LLAMA_SERVER_BIN}" \
     --arg model_dir "${MODEL_DIR}" \
     --argjson specs "${specs_json}" \
+    --argjson env_metadata "${metadata_json}" \
     '{
       family:"coding_agentic",
       suite:"sim_compare",
@@ -94,7 +98,8 @@ write_run_manifest() {
       fixture_root:$fixture_root,
       llama_server_bin:$llama_server_bin,
       model_dir:$model_dir,
-      candidates:$specs
+      candidates:$specs,
+      env_metadata:$env_metadata
     }' > "${SIM_RESULTS_DIR}/run_manifest.json"
 }
 
@@ -179,6 +184,7 @@ for candidate in ${SIM_CANDIDATES}; do
 done
 
 write_summary
+python3 "${BENCHMARK_DIR}/publish_summary.py" "${SIM_RESULTS_DIR}" sim_compare "$(basename "${SIM_RESULTS_DIR}")"
 restore_main
 trap - EXIT
 printf 'SIM_RESULTS_DIR %s\n' "${SIM_RESULTS_DIR}"

@@ -142,6 +142,20 @@ gpu_mem() {
   jq -r '[.used_mib, .free_mib] | @csv' <<< "$(gpu_mem_json)" | tr -d '"'
 }
 
+benchmark_env_metadata_json() {
+  local llama_server_bin="${1:-${LLAMA_SERVER_BIN}}"
+  local model_path="${2:-}"
+  python3 - <<'PY' "${llama_server_bin}" "${model_path}"
+import json
+import sys
+sys.path.insert(0, "${PROJECT_ROOT}")
+from benchmarks.env_metadata import collect_metadata
+bin_path = sys.argv[1] if sys.argv[1] else None
+model_path = sys.argv[2] if sys.argv[2] else None
+print(json.dumps(collect_metadata(bin_path, model_path)))
+PY
+}
+
 probe_chat() {
   local port="$1"
   local prompt="$2"

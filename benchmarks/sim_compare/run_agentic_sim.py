@@ -15,6 +15,11 @@ import httpx
 from benchmarks.result_summaries import SCHEMA_VERSION, stable_digest
 
 try:
+    from benchmarks.config import load_config
+except ImportError:  # pragma: no cover - script entrypoint fallback
+    from config import load_config  # type: ignore[no-redef]
+
+try:
     from .scenarios import SCENARIOS
 except ImportError:  # pragma: no cover - script entrypoint fallback
     from scenarios import SCENARIOS
@@ -306,6 +311,9 @@ def verify_scenario(workspace: Path, scenario: dict) -> dict:
         text=True,
     )
     changed_files = current_changed_files(workspace)
+    expected_files = scenario["expected_modified_files"]
+    changed_set = set(changed_files)
+    expected_set = set(expected_files)
     return {
         "verify_command": scenario["verify_command"],
         "normalized_verify_command": normalized_verify,
@@ -313,8 +321,37 @@ def verify_scenario(workspace: Path, scenario: dict) -> dict:
         "verify_stdout": result.stdout,
         "verify_stderr": result.stderr,
         "changed_files": changed_files,
-        "expected_modified_files": scenario["expected_modified_files"],
-        "expected_files_only": sorted(changed_files) == sorted(scenario["expected_modified_files"]),
+        "expected_modified_files": expected_files,
+        "expected_files_only": sorted(changed_files) == sorted(expected_files),
+        "scope_details": {
+            "extra_files": sorted(changed_set - expected_set),
+            "missing_files": sorted(expected_set - changed_set),
+            "overlap_count": len(changed_set & expected_set),
+        },
+    }
+
+
+def agent_score(
+    pass_score: bool,
+    scope_clean: bool,
+    tool_error_free: bool,
+    efficiency: float,
+) -> dict[str, float]:
+    cfg = load_config()["scoring"]["sim_compare"]
+    weights = cfg["weights"]
+    score = 0.0
+    score += weights["pass"] * (1.0 if pass_score else 0.0)
+    score += weights["scope_clean"] * (1.0 if scope_clean else 0.0)
+    score += weights["tool_error_free"] * (1.0 if tool_error_free else 0.0)
+    score += weights["efficiency"] * efficiency
+    return {
+        "composite": round(score, 4),
+        "components": {
+            "pass": 1.0 if pass_score else 0.0,
+            "scope_clean": 1.0 if scope_clean else 0.0,
+            "tool_error_free": 1.0 if tool_error_free else 0.0,
+            "efficiency": round(efficiency, 4),
+        },
     }
 
 
@@ -327,6 +364,20 @@ def summarize_result(
     tool_error_count: int,
 ) -> dict:
     solved = verification["verify_returncode"] == 0
+    max_turns = scenario_max_turns(scenario)
+    turns_taken = len(transcript)
+    efficiency = min(1.0, max_turns / turns_taken) if solved and turns_taken > 0 else 0.0
+    scope_clean = verification["expected_files_only"]
+    tool_error_free = tool_error_count == 0
+    scorecard = {
+        "pass": solved,
+        "scope_clean": scope_clean,
+        "tool_error_free": tool_error_free,
+        "efficiency": round(efficiency, 4),
+    }
+    scorecard.update(
+        agent_score(solved, scope_clean, tool_error_free, efficiency)
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "scenario": scenario_name,
@@ -344,19 +395,16 @@ def summarize_result(
         "title": scenario["title"],
         "model": None,
         "total_elapsed_seconds": total_elapsed,
-        "turns": len(transcript),
+        "turns": turns_taken,
         "verify_returncode": verification["verify_returncode"],
         "normalized_verify_command": verification["normalized_verify_command"],
         "changed_files": verification["changed_files"],
-        "expected_files_only": verification["expected_files_only"],
+        "expected_files_only": scope_clean,
+        "scope_details": verification.get("scope_details", {}),
         "tool_error_count": tool_error_count,
         "solved": solved,
         "tool_counts": tool_counts(transcript),
-        "scorecard": {
-            "pass": solved,
-            "scope_clean": verification["expected_files_only"],
-            "tool_error_free": tool_error_count == 0,
-        },
+        "scorecard": scorecard,
     }
 
 

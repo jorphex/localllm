@@ -4,17 +4,18 @@ set -euo pipefail
 COMPARE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${COMPARE_DIR}/common.sh"
 source "${COMPARE_DIR}/scenarios.sh"
+source "${BENCHMARK_DIR}/config.sh"
 
 COMPARE_LABEL="${COMPARE_LABEL:-qwen36-35b-unsloth}"
 COMPARE_RESULTS_DIR="${COMPARE_RESULTS_DIR:-$(compare_results_dir "${COMPARE_LABEL}")}"
-COMPARE_SCENARIOS="${COMPARE_SCENARIOS:-$(opencode_scenarios | tr '\n' ' ')}"
+COMPARE_SCENARIOS="${COMPARE_SCENARIOS:-$(benchmark_suite_items opencode_compare | tr '\n' ' ')}"
 COMPARE_CANDIDATES="${COMPARE_CANDIDATES:-qwen36-35b-unsloth}"
 COMPARE_RESTORE_PRESET="${COMPARE_RESTORE_PRESET:-qwen-3.6-35b-a3b-unsloth-q6}"
 COMPARE_STOP_MAIN="${COMPARE_STOP_MAIN:-true}"
 COMPARE_LOAD_RESTORE="${COMPARE_LOAD_RESTORE:-true}"
 
-DEFAULT_EXTRA_ARGS="-np 1 -tb 8 -b 1024 -ub 512 -fa on --threads-http 4 -ctk q8_0 -ctv q8_0 -rea on --metrics --no-warmup --no-mmap --image-max-tokens 12288 --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.0 --presence-penalty 0.0 --repeat-penalty 1.0 --spec-default --slot-save-path /home/j/projects/localllm/state/main-slots"
-DEFAULT_CONTEXT=262144
+DEFAULT_EXTRA_ARGS="${DEFAULT_EXTRA_ARGS:-$(benchmark_server_extra_args)}"
+DEFAULT_CONTEXT="${DEFAULT_CONTEXT:-$(benchmark_default_context)}"
 
 QWEN_SPEC="${QWEN_SPEC:-$(candidate_spec_json "qwen36-35b-unsloth" "qwen-3.6/Qwen3.6-35B-A3B-UD-Q6_K-unsloth.gguf" "qwen-3.6/Qwen3.6-35B-A3B-mmproj-F16-unsloth.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9511)}"
 GEMINI_SPEC="${GEMINI_SPEC:-}"
@@ -122,13 +123,17 @@ run_candidate() {
     done
   done
 
+  python3 "${COMPARE_DIR}/score_compare.py" "${candidate_dir}"
+
   compare_stop_candidate "${pid}"
   CURRENT_PID=""
 }
 
 write_run_manifest() {
-  local specs_json
+  local specs_json metadata_json model_path
   specs_json="$(available_specs_json)"
+  model_path="${MODEL_DIR}/$(jq -r '.[0].model' <<< "${specs_json}")"
+  metadata_json="$(benchmark_env_metadata_json "${LLAMA_SERVER_BIN}" "${model_path}")"
   jq -cn \
     --arg results_dir "${COMPARE_RESULTS_DIR}" \
     --arg label "${COMPARE_LABEL}" \
@@ -138,6 +143,7 @@ write_run_manifest() {
     --arg llama_server_bin "${LLAMA_SERVER_BIN}" \
     --arg model_dir "${MODEL_DIR}" \
     --argjson specs "${specs_json}" \
+    --argjson env_metadata "${metadata_json}" \
     '{
       label:$label,
       results_dir:$results_dir,
@@ -146,7 +152,8 @@ write_run_manifest() {
       scenarios:($scenarios | split(" ") | map(select(length > 0))),
       llama_server_bin:$llama_server_bin,
       model_dir:$model_dir,
-      candidates:$specs
+      candidates:$specs,
+      env_metadata:$env_metadata
     }' > "${COMPARE_RESULTS_DIR}/run_manifest.json"
 }
 
@@ -165,6 +172,7 @@ stop_managed_main_if_needed
 trap cleanup_compare EXIT
 write_run_manifest
 run_requested_candidates
+python3 "${BENCHMARK_DIR}/publish_summary.py" "${COMPARE_RESULTS_DIR}" opencode_compare "$(basename "${COMPARE_RESULTS_DIR}")"
 restore_main_service
 trap - EXIT
 

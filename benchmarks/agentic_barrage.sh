@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+BENCHMARK_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+PROJECT_ROOT="$(cd -- "${BENCHMARK_DIR}/.." && pwd)"
+source "${BENCHMARK_DIR}/config.sh"
+
 OUT_DIR="${OUT_DIR:-/tmp/localllm-agentic-barrage}"
 BARRAGE_HOST="${BARRAGE_HOST:-127.0.0.1}"
 BARRAGE_PORT="${BARRAGE_PORT:-8091}"
 BARRAGE_MODEL="${BARRAGE_MODEL:-}"
 BARRAGE_BUDGETS="${BARRAGE_BUDGETS:-uncapped}"
-BARRAGE_SCENARIOS="${BARRAGE_SCENARIOS:-plan_then_revise review_then_retry codex_workflow evidence_triage tool_restraint tool_followthrough}"
+BARRAGE_SCENARIOS="${BARRAGE_SCENARIOS:-$(benchmark_suite_items agentic_barrage | tr '\n' ' ')}"
 CURL_TIMEOUT="${CURL_TIMEOUT:-300}"
 SYSTEM_PROMPT="${SYSTEM_PROMPT:-You are a coding agent operating inside a local harness. Be concrete, scoped, and evidence-driven. Avoid restarting from scratch when revising.}"
 
@@ -459,3 +464,6 @@ for budget in ${BARRAGE_BUDGETS}; do
     "scenario_${scenario}" "${budget}"
   done
 done
+
+python3 "${BENCHMARK_DIR}/agentic_barrage_score.py" "${OUT_DIR}"
+python3 "${BENCHMARK_DIR}/publish_summary.py" "${OUT_DIR}" agentic_barrage "$(basename "${OUT_DIR}")"

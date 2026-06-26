@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/common.sh"
+source "${SCRIPT_DIR}/config.sh"
 
 MODEL_EVAL_LABEL="${MODEL_EVAL_LABEL:-model-eval}"
 MODEL_EVAL_RESULTS_DIR="${MODEL_EVAL_RESULTS_DIR:-${PROJECT_ROOT}/benchmarks/model_eval/results/$(date -u +%Y%m%dT%H%M%SZ)-${MODEL_EVAL_LABEL}}"
@@ -12,11 +13,11 @@ MODEL_EVAL_RESTORE_PRESET="${MODEL_EVAL_RESTORE_PRESET:-qwen-3.6-35b-a3b-unsloth
 MODEL_EVAL_LOAD_RESTORE="${MODEL_EVAL_LOAD_RESTORE:-false}"
 MODEL_EVAL_CANDIDATE_SPECS="${MODEL_EVAL_CANDIDATE_SPECS:-}"
 MODEL_EVAL_BASE_PORT="${MODEL_EVAL_BASE_PORT:-9711}"
-MODEL_EVAL_REPLAY_FIXTURES="${MODEL_EVAL_REPLAY_FIXTURES:-retry_triage_real retry_fix_real queue_fix_real retry_tool_followthrough soak_real}"
-MODEL_EVAL_SIM_SCENARIOS="${MODEL_EVAL_SIM_SCENARIOS:-retry_bugfix retry_review_feedback queue_bugfix tool_error_recovery command_denial_recovery batch_tail_recovery flush_report_two_file_fix session_store_exploration}"
-MODEL_EVAL_OPENCODE_SCENARIOS="${MODEL_EVAL_OPENCODE_SCENARIOS:-repo_triage revise_after_feedback tool_followthrough}"
-MODEL_EVAL_BARRAGE_SCENARIOS="${MODEL_EVAL_BARRAGE_SCENARIOS:-plan_then_revise review_then_retry codex_workflow evidence_triage tool_restraint tool_followthrough}"
-MODEL_EVAL_CODING_PROMPTS="${MODEL_EVAL_CODING_PROMPTS:-simple_edit retry_bug task_runner merge_intervals}"
+MODEL_EVAL_REPLAY_FIXTURES="${MODEL_EVAL_REPLAY_FIXTURES:-$(benchmark_suite_items transcript_replay | tr '\n' ' ')}"
+MODEL_EVAL_SIM_SCENARIOS="${MODEL_EVAL_SIM_SCENARIOS:-$(benchmark_suite_items sim_compare | tr '\n' ' ')}"
+MODEL_EVAL_OPENCODE_SCENARIOS="${MODEL_EVAL_OPENCODE_SCENARIOS:-$(benchmark_suite_items opencode_compare | tr '\n' ' ')}"
+MODEL_EVAL_BARRAGE_SCENARIOS="${MODEL_EVAL_BARRAGE_SCENARIOS:-$(benchmark_suite_items agentic_barrage | tr '\n' ' ')}"
+MODEL_EVAL_CODING_PROMPTS="${MODEL_EVAL_CODING_PROMPTS:-$(benchmark_suite_items coding_compare | tr '\n' ' ')}"
 
 if [[ -z "${MODEL_EVAL_CANDIDATE_SPECS}" ]]; then
   echo "Set MODEL_EVAL_CANDIDATE_SPECS to semicolon-separated alias|model|mmproj|context|extra_args[|port] specs." >&2
@@ -52,20 +53,27 @@ PY
 )
 
 write_run_manifest() {
-  python3 - <<'PY' "${MODEL_EVAL_RESULTS_DIR}" "${MODEL_EVAL_SUITES}" "${MODEL_EVAL_LABEL}" "${MODEL_EVAL_RESTORE_PRESET}" "${MODEL_EVAL_CANDIDATE_SPECS}" "${MODEL_EVAL_BASE_PORT}"
+  python3 - <<'PY' "${MODEL_EVAL_RESULTS_DIR}" "${MODEL_EVAL_SUITES}" "${MODEL_EVAL_LABEL}" "${MODEL_EVAL_RESTORE_PRESET}" "${MODEL_EVAL_CANDIDATE_SPECS}" "${MODEL_EVAL_BASE_PORT}" "${LLAMA_SERVER_BIN}" "${MODEL_DIR}"
 from benchmarks.model_eval import parse_candidate_specs
+from benchmarks.env_metadata import collect_metadata
 import json
+import os
 import sys
 from pathlib import Path
 
 results_dir = Path(sys.argv[1])
 suites = [item for item in sys.argv[2].split() if item]
+candidates = parse_candidate_specs(sys.argv[5], base_port=int(sys.argv[6]))
+llama_server_bin = sys.argv[7]
+model_dir = Path(sys.argv[8])
+model_path = model_dir / candidates[0]["model"] if candidates else None
 payload = {
     "label": sys.argv[3],
     "restore_preset": sys.argv[4],
     "results_dir": str(results_dir),
     "suites": suites,
-    "candidates": parse_candidate_specs(sys.argv[5], base_port=int(sys.argv[6])),
+    "candidates": candidates,
+    "env_metadata": collect_metadata(llama_server_bin, model_path),
 }
 (results_dir / "run_manifest.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 PY

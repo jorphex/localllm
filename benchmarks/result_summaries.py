@@ -36,17 +36,17 @@ def replay_run_summary(results_dir: Path, requested_candidates: list[str], fixtu
         matched_turns = 0
         total_turns = 0
         passed_fixtures = 0
+        total_partial_score = 0.0
         for fixture in fixtures:
             result_path = results_dir / candidate / fixture / "result.json"
             if not result_path.exists():
                 continue
             result = json.loads(result_path.read_text(encoding="utf-8"))
-            total_turns += len(result.get("turns", []))
-            matched_turns += sum(
-                1
-                for turn in result.get("turns", [])
-                if turn.get("matches_expectations")
-            )
+            turns = result.get("turns", [])
+            total_turns += len(turns)
+            matched_turns += sum(1 for turn in turns if turn.get("matches_expectations"))
+            fixture_partial = sum(turn.get("partial_score", 0.0) for turn in turns)
+            total_partial_score += fixture_partial
             all_expectations_met = result.get("all_expectations_met", False)
             if all_expectations_met:
                 passed_fixtures += 1
@@ -54,15 +54,13 @@ def replay_run_summary(results_dir: Path, requested_candidates: list[str], fixtu
                 {
                     "fixture": fixture,
                     "all_expectations_met": all_expectations_met,
-                    "matched_turns": sum(
-                        1
-                        for turn in result.get("turns", [])
-                        if turn.get("matches_expectations")
-                    ),
-                    "turn_count": len(result.get("turns", [])),
+                    "matched_turns": sum(1 for turn in turns if turn.get("matches_expectations")),
+                    "turn_count": len(turns),
                     "total_elapsed_seconds": sum(
-                        float(turn.get("elapsed_seconds", 0.0)) for turn in result.get("turns", [])
+                        float(turn.get("elapsed_seconds", 0.0)) for turn in turns
                     ),
+                    "partial_score_sum": round(fixture_partial, 4),
+                    "partial_score_avg": round(fixture_partial / len(turns), 4) if turns else 0.0,
                 }
             )
         candidate_summaries.append(
@@ -73,6 +71,7 @@ def replay_run_summary(results_dir: Path, requested_candidates: list[str], fixtu
                 "fixture_count": len(fixture_summaries),
                 "matched_turns": matched_turns,
                 "turn_count": total_turns,
+                "partial_score_avg": round(total_partial_score / total_turns, 4) if total_turns else 0.0,
             }
         )
 
@@ -92,6 +91,7 @@ def sim_run_summary(results_dir: Path, requested_candidates: list[str], scenario
         pass_count = 0
         scope_clean_count = 0
         tool_error_free_count = 0
+        composite_sum = 0.0
         for scenario in scenarios:
             summary_path = results_dir / candidate / scenario / "summary.json"
             if not summary_path.exists():
@@ -104,6 +104,7 @@ def sim_run_summary(results_dir: Path, requested_candidates: list[str], scenario
                 scope_clean_count += 1
             if scorecard.get("tool_error_free"):
                 tool_error_free_count += 1
+            composite_sum += float(scorecard.get("composite", 0.0))
             scenario_summaries.append(
                 {
                     "scenario": scenario,
@@ -111,18 +112,22 @@ def sim_run_summary(results_dir: Path, requested_candidates: list[str], scenario
                     "pass": bool(scorecard.get("pass")),
                     "scope_clean": bool(scorecard.get("scope_clean")),
                     "tool_error_free": bool(scorecard.get("tool_error_free")),
+                    "efficiency": float(scorecard.get("efficiency", 0.0)),
+                    "agent_score": round(float(scorecard.get("composite", 0.0)), 4),
                     "turns": summary.get("turns", 0),
                     "total_elapsed_seconds": float(summary.get("total_elapsed_seconds", 0.0)),
                 }
             )
+        scenario_count = len(scenario_summaries)
         candidate_summaries.append(
             {
                 "candidate": candidate,
                 "scenarios": scenario_summaries,
-                "scenario_count": len(scenario_summaries),
+                "scenario_count": scenario_count,
                 "pass_count": pass_count,
                 "scope_clean_count": scope_clean_count,
                 "tool_error_free_count": tool_error_free_count,
+                "agent_score_avg": round(composite_sum / scenario_count, 4) if scenario_count else 0.0,
             }
         )
 

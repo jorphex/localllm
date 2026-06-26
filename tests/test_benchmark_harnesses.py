@@ -77,6 +77,33 @@ class ReplayHarnessTests(unittest.TestCase):
         self.assertEqual(summary["tool_names"], ["read"])
         self.assertTrue(summary["request_digest"])
         self.assertTrue(summary["response_digest"])
+        self.assertEqual(summary["partial_score"], 1.0)
+
+    def test_partial_credit_rewards_set_overlap_not_order(self):
+        turn = {"name": "turn1", "expect": {"finish_reason": "tool_calls", "tool_names": ["read", "write"]}}
+        payload = {"messages": [{"role": "user", "content": "hi"}]}
+        response = {
+            "choices": [
+                {
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "tool_calls": [
+                            {"function": {"name": "write"}},
+                            {"function": {"name": "read"}},
+                        ],
+                        "content": "",
+                    },
+                }
+            ],
+            "timings": {},
+        }
+
+        summary = run_replay.summary_for_turn(turn, payload, response, 1.0)
+
+        self.assertFalse(summary["matches_tool_names"])
+        self.assertFalse(summary["matches_expectations"])
+        self.assertEqual(summary["tool_set_jaccard"], 1.0)
+        self.assertGreater(summary["partial_score"], 0.6)
 
     def test_replay_fixture_metadata_counts_turn_types(self):
         fixture = {
@@ -196,6 +223,11 @@ class SimHarnessTests(GitFixtureMixin, unittest.TestCase):
                 "normalized_verify_command": ["python3", "-m", "unittest", "tests.test_retry"],
                 "changed_files": ["worker/retry.py"],
                 "expected_files_only": True,
+                "scope_details": {
+                    "extra_files": [],
+                    "missing_files": [],
+                    "overlap_count": 1,
+                },
             },
             total_elapsed=4.5,
             tool_error_count=0,
@@ -205,6 +237,36 @@ class SimHarnessTests(GitFixtureMixin, unittest.TestCase):
         self.assertTrue(summary["scorecard"]["pass"])
         self.assertTrue(summary["scorecard"]["scope_clean"])
         self.assertTrue(summary["scorecard"]["tool_error_free"])
+        self.assertIn("composite", summary["scorecard"])
+        self.assertGreater(summary["scorecard"]["composite"], 0.0)
+
+    def test_verify_scenario_reports_scope_details(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            workspace = Path(tempdir)
+            (workspace / "worker").mkdir()
+            (workspace / "worker" / "retry.py").write_text("print('ok')\n", encoding="utf-8")
+            (workspace / "tests").mkdir()
+            (workspace / "tests" / "test_retry.py").write_text(
+                "import unittest\n\n\nclass RetryTests(unittest.TestCase):\n"
+                "    def test_ok(self):\n"
+                "        self.assertTrue(True)\n",
+                encoding="utf-8",
+            )
+            self._git_init(workspace)
+            (workspace / "worker" / "retry.py").write_text("print('changed')\n", encoding="utf-8")
+            (workspace / "worker" / "extra.py").write_text("print('extra')\n", encoding="utf-8")
+
+            verification = run_agentic_sim.verify_scenario(
+                workspace,
+                {
+                    "verify_command": "python3 -m unittest tests.test_retry",
+                    "expected_modified_files": ["worker/retry.py", "worker/missing.py"],
+                },
+            )
+
+        self.assertEqual(verification["scope_details"]["extra_files"], ["worker/extra.py"])
+        self.assertEqual(verification["scope_details"]["missing_files"], ["worker/missing.py"])
+        self.assertEqual(verification["scope_details"]["overlap_count"], 1)
 
     def test_tool_counts_tracks_called_tools(self):
         transcript = [
@@ -253,8 +315,8 @@ class CompareSummaryTests(GitFixtureMixin, unittest.TestCase):
                     {
                         "all_expectations_met": True,
                         "turns": [
-                            {"matches_expectations": True, "elapsed_seconds": 1.0},
-                            {"matches_expectations": True, "elapsed_seconds": 2.0},
+                            {"matches_expectations": True, "partial_score": 1.0, "elapsed_seconds": 1.0},
+                            {"matches_expectations": True, "partial_score": 0.75, "elapsed_seconds": 2.0},
                         ],
                     }
                 ),
@@ -267,6 +329,7 @@ class CompareSummaryTests(GitFixtureMixin, unittest.TestCase):
         self.assertEqual(candidate["passed_fixtures"], 1)
         self.assertEqual(candidate["matched_turns"], 2)
         self.assertEqual(candidate["turn_count"], 2)
+        self.assertEqual(candidate["partial_score_avg"], 0.875)
 
     def test_sim_run_summary_counts_pass_scope_and_tool_hygiene(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -283,6 +346,8 @@ class CompareSummaryTests(GitFixtureMixin, unittest.TestCase):
                             "pass": True,
                             "scope_clean": True,
                             "tool_error_free": False,
+                            "efficiency": 1.0,
+                            "composite": 0.85,
                         },
                     }
                 ),
@@ -295,6 +360,7 @@ class CompareSummaryTests(GitFixtureMixin, unittest.TestCase):
         self.assertEqual(candidate["pass_count"], 1)
         self.assertEqual(candidate["scope_clean_count"], 1)
         self.assertEqual(candidate["tool_error_free_count"], 0)
+        self.assertEqual(candidate["agent_score_avg"], 0.85)
 
 
 class ModelEvalTests(unittest.TestCase):

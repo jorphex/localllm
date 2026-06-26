@@ -5,16 +5,17 @@ REPLAY_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BENCHMARK_DIR="$(cd -- "${REPLAY_DIR}/.." && pwd)"
 PROJECT_ROOT="$(cd -- "${REPLAY_DIR}/../.." && pwd)"
 source "${BENCHMARK_DIR}/common.sh"
+source "${BENCHMARK_DIR}/config.sh"
 
 REPLAY_LABEL="${REPLAY_LABEL:-transcript-replay-qwen36-35b-unsloth}"
 REPLAY_RESULTS_DIR="${REPLAY_RESULTS_DIR:-${REPLAY_DIR}/results/$(date -u +%Y%m%dT%H%M%SZ)-${REPLAY_LABEL}}"
-REPLAY_FIXTURES="${REPLAY_FIXTURES:-retry_tool_followthrough}"
+REPLAY_FIXTURES="${REPLAY_FIXTURES:-$(benchmark_suite_items transcript_replay | tr '\n' ' ')}"
 REPLAY_CANDIDATES="${REPLAY_CANDIDATES:-qwen36-35b-unsloth}"
 REPLAY_RESTORE_PRESET="${REPLAY_RESTORE_PRESET:-qwen-3.6-35b-a3b-unsloth-q6}"
 REPLAY_LOAD_RESTORE="${REPLAY_LOAD_RESTORE:-true}"
 
-DEFAULT_EXTRA_ARGS="-np 1 -tb 8 -b 1024 -ub 512 -fa on --threads-http 4 -ctk q8_0 -ctv q8_0 -rea on --metrics --no-warmup --no-mmap --image-max-tokens 12288 --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.0 --presence-penalty 0.0 --repeat-penalty 1.0 --spec-default --slot-save-path /home/j/projects/localllm/state/main-slots"
-DEFAULT_CONTEXT=262144
+DEFAULT_EXTRA_ARGS="${DEFAULT_EXTRA_ARGS:-$(benchmark_server_extra_args)}"
+DEFAULT_CONTEXT="${DEFAULT_CONTEXT:-$(benchmark_default_context)}"
 
 mkdir -p "${REPLAY_RESULTS_DIR}"
 export_llama_runtime_env
@@ -73,8 +74,10 @@ find_candidate_spec() {
 }
 
 write_run_manifest() {
-  local specs_json
+  local specs_json metadata_json model_path
   specs_json="$(available_specs_json)"
+  model_path="${MODEL_DIR}/$(jq -r '.[0].model' <<< "${specs_json}")"
+  metadata_json="$(benchmark_env_metadata_json "${LLAMA_SERVER_BIN}" "${model_path}")"
   jq -cn \
     --arg results_dir "${REPLAY_RESULTS_DIR}" \
     --arg label "${REPLAY_LABEL}" \
@@ -84,6 +87,7 @@ write_run_manifest() {
     --arg llama_server_bin "${LLAMA_SERVER_BIN}" \
     --arg model_dir "${MODEL_DIR}" \
     --argjson specs "${specs_json}" \
+    --argjson env_metadata "${metadata_json}" \
     '{
       family:"general_agentic",
       suite:"transcript_replay",
@@ -94,7 +98,8 @@ write_run_manifest() {
       requested_candidates:($candidates | split(" ") | map(select(length > 0))),
       llama_server_bin:$llama_server_bin,
       model_dir:$model_dir,
-      candidates:$specs
+      candidates:$specs,
+      env_metadata:$env_metadata
     }' > "${REPLAY_RESULTS_DIR}/run_manifest.json"
 }
 
@@ -179,6 +184,7 @@ for candidate in ${REPLAY_CANDIDATES}; do
 done
 
 write_summary
+python3 "${BENCHMARK_DIR}/publish_summary.py" "${REPLAY_RESULTS_DIR}" transcript_replay "$(basename "${REPLAY_RESULTS_DIR}")"
 restore_main
 trap - EXIT
 printf 'REPLAY_RESULTS_DIR %s\n' "${REPLAY_RESULTS_DIR}"
