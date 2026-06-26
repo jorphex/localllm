@@ -466,4 +466,5 @@ for budget in ${BARRAGE_BUDGETS}; do
 done
 
 python3 "${BENCHMARK_DIR}/agentic_barrage_score.py" "${OUT_DIR}"
-python3 "${BENCHMARK_DIR}/publish_summary.py" "${OUT_DIR}" agentic_barrage "$(basename "${OUT_DIR}")"
+PUBLISH_LABEL="${BENCHMARK_PUBLISH_LABEL:-$(basename "${OUT_DIR}")}"
+python3 "${BENCHMARK_DIR}/publish_summary.py" "${OUT_DIR}" agentic_barrage "${PUBLISH_LABEL}"

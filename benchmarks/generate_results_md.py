@@ -75,24 +75,33 @@ def render_suite(suite: str, run_dir: Path, summary: dict) -> str:
     )
 
 
+MARKER = "<!-- BENCHMARK-AUTO-GENERATED -->"
+
+
 def main() -> None:
-    sections = ["# Benchmark Results\n", "This file is auto-generated from `benchmarks/summaries/`. Do not edit by hand.\n"]
+    generated_sections = ["\n# Latest auto-generated results\n"]
 
     if not SUMMARIES_DIR.exists():
-        sections.append("No committed summaries yet.\n")
-        OUTPUT.write_text("\n".join(sections), encoding="utf-8")
-        return
+        generated_sections.append("No committed summaries yet.\n")
+    else:
+        for suite_dir in sorted(SUMMARIES_DIR.iterdir()):
+            if not suite_dir.is_dir():
+                continue
+            latest = latest_summary(suite_dir)
+            if latest is None:
+                continue
+            run_dir, summary = latest
+            generated_sections.append(render_suite(suite_dir.name, run_dir, summary))
 
-    for suite_dir in sorted(SUMMARIES_DIR.iterdir()):
-        if not suite_dir.is_dir():
-            continue
-        latest = latest_summary(suite_dir)
-        if latest is None:
-            continue
-        run_dir, summary = latest
-        sections.append(render_suite(suite_dir.name, run_dir, summary))
+    generated_text = "\n".join(generated_sections) + "\n"
 
-    OUTPUT.write_text("\n".join(sections) + "\n", encoding="utf-8")
+    existing = OUTPUT.read_text(encoding="utf-8") if OUTPUT.exists() else ""
+    if MARKER in existing:
+        head = existing.split(MARKER, 1)[0]
+        OUTPUT.write_text(head + MARKER + "\n" + generated_text, encoding="utf-8")
+    else:
+        OUTPUT.write_text(existing + "\n" + MARKER + "\n" + generated_text, encoding="utf-8")
+
     print(f"Wrote {OUTPUT}")
 
 

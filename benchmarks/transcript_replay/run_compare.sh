@@ -184,7 +184,8 @@ for candidate in ${REPLAY_CANDIDATES}; do
 done
 
 write_summary
-python3 "${BENCHMARK_DIR}/publish_summary.py" "${REPLAY_RESULTS_DIR}" transcript_replay "$(basename "${REPLAY_RESULTS_DIR}")"
+PUBLISH_LABEL="${BENCHMARK_PUBLISH_LABEL:-$(basename "${REPLAY_RESULTS_DIR}")}"
+python3 "${BENCHMARK_DIR}/publish_summary.py" "${REPLAY_RESULTS_DIR}" transcript_replay "${PUBLISH_LABEL}"
 restore_main
 trap - EXIT
 printf 'REPLAY_RESULTS_DIR %s\n' "${REPLAY_RESULTS_DIR}"

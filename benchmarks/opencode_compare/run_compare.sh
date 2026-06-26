@@ -172,7 +172,32 @@ stop_managed_main_if_needed
 trap cleanup_compare EXIT
 write_run_manifest
 run_requested_candidates
-python3 "${BENCHMARK_DIR}/publish_summary.py" "${COMPARE_RESULTS_DIR}" opencode_compare "$(basename "${COMPARE_RESULTS_DIR}")"
+
+python3 - <<'PY' "${COMPARE_RESULTS_DIR}"
+import json
+import sys
+from pathlib import Path
+root = Path(sys.argv[1])
+candidates = []
+for summary_path in sorted(root.glob("*/summary.json")):
+    candidate = summary_path.parent.name
+    data = json.loads(summary_path.read_text(encoding="utf-8"))
+    candidates.append({"candidate": candidate, **data})
+avg = sum(c["average_score"] for c in candidates) / len(candidates) if candidates else 0.0
+merged = {
+    "schema_version": 1,
+    "suite": "opencode_compare",
+    "family": "coding_agentic",
+    "results_dir": str(root),
+    "candidates": candidates,
+    "candidate_count": len(candidates),
+    "average_score": round(avg, 4),
+}
+(root / "summary.json").write_text(json.dumps(merged, indent=2), encoding="utf-8")
+PY
+
+PUBLISH_LABEL="${BENCHMARK_PUBLISH_LABEL:-$(basename "${COMPARE_RESULTS_DIR}")}"
+python3 "${BENCHMARK_DIR}/publish_summary.py" "${COMPARE_RESULTS_DIR}" opencode_compare "${PUBLISH_LABEL}"
 restore_main_service
 trap - EXIT
 

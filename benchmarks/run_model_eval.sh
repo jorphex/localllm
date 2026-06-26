@@ -8,7 +8,7 @@ source "${SCRIPT_DIR}/config.sh"
 
 MODEL_EVAL_LABEL="${MODEL_EVAL_LABEL:-model-eval}"
 MODEL_EVAL_RESULTS_DIR="${MODEL_EVAL_RESULTS_DIR:-${PROJECT_ROOT}/benchmarks/model_eval/results/$(date -u +%Y%m%dT%H%M%SZ)-${MODEL_EVAL_LABEL}}"
-MODEL_EVAL_SUITES="${MODEL_EVAL_SUITES:-transcript_replay sim_compare agentic_barrage}"
+MODEL_EVAL_SUITES="${MODEL_EVAL_SUITES:-transcript_replay sim_compare opencode_compare coding_compare agentic_barrage}"
 MODEL_EVAL_RESTORE_PRESET="${MODEL_EVAL_RESTORE_PRESET:-qwen-3.6-35b-a3b-unsloth-q6}"
 MODEL_EVAL_LOAD_RESTORE="${MODEL_EVAL_LOAD_RESTORE:-false}"
 MODEL_EVAL_CANDIDATE_SPECS="${MODEL_EVAL_CANDIDATE_SPECS:-}"
@@ -128,6 +128,7 @@ run_agentic_barrage_suite() {
 
   CURRENT_PID="$(start_temp_server "${port}" "${context}" "${extra_args}" "${alias}" "${server_log}")"
   wait_for_server "${port}" 180
+  BENCHMARK_PUBLISH_LABEL="${publish_label}" \
   BARRAGE_MODEL="${alias}" \
   BARRAGE_HOST="${BENCH_HOST}" \
   BARRAGE_PORT="${port}" \
@@ -153,8 +154,10 @@ run_suite() {
   mkdir -p "${suite_dir}"
   injected_spec="$(spec_json "${alias}" "${model}" "${mmproj}" "${context}" "${extra_args}" "${port}")"
 
+  local publish_label="${MODEL_EVAL_LABEL}-${alias}-${suite}"
   case "${suite}" in
     transcript_replay)
+      BENCHMARK_PUBLISH_LABEL="${publish_label}" \
       QWEN_SPEC="${injected_spec}" \
       REPLAY_LABEL="${MODEL_EVAL_LABEL}-${alias}" \
       REPLAY_RESULTS_DIR="${suite_dir}" \
@@ -165,6 +168,7 @@ run_suite() {
       bash "${PROJECT_ROOT}/benchmarks/transcript_replay/run_compare.sh"
       ;;
     sim_compare)
+      BENCHMARK_PUBLISH_LABEL="${publish_label}" \
       QWEN_SPEC="${injected_spec}" \
       SIM_LABEL="${MODEL_EVAL_LABEL}-${alias}" \
       SIM_RESULTS_DIR="${suite_dir}" \
@@ -175,6 +179,7 @@ run_suite() {
       bash "${PROJECT_ROOT}/benchmarks/sim_compare/run_compare.sh"
       ;;
     opencode_compare)
+      BENCHMARK_PUBLISH_LABEL="${publish_label}" \
       QWEN_SPEC="${injected_spec}" \
       COMPARE_LABEL="${MODEL_EVAL_LABEL}-${alias}" \
       COMPARE_RESULTS_DIR="${suite_dir}" \
@@ -204,6 +209,7 @@ candidate = {
 print(coding_compare_spec(candidate))
 PY
       )" \
+      BENCHMARK_PUBLISH_LABEL="${publish_label}" \
       OUT_DIR="${suite_dir}" \
       PROMPTS="${MODEL_EVAL_CODING_PROMPTS}" \
       bash "${PROJECT_ROOT}/benchmarks/coding_compare.sh" | tee "${suite_dir}/results.ndjson" >/dev/null

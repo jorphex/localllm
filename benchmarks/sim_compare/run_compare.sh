@@ -184,7 +184,8 @@ for candidate in ${SIM_CANDIDATES}; do
 done
 
 write_summary
-python3 "${BENCHMARK_DIR}/publish_summary.py" "${SIM_RESULTS_DIR}" sim_compare "$(basename "${SIM_RESULTS_DIR}")"
+PUBLISH_LABEL="${BENCHMARK_PUBLISH_LABEL:-$(basename "${SIM_RESULTS_DIR}")}"
+python3 "${BENCHMARK_DIR}/publish_summary.py" "${SIM_RESULTS_DIR}" sim_compare "${PUBLISH_LABEL}"
 restore_main
 trap - EXIT
 printf 'SIM_RESULTS_DIR %s\n' "${SIM_RESULTS_DIR}"

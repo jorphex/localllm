@@ -51,11 +51,12 @@ Assume cancellation must not be swallowed and the retry count should behave corr
 TXT
 )
 prompt_text[task_runner]=$(cat <<'TXT'
-Design and implement one self-contained Python file that defines a TaskRunner class with these requirements:
-- accepts async callables
-- runs up to N concurrently
-- retries transient failures with exponential backoff
-- keeps per-task status
+Design and implement one self-contained Python file that defines a TaskRunner class with this exact API:
+- `TaskRunner(max_concurrent)` constructor
+- `submit(name, coro)` accepts an awaitable and a string name
+- `drain()` awaits all submitted tasks and returns when none are left
+- `status(name)` returns one of: "pending", "running", "completed", "failed", "cancelled"
+- retries transient failures with exponential backoff internally
 - supports graceful cancellation
 - includes a short example usage at the end
 Use concise comments and practical structure. Return code only.
@@ -173,7 +174,8 @@ run_candidate() {
   CURRENT_PID=""
 
   python3 "${SCRIPT_DIR}/coding_compare_score.py" "${OUT_DIR}"
-  python3 "${SCRIPT_DIR}/publish_summary.py" "${OUT_DIR}" coding_compare "$(basename "${OUT_DIR}")"
+  PUBLISH_LABEL="${BENCHMARK_PUBLISH_LABEL:-$(basename "${OUT_DIR}")}"
+  python3 "${SCRIPT_DIR}/publish_summary.py" "${OUT_DIR}" coding_compare "${PUBLISH_LABEL}"
 }
 
 trap cleanup_coding_compare EXIT
