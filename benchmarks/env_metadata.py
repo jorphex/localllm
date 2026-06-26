@@ -27,8 +27,26 @@ def llama_server_version(bin_path: Path | str) -> str:
         return f"error: {exc}"
 
 
-def llama_cpp_commit(src_dir: Path | str | None = None) -> str:
-    src = Path(src_dir) if src_dir else Path.home() / ".local" / "src" / "llama.cpp"
+def _find_git_root(start: Path) -> Path | None:
+    path = start.resolve()
+    for _ in range(5):
+        if (path / ".git").is_dir():
+            return path
+        parent = path.parent
+        if parent == path:
+            break
+        path = parent
+    return None
+
+
+def llama_cpp_commit(src_dir: Path | str | None = None, bin_path: Path | str | None = None) -> str:
+    if src_dir:
+        src = Path(src_dir)
+    elif bin_path:
+        root = _find_git_root(Path(bin_path).parent)
+        src = root if root else Path.home() / ".local" / "src" / "llama.cpp"
+    else:
+        src = Path.home() / ".local" / "src" / "llama.cpp"
     try:
         result = subprocess.run(
             ["git", "-C", str(src), "rev-parse", "HEAD"],
@@ -95,7 +113,7 @@ def config_digest() -> str:
 def collect_metadata(llama_server_bin: Path | str, model_path: Path | str | None = None) -> dict:
     return {
         "llama_server_version": llama_server_version(llama_server_bin),
-        "llama_cpp_commit": llama_cpp_commit(),
+        "llama_cpp_commit": llama_cpp_commit(bin_path=llama_server_bin),
         "gpu": gpu_info(),
         "model": model_artifact_info(model_path) if model_path else None,
         "config_digest": config_digest(),
