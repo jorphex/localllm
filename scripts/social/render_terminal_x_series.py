@@ -5,6 +5,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+from render_r9700_peak import render as render_r9700_peak
+
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "social" / "x"
@@ -335,6 +337,7 @@ def main() -> None:
     render_7()
     render_8()
     render_9()
+    render_r9700_peak()
 
 
 if __name__ == "__main__":
