@@ -117,6 +117,19 @@ Multi-endpoint CLI chat:
 
 There is no retained localllm shared-chat service or public Tailscale Funnel route.
 
+## Benchmarks
+
+Run a standardized model-evaluation pass:
+
+```bash
+MODEL_EVAL_CANDIDATE_SPECS="qwen|qwen-3.6/Qwen3.6-27B-abliterated-MTP-Q6_K-Huihui.gguf||131072||9711" \
+  bash benchmarks/run_model_eval.sh
+```
+
+This stops the full service stack, runs the configured suites one candidate at a time, and publishes `summary.json` + `run_manifest.json` under `benchmarks/summaries/`.
+
+See `benchmarks/README.md` for scoring details, configuration, and suite descriptions.
+
 ## Prompt Cache Notes
 
 Relevant server-side knobs:
