@@ -46,7 +46,7 @@ candidate_json() {
     }'
 }
 
-QWEN_SPEC="${QWEN_SPEC:-$(candidate_json "qwen36-35b-unsloth" "qwen-3.6/Qwen3.6-35B-A3B-UD-Q6_K-unsloth.gguf" "qwen-3.6/Qwen3.6-35B-A3B-mmproj-F16-unsloth.gguf" 9521)}"
+QWEN_SPEC="${QWEN_SPEC:-$(candidate_json "qwen36-35b-unsloth" "qwen-3.6/Qwen3.6-35B-A3B-UD-Q6_K-unsloth.gguf" "qwen-3.6/Qwen3.6-35B-A3B-mmproj-F16-unsloth.gguf" "${DEFAULT_CONTEXT}" "${DEFAULT_EXTRA_ARGS}" 9521)}"
 GEMINI_SPEC="${GEMINI_SPEC:-}"
 UNSLOTH_SPEC="${UNSLOTH_SPEC:-}"
 AVAILABLE_SPECS=()
