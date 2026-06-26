@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from benchmarks import config
+
 
 def parse_candidate_specs(raw: str, *, base_port: int = 9711) -> list[dict]:
     candidates = []
@@ -34,9 +36,12 @@ def candidate_spec_json(candidate: dict) -> str:
 
 
 def coding_compare_spec(candidate: dict) -> str:
+    sampling = config.agentic_sampling()
     return (
         f"{candidate['alias']}|{candidate['model']}|{candidate['mmproj']}|"
-        f"{candidate['context']}|{candidate['extra_args']}|0.2|0.95|20|0|1.05|{candidate['port']}"
+        f"{candidate['context']}|{candidate['extra_args']}|"
+        f"{sampling['temperature']}|{sampling['top_p']}|{sampling['top_k']}|"
+        f"{sampling['presence_penalty']}|{sampling['repeat_penalty']}|{candidate['port']}"
     )
 
 

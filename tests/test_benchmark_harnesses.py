@@ -496,6 +496,25 @@ class ModelEvalTests(unittest.TestCase):
         self.assertEqual(candidates[1]["alias"], "beta")
         self.assertEqual(candidates[1]["port"], 9801)
 
+    def test_coding_compare_spec_uses_config_sampling(self):
+        spec = model_eval.coding_compare_spec(
+            {
+                "alias": "alpha",
+                "model": "models/a.gguf",
+                "mmproj": "",
+                "context": 32768,
+                "extra_args": "-b 256",
+                "port": 9800,
+            }
+        )
+        parts = spec.split("|")
+        self.assertEqual(parts[5], "0.2")  # temperature
+        self.assertEqual(parts[6], "0.95")  # top_p
+        self.assertEqual(parts[7], "20")  # top_k
+        self.assertEqual(parts[8], "0.0")  # presence_penalty
+        self.assertEqual(parts[9], "1.05")  # repeat_penalty
+        self.assertEqual(parts[10], "9800")  # port
+
     def test_parse_candidate_specs_keeps_explicit_port(self):
         candidates = model_eval.parse_candidate_specs(
             "alpha|models/a.gguf||32768|-b 256|9950",
