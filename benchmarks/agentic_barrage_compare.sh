@@ -3,12 +3,15 @@ set -euo pipefail
 
 BENCH_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "${BENCH_DIR}/common.sh"
+source "${BENCH_DIR}/config.sh"
 
 OUT_DIR="${OUT_DIR:-/tmp/localllm-agentic-compare}"
 BARRAGE_BUDGETS="${BARRAGE_BUDGETS:-uncapped}"
-BARRAGE_SCENARIOS="${BARRAGE_SCENARIOS:-plan_then_revise review_then_retry evidence_triage tool_restraint tool_followthrough}"
+BARRAGE_SCENARIOS="${BARRAGE_SCENARIOS:-$(benchmark_suite_items agentic_barrage | tr '\n' ' ')}"
 BARRAGE_TIMEOUT="${BARRAGE_TIMEOUT:-300}"
-CANDIDATE_SPECS="${CANDIDATE_SPECS:-qwen36-35b-unsloth|qwen-3.6/Qwen3.6-35B-A3B-UD-Q6_K-unsloth.gguf|qwen-3.6/Qwen3.6-35B-A3B-mmproj-F16-unsloth.gguf|262144|-np 1 -tb 8 -b 1024 -ub 512 -fa on --threads-http 4 -ctk q8_0 -ctv q8_0 -rea on --metrics --no-warmup --no-mmap --image-max-tokens 12288 --temp 0.6 --top-k 20 --top-p 0.95 --min-p 0.0 --presence-penalty 0.0 --repeat-penalty 1.0 --spec-default --slot-save-path /home/j/projects/localllm/state/main-slots|9502}"
+DEFAULT_BENCH_EXTRA_ARGS="$(benchmark_server_extra_args)"
+DEFAULT_BENCH_CONTEXT="$(benchmark_default_context)"
+CANDIDATE_SPECS="${CANDIDATE_SPECS:-qwen36-35b-unsloth|qwen-3.6/Qwen3.6-35B-A3B-UD-Q6_K-unsloth.gguf|qwen-3.6/Qwen3.6-35B-A3B-mmproj-F16-unsloth.gguf|${DEFAULT_BENCH_CONTEXT}|${DEFAULT_BENCH_EXTRA_ARGS}|9502}"
 COMPARE_STOP_MAIN="${COMPARE_STOP_MAIN:-true}"
 COMPARE_RESTORE_PRESET="${COMPARE_RESTORE_PRESET:-qwen-3.6-35b-a3b-unsloth-q6}"
 COMPARE_LOAD_RESTORE="${COMPARE_LOAD_RESTORE:-false}"
