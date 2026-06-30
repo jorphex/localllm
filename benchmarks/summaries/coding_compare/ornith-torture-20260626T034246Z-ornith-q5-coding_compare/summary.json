@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "suite": "coding_compare",
+  "family": "coding_agentic",
+  "out_dir": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T034246Z-ornith-torture-20260626T034246Z/ornith-q5/coding_compare",
+  "candidates": {
+    "ornith-q5": {
+      "merge_intervals": {
+        "uncapped": {
+          "score": 0.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "File \"/tmp/tmpm7z5aujk.py\", line 15\n    >>> merge_intervals([[1,3],[2,6],[8,10],[15,18]])\n    ^^\nSyntaxError: invalid syntax"
+        }
+      },
+      "retry_bug": {
+        "uncapped": {
+          "score": 0.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "File \"/tmp/tmpgnhml1w_.py\", line 15\n    - **Fixed exhaustion check**: `attempt` ranges from `0` to `retries - 1`, so `if attempt == retries:` never triggers. Changed to `attempt == retries - 1` to correctly re-raise after the final attempt.\n      ^^\nSyntaxError: invalid syntax"
+        }
+      },
+      "simple_edit": {
+        "uncapped": {
+          "score": 1.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 0,
+          "stdout": "OK",
+          "stderr": ""
+        }
+      },
+      "task_runner": {
+        "uncapped": {
+          "score": 1.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 0,
+          "stdout": "Status: pending\nFinal status: completed\nAttempts: 3\nOK",
+          "stderr": ""
+        }
+      }
+    }
+  },
+  "candidate_count": 1,
+  "average_score": 0.5
+}

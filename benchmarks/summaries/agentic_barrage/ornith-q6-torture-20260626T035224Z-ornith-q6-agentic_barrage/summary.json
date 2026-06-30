@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "suite": "agentic_barrage",
+  "family": "general_agentic",
+  "out_dir": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T035224Z-ornith-q6-torture-20260626T035224Z/ornith-q6/agentic_barrage",
+  "scenarios": {
+    "plan_then_revise": {
+      "turn1": {
+        "score": 1.0,
+        "scope": 1.0,
+        "evidence": 1.0,
+        "validation": 1.0,
+        "stop": 1.0,
+        "bullets": 6
+      },
+      "turn2": {
+        "score": 0.75,
+        "scope": 0.0,
+        "evidence": 1.0,
+        "validation": 1.0,
+        "stop": 1.0,
+        "bullets": 6
+      }
+    },
+    "review_then_retry": {
+      "turn1": {
+        "score": 0.75,
+        "evidence": 1.0,
+        "narrow": 1.0,
+        "validation": 1.0,
+        "stop": 0.0,
+        "bullets": 5
+      },
+      "turn2": {
+        "score": 1.0,
+        "evidence": 1.0,
+        "narrow": 1.0,
+        "validation": 1.0,
+        "stop": 1.0,
+        "bullets": 5
+      }
+    },
+    "codex_workflow": {
+      "turn1": {
+        "score": 1.0,
+        "read_first": true,
+        "tool_calls": [
+          "read_file"
+        ]
+      },
+      "turn2": {
+        "score": 0.0,
+        "concrete": false,
+        "stop": false,
+        "tool_calls": [
+          "run_tests"
+        ]
+      }
+    },
+    "evidence_triage": {
+      "turn1": {
+        "score": 1.0,
+        "prioritizes": 1.0,
+        "evidence": 1.0,
+        "scope": 1.0,
+        "validation": 1.0,
+        "bullets": 5
+      }
+    },
+    "tool_restraint": {
+      "turn1": {
+        "score": 1.0,
+        "tool_calls": []
+      }
+    },
+    "tool_followthrough": {
+      "turn1": {
+        "score": 1.0,
+        "called_add": true,
+        "tool_calls": [
+          "add"
+        ]
+      },
+      "turn2": {
+        "score": 1.0,
+        "answered_four": true,
+        "tool_calls": []
+      }
+    }
+  },
+  "scenario_count": 6,
+  "average_score": 0.85
+}

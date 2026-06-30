@@ -1,0 +1,6 @@
+{
+  "suite": "coding_compare",
+  "label": "huihui-qwen-torture-20260626T090539Z-qwen35-huihui-coding_compare",
+  "source": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T090539Z-huihui-qwen-torture-20260626T090539Z/qwen35-huihui/coding_compare",
+  "destination": "/home/j/projects/localllm/benchmarks/summaries/coding_compare/huihui-qwen-torture-20260626T090539Z-qwen35-huihui-coding_compare"
+}

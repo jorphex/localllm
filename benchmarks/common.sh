@@ -3,7 +3,14 @@ set -euo pipefail
 
 BENCHMARK_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "${BENCHMARK_DIR}/.." && pwd)"
+_BENCHMARK_CALLER_SCRIPT_DIR="${SCRIPT_DIR:-}"
 source "${PROJECT_ROOT}/scripts/common.sh"
+if [[ -n "${_BENCHMARK_CALLER_SCRIPT_DIR}" ]]; then
+  SCRIPT_DIR="${_BENCHMARK_CALLER_SCRIPT_DIR}"
+else
+  unset SCRIPT_DIR
+fi
+unset _BENCHMARK_CALLER_SCRIPT_DIR
 
 BENCH_THREADS="${BENCH_THREADS:-10}"
 BENCH_DEVICE="${BENCH_DEVICE:-}"

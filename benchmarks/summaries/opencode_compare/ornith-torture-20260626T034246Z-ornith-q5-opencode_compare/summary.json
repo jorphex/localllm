@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "suite": "opencode_compare",
+  "family": "coding_agentic",
+  "results_dir": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T034246Z-ornith-torture-20260626T034246Z/ornith-q5/opencode_compare",
+  "candidates": [
+    {
+      "candidate": "ornith-q5",
+      "schema_version": 1,
+      "suite": "opencode_compare",
+      "family": "coding_agentic",
+      "results_dir": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T034246Z-ornith-torture-20260626T034246Z/ornith-q5/opencode_compare/ornith-q5",
+      "scenarios": {
+        "repo_triage": {
+          "turn1": {
+            "score": 0.8,
+            "direct": true,
+            "evidence": true,
+            "scope": true,
+            "validation": true,
+            "stop": false,
+            "bullets": 6
+          }
+        },
+        "revise_after_feedback": {
+          "turn1": {
+            "score": 0.75,
+            "scope": true,
+            "evidence": true,
+            "validation": true,
+            "feedback": false,
+            "bullets": 6
+          },
+          "turn2": {
+            "score": 0.75,
+            "scope": true,
+            "evidence": true,
+            "validation": true,
+            "feedback": false,
+            "bullets": 5
+          }
+        },
+        "tool_followthrough": {
+          "turn1": {
+            "score": 1.0,
+            "read_first": true,
+            "tool_calls": [
+              "read_file"
+            ]
+          },
+          "turn2": {
+            "score": 1.0,
+            "tool_calls": [
+              "apply_patch"
+            ]
+          }
+        }
+      },
+      "scenario_count": 3,
+      "average_score": 0.86
+    }
+  ],
+  "candidate_count": 1,
+  "average_score": 0.86
+}

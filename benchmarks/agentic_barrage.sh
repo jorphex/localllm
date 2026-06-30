@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-BENCHMARK_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+BENCHMARK_DIR="${SCRIPT_DIR}"
 PROJECT_ROOT="$(cd -- "${BENCHMARK_DIR}/.." && pwd)"
 source "${BENCHMARK_DIR}/config.sh"
 

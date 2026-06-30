@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "suite": "coding_compare",
+  "family": "coding_agentic",
+  "out_dir": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T090539Z-huihui-qwen-torture-20260626T090539Z/qwen35-huihui/coding_compare",
+  "candidates": {
+    "qwen35-huihui": {
+      "simple_edit": {
+        "uncapped": {
+          "score": 1.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 0,
+          "stdout": "OK",
+          "stderr": ""
+        }
+      },
+      "merge_intervals": {
+        "uncapped": {
+          "score": 0.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "File \"/tmp/tmpc6yb32sb.py\", line 14\n    >>> merge_intervals([[1, 3], [2, 4], [6, 8]])\n    ^^\nSyntaxError: invalid syntax"
+        }
+      },
+      "retry_bug": {
+        "uncapped": {
+          "score": 0.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "File \"/tmp/tmpwrzov84x.py\", line 15\n    - **Maintains correct exponential backoff**: The delay is doubled after each sleep, ensuring subsequent retries wait progressively longer (0.5s \u2192 1.0s \u2192 2.0s) while keeping the timing logic intact across all attempts.\n                                                                                                                                                 ^\nSyntaxError: invalid decimal literal"
+        }
+      },
+      "task_runner": {
+        "uncapped": {
+          "score": 1.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 0,
+          "stdout": "pending\ncompleted\nfailed\nOK",
+          "stderr": ""
+        }
+      }
+    }
+  },
+  "candidate_count": 1,
+  "average_score": 0.5
+}

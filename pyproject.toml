@@ -5,6 +5,8 @@ description = "Local llama.cpp service runtime helpers for OpenAI-compatible HTT
 requires-python = ">=3.11"
 dependencies = [
   "httpx",
+  "matplotlib>=3.11.0",
+  "pillow>=12.2.0",
 ]
 
 [build-system]
