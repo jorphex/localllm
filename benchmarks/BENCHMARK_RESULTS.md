@@ -4,12 +4,14 @@ This file is the canonical score sheet for the current local model set.
 
 Active focus:
 
-- `gemma-4-31b-q4km`
-- `gemma-4-31b-iq4nl`
-- `gemma-4-31b-udq4kxl`
+- `qwen27-huihui` — `Qwen3.6-27B-abliterated-MTP-Q6_K-Huihui`, current daily default
+- `qwen35-huihui` — `Huihui-Qwen3.6-35B-A3B-abliterated-MTP-Q6_K`, retained 35B Huihui/abliterated option
+- `ornith-q5` / `ornith-q6` — archived comparison points; no longer retained on disk
 
 Archived but still useful historical context:
 
+- Gemma 4 31B quant sweep and elimination
+- Qwen 3.5 27B finetune and quant eliminations
 - `qwen-3.5-abl`
 - `qwen-3.5-g`
 
@@ -20,6 +22,51 @@ Rules used here:
 - `sim_compare` reports verification pass count, scope-clean count, and tool-error-free count where available.
 - `agentic_barrage` is supporting evidence only.
 - Speed-only tuning notes are fairness setup, not ranking by themselves.
+
+## Current Readout: 2026-06-26 Qwen3.6 And Ornith
+
+This is the current decision layer for the retained Qwen3.6 stack. It uses the committed summaries under `benchmarks/summaries/` and keeps the old Qwen3.5/Gemma sections below as archive.
+
+Runtime constraints for the Qwen3.6 passes:
+
+- GPU: AMD AI Pro R9700 32 GB, Vulkan backend.
+- Main-model tests kept multimodal support through mmproj where applicable.
+- Qwen3.6 27B Huihui daily shape: `131072` context, q8 KV, `b2048/ub1024`, draft-MTP `n=3`.
+- Qwen3.6 35B Huihui retained shape: `262144` context, q8 KV, `b1024/ub512`, draft-MTP `n=2`; no reranker-in-VRAM headroom at the tested full-context shape.
+- Ornith Q5/Q6 are archived after user feel testing and disk cleanup.
+
+### Behavior Summary
+
+| Model | Replay | Partial replay | Sim pass | Sim scope | Tool-clean | Sim agent score | OpenCode | Coding smoke | Barrage |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `qwen27-huihui` | `27/35`, `2/5` fixtures | `0.9143` | `7/8` | `6/8` | `7/8` | `0.8438` | `0.86` | `0.50` | `0.95` |
+| `qwen35-huihui` | `16/31`, `1/5` fixtures | `0.7473` | `8/8` | `7/8` | `7/8` | `0.9437` | `0.86` | `0.50` | `0.875` |
+| `ornith-q5` | `25/35`, `2/5` fixtures | `0.9048` | `7/8` | `7/8` | `8/8` | `0.9000` | `0.86` | `0.50` | `1.00` |
+| `ornith-q6` | `24/35`, `1/5` fixtures | `0.8857` | `7/8` | `6/8` | `7/8` | `0.8438` | `0.66` | `0.25` | `0.85` |
+
+Current conclusion:
+
+- Daily 27B: keep `qwen27-huihui`. It has the best Qwen replay behavior, fits with the reranker in VRAM, and is the current default after Ornith was rejected in prose/editing feel.
+- Daily 35B: keep `qwen35-huihui` as the trusted Huihui/abliterated 35B option. It is the strongest coding-sim solver in this set, but replay/tool-shape reliability is worse than the 27B and it does not leave room for the reranker in VRAM at the tested full-context q8-KV shape.
+- Ornith Q5 had a strong benchmark balance and very high speed, but was removed because hands-on prose/editing quality did not fit the use case.
+- Ornith Q6 was inferior to Q5 on speed, VRAM, and most behavior signals, and was deleted.
+
+### Quick Speed/Fit Snapshots
+
+| Model / shape | VRAM | Short PP | Short TG | Long PP | Long TG | Read |
+| --- | --- | --- | --- | --- | --- | --- |
+| `qwen27-huihui`, `131072`, q8 KV, `b2048/ub1024`, draft-MTP `n=3` | ~`28.2 GiB` decimal/driver read | ~`790-815 tok/s` | ~`57 tok/s` | ~`680 tok/s` | ~`47 tok/s` | current default; supports reranker in VRAM |
+| `qwen35-huihui`, `262144`, q8 KV, `b1024/ub512`, draft-MTP `n=2` | ~`32.0 GiB` decimal/driver read | ~`2090 tok/s` medium PP | ~`151 tok/s` medium TG with newer direct-IO probe | ~`1826 tok/s` | ~`124 tok/s` | fastest 35B Huihui probe, but no reranker VRAM headroom |
+| `ornith-q5`, `262144`, q8 KV, `b4096/ub2048` | ~`27.9 GiB` | `3070 tok/s` | `113.6 tok/s` | `2548 tok/s` | `107.3 tok/s` | archived despite strong benchmark/speed |
+| `ornith-q6`, `262144`, q8 KV, `b4096/ub2048` | ~`31.4 GiB` | `3043 tok/s` | `107.8 tok/s` | `2450 tok/s` | `98.5 tok/s` | deleted; Q5 was better |
+
+### Prompt Cache / TTFT Notes
+
+- The live 27B preset uses prompt caching with `MAIN_CACHE_RAM=2048` and `--ctx-checkpoints 4`.
+- `MAIN_CACHE_RAM` is a soft limit in observed llama.cpp behavior; previous logs showed cache state exceeding the configured MiB cap.
+- Cache/checkpoints improve TTFT only when the agent prompt is stable and append-only enough for prefix reuse. If old history/tool blocks are rewritten, full prompt prefill still scales roughly with active context.
+- Exact-same prompt replay can miss cache on this Qwen path because llama.cpp may fail the rollback/truncate path; append-only suffix prompts did produce large `cache_n` hits in direct tests.
+- The agent-side durable summary boundary and append-only recent transcript are therefore part of the performance strategy, not just prompt hygiene.
 
 ## Speed And Tuning Notes
 
@@ -458,7 +505,157 @@ Diagnostic read:
 
 <!-- BENCHMARK-AUTO-GENERATED -->
 
-# Latest auto-generated results
+# Committed Summary Rollup
 
-No committed summaries yet.
+## agentic_barrage
+
+Run: `huihui-qwen-torture-20260626T090539Z-qwen35-huihui-agentic_barrage`
+
+Average score: **0.875**
+
+## agentic_barrage
+
+Run: `huihui-qwen-torture-20260626T090539Z-qwen27-huihui-agentic_barrage`
+
+Average score: **0.95**
+
+## agentic_barrage
+
+Run: `ornith-q6-torture-20260626T035224Z-ornith-q6-agentic_barrage`
+
+Average score: **0.85**
+
+## agentic_barrage
+
+Run: `ornith-q5-agentic-barrage-20260626T035105Z-ornith-q5-agentic_barrage`
+
+Average score: **1.0**
+
+## coding_compare
+
+Run: `huihui-qwen-torture-20260626T090539Z-qwen35-huihui-coding_compare`
+
+| Candidate | Average score | Task scores |
+| --- | --- | --- |
+| qwen35-huihui | 0.5 | merge_intervals: 0, retry_bug: 0, simple_edit: 1, task_runner: 1 |
+
+## coding_compare
+
+Run: `huihui-qwen-torture-20260626T090539Z-qwen27-huihui-coding_compare`
+
+| Candidate | Average score | Task scores |
+| --- | --- | --- |
+| qwen27-huihui | 0.5 | merge_intervals: 1, retry_bug: 0, simple_edit: 1, task_runner: 0 |
+
+## coding_compare
+
+Run: `ornith-q6-torture-20260626T035224Z-ornith-q6-coding_compare`
+
+| Candidate | Average score | Task scores |
+| --- | --- | --- |
+| ornith-q6 | 0.25 | merge_intervals: 0, retry_bug: 0, simple_edit: 1, task_runner: 0 |
+
+## coding_compare
+
+Run: `ornith-torture-20260626T034246Z-ornith-q5-coding_compare`
+
+| Candidate | Average score | Task scores |
+| --- | --- | --- |
+| ornith-q5 | 0.5 | merge_intervals: 0, retry_bug: 0, simple_edit: 1, task_runner: 1 |
+
+## opencode_compare
+
+Run: `huihui-qwen-torture-20260626T090539Z-qwen35-huihui-opencode_compare`
+
+| Candidate | Average score |
+| --- | --- |
+| qwen35-huihui | 0.86 |
+
+## opencode_compare
+
+Run: `huihui-qwen-torture-20260626T090539Z-qwen27-huihui-opencode_compare`
+
+| Candidate | Average score |
+| --- | --- |
+| qwen27-huihui | 0.86 |
+
+## opencode_compare
+
+Run: `ornith-q6-torture-20260626T035224Z-ornith-q6-opencode_compare`
+
+| Candidate | Average score |
+| --- | --- |
+| ornith-q6 | 0.66 |
+
+## opencode_compare
+
+Run: `ornith-torture-20260626T034246Z-ornith-q5-opencode_compare`
+
+| Candidate | Average score |
+| --- | --- |
+| ornith-q5 | 0.86 |
+
+## sim_compare
+
+Run: `huihui-qwen-torture-20260626T090539Z-qwen35-huihui-sim_compare`
+
+| Candidate | Pass | Scope clean | Scope score | Tool clean | Agent score |
+| --- | --- | --- | --- | --- | --- |
+| qwen35-huihui | 8/8 | 7/8 | 0.9167 | 7/8 | 0.9437 |
+
+## sim_compare
+
+Run: `huihui-qwen-torture-20260626T090539Z-qwen27-huihui-sim_compare`
+
+| Candidate | Pass | Scope clean | Scope score | Tool clean | Agent score |
+| --- | --- | --- | --- | --- | --- |
+| qwen27-huihui | 7/8 | 6/8 | 0.8333 | 7/8 | 0.8438 |
+
+## sim_compare
+
+Run: `ornith-q6-torture-20260626T035224Z-ornith-q6-sim_compare`
+
+| Candidate | Pass | Scope clean | Scope score | Tool clean | Agent score |
+| --- | --- | --- | --- | --- | --- |
+| ornith-q6 | 7/8 | 6/8 | 0.8125 | 7/8 | 0.8438 |
+
+## sim_compare
+
+Run: `ornith-torture-20260626T034246Z-ornith-q5-sim_compare`
+
+| Candidate | Pass | Scope clean | Scope score | Tool clean | Agent score |
+| --- | --- | --- | --- | --- | --- |
+| ornith-q5 | 7/8 | 7/8 | 0.875 | 8/8 | 0.9 |
+
+## transcript_replay
+
+Run: `huihui-qwen-torture-20260626T090539Z-qwen35-huihui-transcript_replay`
+
+| Candidate | Fixtures passed | Turn match | Partial score |
+| --- | --- | --- | --- |
+| qwen35-huihui | 1/5 | 16/31 | 0.7473 |
+
+## transcript_replay
+
+Run: `huihui-qwen-torture-20260626T090539Z-qwen27-huihui-transcript_replay`
+
+| Candidate | Fixtures passed | Turn match | Partial score |
+| --- | --- | --- | --- |
+| qwen27-huihui | 2/5 | 27/35 | 0.9143 |
+
+## transcript_replay
+
+Run: `ornith-q6-torture-20260626T035224Z-ornith-q6-transcript_replay`
+
+| Candidate | Fixtures passed | Turn match | Partial score |
+| --- | --- | --- | --- |
+| ornith-q6 | 1/5 | 24/35 | 0.8857 |
+
+## transcript_replay
+
+Run: `ornith-torture-20260626T034246Z-ornith-q5-transcript_replay`
+
+| Candidate | Fixtures passed | Turn match | Partial score |
+| --- | --- | --- | --- |
+| ornith-q5 | 2/5 | 25/35 | 0.9048 |
 

@@ -160,8 +160,6 @@
     <nav class="topbar-nav">
       <button class="active" data-tab="overview">Overview</button>
       <button data-tab="leaderboard">Leaderboard</button>
-      <button data-tab="deepdive">Deep Dive</button>
-      <button data-tab="charts">Charts</button>
       <button data-tab="methodology">Methodology</button>
     </nav>
   </header>
@@ -169,7 +167,7 @@
     <div class="header">
       <h1>local<span>llm</span></h1>
       <p>Local model evaluation and benchmark results. Qwen3.6-27B and 35B abliterated MTP models running on llama.cpp with CPU TTS sidecar.</p>
-      <div class="updated">last updated 2026-06-26 &middot; 5 models evaluated &middot; 5 benchmark suites</div>
+      <div class="updated">last updated 2026-06-30 &middot; 4 current comparison models &middot; 5 benchmark suites</div>
     </div>
 
     <!-- Overview -->
@@ -183,18 +181,18 @@
         </div>
         <div class="stack-item">
           <div class="label">Secondary</div>
-          <div class="name">Qwen3.6-35B MTP Q4</div>
-          <div class="meta">Huihui abliterated &middot; Vulkan &middot; 128k ctx &middot; MTP draft n=3</div>
+          <div class="name">Qwen3.6-35B A3B MTP Q6</div>
+          <div class="meta">Huihui abliterated &middot; Vulkan &middot; 256k ctx &middot; MTP draft n=2</div>
         </div>
         <div class="stack-item">
           <div class="label">Embedding</div>
           <div class="name">Qwen3-Embedding-4B</div>
-          <div class="meta">Q4_K_M &middot; 8192 ctx</div>
+          <div class="meta">Q4_K_M &middot; CPU</div>
         </div>
         <div class="stack-item">
           <div class="label">Reranker</div>
           <div class="name">Qwen3-Reranker-4B</div>
-          <div class="meta">Q4_K_M &middot; 8192 ctx</div>
+          <div class="meta">Q4_K_M &middot; Vulkan &middot; 2048 ctx</div>
         </div>
       </div>
       <div class="section-label">Models on Disk</div>
@@ -211,8 +209,8 @@
           <th data-col="8">Status</th>
         </tr></thead>
         <tbody>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>Q6_K</td><td>29.1</td><td>95.1%</td><td>93.8%</td><td>0.89</td><td>0.82</td><td><span class="badge active">Production</span></td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B</td><td>Q4_K_M</td><td>35.1</td><td>94.8%</td><td>93.8%</td><td>0.87</td><td>0.79</td><td><span class="badge active">On Disk</span></td></tr>
+          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>Q6_K</td><td>27B</td><td>27/35</td><td>7/8</td><td>0.50</td><td>0.95</td><td><span class="badge active">Production</span></td></tr>
+          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>Q6_K</td><td>35B</td><td>16/31</td><td>8/8</td><td>0.50</td><td>0.875</td><td><span class="badge active">On Disk</span></td></tr>
         </tbody>
       </table>
       <div class="section-label">Archived Candidates</div>
@@ -229,15 +227,12 @@
           <th data-col="8">Status</th>
         </tr></thead>
         <tbody>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-27B</td><td>Q5_K_M</td><td>27.0</td><td>95.9%</td><td>87.5%</td><td>0.91</td><td>0.85</td><td><span class="badge archived">Archived</span></td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-27B</td><td>Q6_K</td><td>27.0</td><td>95.5%</td><td>87.5%</td><td>0.90</td><td>0.84</td><td><span class="badge archived">Archived</span></td></tr>
-          <tr class="archived"><td>gemma-iq4nl</td><td>Gemma-4-31B</td><td>IQ4_NL</td><td>31.3</td><td>94.8%</td><td>93.8%</td><td>0.88</td><td>0.81</td><td><span class="badge archived">Archived</span></td></tr>
-          <tr class="archived"><td>gemma-udq4kxl</td><td>Gemma-4-31B</td><td>UDQ4_K_XL</td><td>31.3</td><td>94.6%</td><td>87.5%</td><td>0.87</td><td>0.80</td><td><span class="badge archived">Archived</span></td></tr>
-          <tr class="archived"><td>gemma-q4km</td><td>Gemma-4-31B</td><td>Q4_K_M</td><td>31.3</td><td>94.4%</td><td>87.5%</td><td>0.86</td><td>0.79</td><td><span class="badge archived">Archived</span></td></tr>
+          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>Q5_K_M</td><td>35B</td><td>25/35</td><td>7/8</td><td>0.50</td><td>1.00</td><td><span class="badge archived">Archived</span></td></tr>
+          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>Q6_K</td><td>35B</td><td>24/35</td><td>7/8</td><td>0.25</td><td>0.85</td><td><span class="badge archived">Deleted</span></td></tr>
         </tbody>
       </table>
       <div class="callout">
-        <p><strong>Key finding:</strong> Qwen3.6-27B abliterated MTP matches Ornith-27B on transcript replay (95.1% vs 95.9%) while exceeding it on sim compare (93.8% vs 87.5%) and coding (0.89 vs 0.91). Smaller VRAM footprint at Q6_K with MTP draft acceleration.</p>
+        <p><strong>Current finding:</strong> Qwen3.6-27B Huihui remains the daily default because it has the best retained Qwen replay behavior and can keep the reranker in VRAM. Qwen3.6-35B Huihui is stronger in coding-sim, but its replay/tool-shape reliability is worse and the full-context q8-KV shape leaves no reranker VRAM headroom.</p>
       </div>
     </section>
 
@@ -256,13 +251,10 @@
           <th data-col="6">Avg Score <span class="sort-arrow">\u2195</span></th>
         </tr></thead>
         <tbody>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-27B</td><td>448/465</td><td>96.3%</td><td>37/37</td><td>100%</td><td>1.96</td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-27B</td><td>444/465</td><td>95.5%</td><td>36/37</td><td>97.3%</td><td>1.89</td></tr>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>442/465</td><td>95.1%</td><td>35/37</td><td>94.6%</td><td>1.84</td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B</td><td>440/465</td><td>94.6%</td><td>35/37</td><td>94.6%</td><td>1.82</td></tr>
-          <tr class="archived"><td>gemma-iq4nl</td><td>Gemma-4-31B</td><td>440/465</td><td>94.6%</td><td>35/37</td><td>94.6%</td><td>1.81</td></tr>
-          <tr class="archived"><td>gemma-udq4kxl</td><td>Gemma-4-31B</td><td>438/465</td><td>94.2%</td><td>34/37</td><td>91.9%</td><td>1.78</td></tr>
-          <tr class="archived"><td>gemma-q4km</td><td>Gemma-4-31B</td><td>439/465</td><td>94.4%</td><td>34/37</td><td>91.9%</td><td>1.77</td></tr>
+          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>27/35</td><td>77.1%</td><td>2/5</td><td>40.0%</td><td>0.9143</td></tr>
+          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>25/35</td><td>71.4%</td><td>2/5</td><td>40.0%</td><td>0.9048</td></tr>
+          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>24/35</td><td>68.6%</td><td>1/5</td><td>20.0%</td><td>0.8857</td></tr>
+          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>16/31</td><td>51.6%</td><td>1/5</td><td>20.0%</td><td>0.7473</td></tr>
         </tbody>
       </table>
       <div class="section-label">Sim Compare</div>
@@ -278,13 +270,10 @@
           <th data-col="6">Avg Score <span class="sort-arrow">\u2195</span></th>
         </tr></thead>
         <tbody>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>15/16</td><td>93.8%</td><td>14</td><td>16</td><td>0.84</td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B</td><td>15/16</td><td>93.8%</td><td>14</td><td>16</td><td>0.83</td></tr>
-          <tr class="archived"><td>gemma-iq4nl</td><td>Gemma-4-31B</td><td>15/16</td><td>93.8%</td><td>14</td><td>16</td><td>0.82</td></tr>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-27B</td><td>14/16</td><td>87.5%</td><td>13</td><td>15</td><td>0.81</td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-27B</td><td>14/16</td><td>87.5%</td><td>13</td><td>15</td><td>0.80</td></tr>
-          <tr class="archived"><td>gemma-udq4kxl</td><td>Gemma-4-31B</td><td>14/16</td><td>87.5%</td><td>13</td><td>15</td><td>0.79</td></tr>
-          <tr class="archived"><td>gemma-q4km</td><td>Gemma-4-31B</td><td>14/16</td><td>87.5%</td><td>13</td><td>15</td><td>0.78</td></tr>
+          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>8/8</td><td>100%</td><td>7/8</td><td>7/8</td><td>0.9437</td></tr>
+          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>7/8</td><td>87.5%</td><td>7/8</td><td>8/8</td><td>0.9000</td></tr>
+          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>7/8</td><td>87.5%</td><td>6/8</td><td>7/8</td><td>0.8438</td></tr>
+          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>7/8</td><td>87.5%</td><td>6/8</td><td>7/8</td><td>0.8438</td></tr>
         </tbody>
       </table>
       <div class="section-label">Coding Compare</div>
@@ -298,13 +287,10 @@
           <th data-col="5">Fail <span class="sort-arrow">\u2195</span></th>
         </tr></thead>
         <tbody>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-27B</td><td>0.91</td><td>16</td><td>14</td><td>2</td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-27B</td><td>0.90</td><td>16</td><td>14</td><td>2</td></tr>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>0.89</td><td>16</td><td>13</td><td>3</td></tr>
-          <tr class="archived"><td>gemma-iq4nl</td><td>Gemma-4-31B</td><td>0.88</td><td>16</td><td>13</td><td>3</td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B</td><td>0.87</td><td>16</td><td>13</td><td>3</td></tr>
-          <tr class="archived"><td>gemma-udq4kxl</td><td>Gemma-4-31B</td><td>0.87</td><td>16</td><td>12</td><td>4</td></tr>
-          <tr class="archived"><td>gemma-q4km</td><td>Gemma-4-31B</td><td>0.86</td><td>16</td><td>12</td><td>4</td></tr>
+          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>0.50</td><td>4</td><td>2</td><td>2</td></tr>
+          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>0.50</td><td>4</td><td>2</td><td>2</td></tr>
+          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>0.50</td><td>4</td><td>2</td><td>2</td></tr>
+          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>0.25</td><td>4</td><td>1</td><td>3</td></tr>
         </tbody>
       </table>
       <div class="section-label">Agentic Barrage</div>
@@ -318,13 +304,10 @@
           <th data-col="5">Fail <span class="sort-arrow">\u2195</span></th>
         </tr></thead>
         <tbody>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-27B</td><td>0.85</td><td>10</td><td>8</td><td>2</td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-27B</td><td>0.84</td><td>10</td><td>8</td><td>2</td></tr>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>0.82</td><td>10</td><td>8</td><td>2</td></tr>
-          <tr class="archived"><td>gemma-iq4nl</td><td>Gemma-4-31B</td><td>0.81</td><td>10</td><td>8</td><td>2</td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B</td><td>0.79</td><td>10</td><td>7</td><td>3</td></tr>
-          <tr class="archived"><td>gemma-udq4kxl</td><td>Gemma-4-31B</td><td>0.80</td><td>10</td><td>7</td><td>3</td></tr>
-          <tr class="archived"><td>gemma-q4km</td><td>Gemma-4-31B</td><td>0.79</td><td>10</td><td>7</td><td>3</td></tr>
+          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>1.00</td><td>scored</td><td>-</td><td>-</td></tr>
+          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>0.95</td><td>scored</td><td>-</td><td>-</td></tr>
+          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>0.875</td><td>scored</td><td>-</td><td>-</td></tr>
+          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>0.85</td><td>scored</td><td>-</td><td>-</td></tr>
         </tbody>
       </table>
       <div class="section-label">Speed</div>
@@ -338,345 +321,13 @@
           <th data-col="5">Peak RAM <span class="sort-arrow">\u2195</span></th>
         </tr></thead>
         <tbody>
-          <tr class="archived"><td>gemma-iq4nl</td><td>Gemma-4-31B</td><td>142</td><td>48</td><td>18.2 GiB</td><td>12.4 GiB</td></tr>
-          <tr class="archived"><td>gemma-udq4kxl</td><td>Gemma-4-31B</td><td>138</td><td>46</td><td>18.5 GiB</td><td>12.8 GiB</td></tr>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>128</td><td>42</td><td>19.1 GiB</td><td>14.2 GiB</td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B</td><td>112</td><td>36</td><td>21.3 GiB</td><td>16.1 GiB</td></tr>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-27B</td><td>135</td><td>44</td><td>18.8 GiB</td><td>13.9 GiB</td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-27B</td><td>125</td><td>41</td><td>19.4 GiB</td><td>14.5 GiB</td></tr>
-          <tr class="archived"><td>gemma-q4km</td><td>Gemma-4-31B</td><td>140</td><td>47</td><td>18.0 GiB</td><td>12.2 GiB</td></tr>
+          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>2548</td><td>107.3</td><td>27.9 GiB</td><td>-</td></tr>
+          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>2450</td><td>98.5</td><td>31.4 GiB</td><td>-</td></tr>
+          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>1826</td><td>123.6</td><td>32.0 GiB</td><td>-</td></tr>
+          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>680</td><td>47.4</td><td>28.2 GiB</td><td>-</td></tr>
         </tbody>
       </table>
       <p class="prose" style="font-size: 11px; color: var(--text-dim);">\u2020 archived models no longer on disk. Historical results preserved for reference.</p>
-    </section>
-
-    <!-- Deep Dive -->
-    <section class="tab-panel" id="tab-deepdive">
-      <div class="section-label">Per-Model Breakdown</div>
-      <div class="model-selector">
-        <button class="active" data-model="qwen27">qwen27-huihui</button>
-        <button data-model="qwen35">qwen35-huihui</button>
-        <button data-model="ornith-q5">ornith-q5 \u2020</button>
-        <button data-model="ornith-q6">ornith-q6 \u2020</button>
-        <button data-model="gemma-iq4">gemma-iq4nl \u2020</button>
-        <button data-model="gemma-udq4">gemma-udq4kxl \u2020</button>
-        <button data-model="gemma-q4">gemma-q4km \u2020</button>
-      </div>
-      <div class="model-panel active" id="model-qwen27">
-        <div class="section-label">Transcript Replay Fixtures</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">basic_qa</div><div class="score pass">1.92</div></div>
-          <div class="fixture-cell"><div class="name">multi_turn</div><div class="score pass">1.88</div></div>
-          <div class="fixture-cell"><div class="name">context_window</div><div class="score pass">1.85</div></div>
-          <div class="fixture-cell"><div class="name">tool_use</div><div class="score pass">1.90</div></div>
-          <div class="fixture-cell"><div class="name">code_generation</div><div class="score pass">1.82</div></div>
-          <div class="fixture-cell"><div class="name">reasoning</div><div class="score pass">1.87</div></div>
-          <div class="fixture-cell"><div class="name">summarization</div><div class="score pass">1.84</div></div>
-          <div class="fixture-cell"><div class="name">translation</div><div class="score pass">1.86</div></div>
-          <div class="fixture-cell"><div class="name">instruction_follow</div><div class="score pass">1.89</div></div>
-          <div class="fixture-cell"><div class="name">agentic_loop</div><div class="score pass">1.83</div></div>
-          <div class="fixture-cell"><div class="name">memory_retrieval</div><div class="score pass">1.81</div></div>
-          <div class="fixture-cell"><div class="name">edge_cases</div><div class="score pass">1.80</div></div>
-        </div>
-        <div class="section-label">Sim Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">scope_clean</div><div class="score pass">14/16</div></div>
-          <div class="fixture-cell"><div class="name">tool_error_free</div><div class="score pass">16/16</div></div>
-          <div class="fixture-cell"><div class="name">pass_rate</div><div class="score pass">93.8%</div></div>
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.84</div></div>
-        </div>
-        <div class="section-label">Coding Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.89</div></div>
-          <div class="fixture-cell"><div class="name">fixtures</div><div class="score">16</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">13</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">3</div></div>
-        </div>
-        <div class="section-label">Agentic Barrage</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.82</div></div>
-          <div class="fixture-cell"><div class="name">scenarios</div><div class="score">10</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">8</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">2</div></div>
-        </div>
-        <div class="section-label">Speed Profile</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">prompt_tok/s</div><div class="score">128</div></div>
-          <div class="fixture-cell"><div class="name">predict_tok/s</div><div class="score">42</div></div>
-          <div class="fixture-cell"><div class="name">peak_vram</div><div class="score">19.1 GiB</div></div>
-          <div class="fixture-cell"><div class="name">peak_ram</div><div class="score">14.2 GiB</div></div>
-        </div>
-      </div>
-      <div class="model-panel" id="model-qwen35">
-        <div class="section-label">Transcript Replay Fixtures</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">basic_qa</div><div class="score pass">1.90</div></div>
-          <div class="fixture-cell"><div class="name">multi_turn</div><div class="score pass">1.86</div></div>
-          <div class="fixture-cell"><div class="name">context_window</div><div class="score pass">1.83</div></div>
-          <div class="fixture-cell"><div class="name">tool_use</div><div class="score pass">1.88</div></div>
-          <div class="fixture-cell"><div class="name">code_generation</div><div class="score pass">1.80</div></div>
-          <div class="fixture-cell"><div class="name">reasoning</div><div class="score pass">1.85</div></div>
-          <div class="fixture-cell"><div class="name">summarization</div><div class="score pass">1.82</div></div>
-          <div class="fixture-cell"><div class="name">translation</div><div class="score pass">1.84</div></div>
-          <div class="fixture-cell"><div class="name">instruction_follow</div><div class="score pass">1.87</div></div>
-          <div class="fixture-cell"><div class="name">agentic_loop</div><div class="score pass">1.81</div></div>
-          <div class="fixture-cell"><div class="name">memory_retrieval</div><div class="score pass">1.79</div></div>
-          <div class="fixture-cell"><div class="name">edge_cases</div><div class="score pass">1.78</div></div>
-        </div>
-        <div class="section-label">Sim Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">scope_clean</div><div class="score pass">14/16</div></div>
-          <div class="fixture-cell"><div class="name">tool_error_free</div><div class="score pass">16/16</div></div>
-          <div class="fixture-cell"><div class="name">pass_rate</div><div class="score pass">93.8%</div></div>
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.83</div></div>
-        </div>
-        <div class="section-label">Coding Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.87</div></div>
-          <div class="fixture-cell"><div class="name">fixtures</div><div class="score">16</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">13</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">3</div></div>
-        </div>
-        <div class="section-label">Agentic Barrage</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.79</div></div>
-          <div class="fixture-cell"><div class="name">scenarios</div><div class="score">10</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">7</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">3</div></div>
-        </div>
-        <div class="section-label">Speed Profile</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">prompt_tok/s</div><div class="score">112</div></div>
-          <div class="fixture-cell"><div class="name">predict_tok/s</div><div class="score">36</div></div>
-          <div class="fixture-cell"><div class="name">peak_vram</div><div class="score">21.3 GiB</div></div>
-          <div class="fixture-cell"><div class="name">peak_ram</div><div class="score">16.1 GiB</div></div>
-        </div>
-      </div>
-      <div class="model-panel" id="model-ornith-q5">
-        <div class="section-label">Transcript Replay Fixtures</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">basic_qa</div><div class="score pass">1.95</div></div>
-          <div class="fixture-cell"><div class="name">multi_turn</div><div class="score pass">1.92</div></div>
-          <div class="fixture-cell"><div class="name">context_window</div><div class="score pass">1.90</div></div>
-          <div class="fixture-cell"><div class="name">tool_use</div><div class="score pass">1.93</div></div>
-          <div class="fixture-cell"><div class="name">code_generation</div><div class="score pass">1.88</div></div>
-          <div class="fixture-cell"><div class="name">reasoning</div><div class="score pass">1.91</div></div>
-          <div class="fixture-cell"><div class="name">summarization</div><div class="score pass">1.89</div></div>
-          <div class="fixture-cell"><div class="name">translation</div><div class="score pass">1.90</div></div>
-          <div class="fixture-cell"><div class="name">instruction_follow</div><div class="score pass">1.92</div></div>
-          <div class="fixture-cell"><div class="name">agentic_loop</div><div class="score pass">1.87</div></div>
-          <div class="fixture-cell"><div class="name">memory_retrieval</div><div class="score pass">1.86</div></div>
-          <div class="fixture-cell"><div class="name">edge_cases</div><div class="score pass">1.85</div></div>
-        </div>
-        <div class="section-label">Sim Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">scope_clean</div><div class="score pass">13/16</div></div>
-          <div class="fixture-cell"><div class="name">tool_error_free</div><div class="score pass">15/16</div></div>
-          <div class="fixture-cell"><div class="name">pass_rate</div><div class="score pass">87.5%</div></div>
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.81</div></div>
-        </div>
-        <div class="section-label">Coding Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.91</div></div>
-          <div class="fixture-cell"><div class="name">fixtures</div><div class="score">16</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">14</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">2</div></div>
-        </div>
-        <div class="section-label">Agentic Barrage</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.85</div></div>
-          <div class="fixture-cell"><div class="name">scenarios</div><div class="score">10</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">8</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">2</div></div>
-        </div>
-        <div class="section-label">Speed Profile</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">prompt_tok/s</div><div class="score">135</div></div>
-          <div class="fixture-cell"><div class="name">predict_tok/s</div><div class="score">44</div></div>
-          <div class="fixture-cell"><div class="name">peak_vram</div><div class="score">18.8 GiB</div></div>
-          <div class="fixture-cell"><div class="name">peak_ram</div><div class="score">13.9 GiB</div></div>
-        </div>
-      </div>
-      <div class="model-panel" id="model-ornith-q6">
-        <div class="section-label">Transcript Replay Fixtures</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">basic_qa</div><div class="score pass">1.93</div></div>
-          <div class="fixture-cell"><div class="name">multi_turn</div><div class="score pass">1.90</div></div>
-          <div class="fixture-cell"><div class="name">context_window</div><div class="score pass">1.88</div></div>
-          <div class="fixture-cell"><div class="name">tool_use</div><div class="score pass">1.91</div></div>
-          <div class="fixture-cell"><div class="name">code_generation</div><div class="score pass">1.86</div></div>
-          <div class="fixture-cell"><div class="name">reasoning</div><div class="score pass">1.89</div></div>
-          <div class="fixture-cell"><div class="name">summarization</div><div class="score pass">1.87</div></div>
-          <div class="fixture-cell"><div class="name">translation</div><div class="score pass">1.88</div></div>
-          <div class="fixture-cell"><div class="name">instruction_follow</div><div class="score pass">1.90</div></div>
-          <div class="fixture-cell"><div class="name">agentic_loop</div><div class="score pass">1.85</div></div>
-          <div class="fixture-cell"><div class="name">memory_retrieval</div><div class="score pass">1.84</div></div>
-          <div class="fixture-cell"><div class="name">edge_cases</div><div class="score pass">1.83</div></div>
-        </div>
-        <div class="section-label">Sim Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">scope_clean</div><div class="score pass">13/16</div></div>
-          <div class="fixture-cell"><div class="name">tool_error_free</div><div class="score pass">15/16</div></div>
-          <div class="fixture-cell"><div class="name">pass_rate</div><div class="score pass">87.5%</div></div>
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.80</div></div>
-        </div>
-        <div class="section-label">Coding Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.90</div></div>
-          <div class="fixture-cell"><div class="name">fixtures</div><div class="score">16</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">14</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">2</div></div>
-        </div>
-        <div class="section-label">Agentic Barrage</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.84</div></div>
-          <div class="fixture-cell"><div class="name">scenarios</div><div class="score">10</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">8</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">2</div></div>
-        </div>
-        <div class="section-label">Speed Profile</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">prompt_tok/s</div><div class="score">125</div></div>
-          <div class="fixture-cell"><div class="name">predict_tok/s</div><div class="score">41</div></div>
-          <div class="fixture-cell"><div class="name">peak_vram</div><div class="score">19.4 GiB</div></div>
-          <div class="fixture-cell"><div class="name">peak_ram</div><div class="score">14.5 GiB</div></div>
-        </div>
-      </div>
-      <div class="model-panel" id="model-gemma-iq4">
-        <div class="section-label">Transcript Replay Fixtures</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">basic_qa</div><div class="score pass">1.91</div></div>
-          <div class="fixture-cell"><div class="name">multi_turn</div><div class="score pass">1.87</div></div>
-          <div class="fixture-cell"><div class="name">context_window</div><div class="score pass">1.85</div></div>
-          <div class="fixture-cell"><div class="name">tool_use</div><div class="score pass">1.89</div></div>
-          <div class="fixture-cell"><div class="name">code_generation</div><div class="score pass">1.82</div></div>
-          <div class="fixture-cell"><div class="name">reasoning</div><div class="score pass">1.86</div></div>
-          <div class="fixture-cell"><div class="name">summarization</div><div class="score pass">1.84</div></div>
-          <div class="fixture-cell"><div class="name">translation</div><div class="score pass">1.85</div></div>
-          <div class="fixture-cell"><div class="name">instruction_follow</div><div class="score pass">1.88</div></div>
-          <div class="fixture-cell"><div class="name">agentic_loop</div><div class="score pass">1.82</div></div>
-          <div class="fixture-cell"><div class="name">memory_retrieval</div><div class="score pass">1.80</div></div>
-          <div class="fixture-cell"><div class="name">edge_cases</div><div class="score pass">1.79</div></div>
-        </div>
-        <div class="section-label">Sim Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">scope_clean</div><div class="score pass">14/16</div></div>
-          <div class="fixture-cell"><div class="name">tool_error_free</div><div class="score pass">16/16</div></div>
-          <div class="fixture-cell"><div class="name">pass_rate</div><div class="score pass">93.8%</div></div>
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.82</div></div>
-        </div>
-        <div class="section-label">Coding Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.88</div></div>
-          <div class="fixture-cell"><div class="name">fixtures</div><div class="score">16</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">13</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">3</div></div>
-        </div>
-        <div class="section-label">Agentic Barrage</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.81</div></div>
-          <div class="fixture-cell"><div class="name">scenarios</div><div class="score">10</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">8</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">2</div></div>
-        </div>
-        <div class="section-label">Speed Profile</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">prompt_tok/s</div><div class="score">142</div></div>
-          <div class="fixture-cell"><div class="name">predict_tok/s</div><div class="score">48</div></div>
-          <div class="fixture-cell"><div class="name">peak_vram</div><div class="score">18.2 GiB</div></div>
-          <div class="fixture-cell"><div class="name">peak_ram</div><div class="score">12.4 GiB</div></div>
-        </div>
-      </div>
-      <div class="model-panel" id="model-gemma-udq4">
-        <div class="section-label">Transcript Replay Fixtures</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">basic_qa</div><div class="score pass">1.90</div></div>
-          <div class="fixture-cell"><div class="name">multi_turn</div><div class="score pass">1.86</div></div>
-          <div class="fixture-cell"><div class="name">context_window</div><div class="score pass">1.84</div></div>
-          <div class="fixture-cell"><div class="name">tool_use</div><div class="score pass">1.88</div></div>
-          <div class="fixture-cell"><div class="name">code_generation</div><div class="score pass">1.81</div></div>
-          <div class="fixture-cell"><div class="name">reasoning</div><div class="score pass">1.85</div></div>
-          <div class="fixture-cell"><div class="name">summarization</div><div class="score pass">1.83</div></div>
-          <div class="fixture-cell"><div class="name">translation</div><div class="score pass">1.84</div></div>
-          <div class="fixture-cell"><div class="name">instruction_follow</div><div class="score pass">1.87</div></div>
-          <div class="fixture-cell"><div class="name">agentic_loop</div><div class="score pass">1.81</div></div>
-          <div class="fixture-cell"><div class="name">memory_retrieval</div><div class="score pass">1.79</div></div>
-          <div class="fixture-cell"><div class="name">edge_cases</div><div class="score pass">1.78</div></div>
-        </div>
-        <div class="section-label">Sim Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">scope_clean</div><div class="score pass">13/16</div></div>
-          <div class="fixture-cell"><div class="name">tool_error_free</div><div class="score pass">15/16</div></div>
-          <div class="fixture-cell"><div class="name">pass_rate</div><div class="score pass">87.5%</div></div>
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.79</div></div>
-        </div>
-        <div class="section-label">Coding Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.87</div></div>
-          <div class="fixture-cell"><div class="name">fixtures</div><div class="score">16</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">12</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">4</div></div>
-        </div>
-        <div class="section-label">Agentic Barrage</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.80</div></div>
-          <div class="fixture-cell"><div class="name">scenarios</div><div class="score">10</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">7</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">3</div></div>
-        </div>
-        <div class="section-label">Speed Profile</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">prompt_tok/s</div><div class="score">138</div></div>
-          <div class="fixture-cell"><div class="name">predict_tok/s</div><div class="score">46</div></div>
-          <div class="fixture-cell"><div class="name">peak_vram</div><div class="score">18.5 GiB</div></div>
-          <div class="fixture-cell"><div class="name">peak_ram</div><div class="score">12.8 GiB</div></div>
-        </div>
-      </div>
-      <div class="model-panel" id="model-gemma-q4">
-        <div class="section-label">Transcript Replay Fixtures</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">basic_qa</div><div class="score pass">1.89</div></div>
-          <div class="fixture-cell"><div class="name">multi_turn</div><div class="score pass">1.85</div></div>
-          <div class="fixture-cell"><div class="name">context_window</div><div class="score pass">1.83</div></div>
-          <div class="fixture-cell"><div class="name">tool_use</div><div class="score pass">1.87</div></div>
-          <div class="fixture-cell"><div class="name">code_generation</div><div class="score pass">1.80</div></div>
-          <div class="fixture-cell"><div class="name">reasoning</div><div class="score pass">1.84</div></div>
-          <div class="fixture-cell"><div class="name">summarization</div><div class="score pass">1.82</div></div>
-          <div class="fixture-cell"><div class="name">translation</div><div class="score pass">1.83</div></div>
-          <div class="fixture-cell"><div class="name">instruction_follow</div><div class="score pass">1.86</div></div>
-          <div class="fixture-cell"><div class="name">agentic_loop</div><div class="score pass">1.80</div></div>
-          <div class="fixture-cell"><div class="name">memory_retrieval</div><div class="score pass">1.78</div></div>
-          <div class="fixture-cell"><div class="name">edge_cases</div><div class="score pass">1.77</div></div>
-        </div>
-        <div class="section-label">Sim Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">scope_clean</div><div class="score pass">13/16</div></div>
-          <div class="fixture-cell"><div class="name">tool_error_free</div><div class="score pass">15/16</div></div>
-          <div class="fixture-cell"><div class="name">pass_rate</div><div class="score pass">87.5%</div></div>
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.78</div></div>
-        </div>
-        <div class="section-label">Coding Compare</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.86</div></div>
-          <div class="fixture-cell"><div class="name">fixtures</div><div class="score">16</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">12</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">4</div></div>
-        </div>
-        <div class="section-label">Agentic Barrage</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">avg_score</div><div class="score pass">0.79</div></div>
-          <div class="fixture-cell"><div class="name">scenarios</div><div class="score">10</div></div>
-          <div class="fixture-cell"><div class="name">pass</div><div class="score pass">7</div></div>
-          <div class="fixture-cell"><div class="name">fail</div><div class="score fail">3</div></div>
-        </div>
-        <div class="section-label">Speed Profile</div>
-        <div class="fixture-grid">
-          <div class="fixture-cell"><div class="name">prompt_tok/s</div><div class="score">140</div></div>
-          <div class="fixture-cell"><div class="name">predict_tok/s</div><div class="score">47</div></div>
-          <div class="fixture-cell"><div class="name">peak_vram</div><div class="score">18.0 GiB</div></div>
-          <div class="fixture-cell"><div class="name">peak_ram</div><div class="score">12.2 GiB</div></div>
-        </div>
-      </div>
     </section>
 
     <!-- Charts -->
@@ -711,18 +362,18 @@
         <tbody>
           <tr><td>Transcript Replay</td><td>Turn-level accuracy against known-good transcript fixtures. Measures how faithfully a model reproduces expected conversation flow across multi-turn interactions.</td><td>Partial score per fixture (0-2). Aggregate: matched turns / total turns, pass rate across fixtures.</td></tr>
           <tr><td>Sim Compare</td><td>Semantic similarity against reference responses across coding and agentic scenarios. Measures output quality beyond exact string matching.</td><td>Pass/fail per scenario with similarity threshold. Scope-clean and tool-error-free sub-scores.</td></tr>
-          <tr><td>Coding Compare</td><td>Code generation quality across 16 fixtures. Measures correctness, style adherence, and edge-case handling in generated code.</td><td>Average score 0-1 across all fixtures. Pass threshold at 0.75.</td></tr>
-          <tr><td>Agentic Barrage</td><td>Multi-step agentic task execution under pressure. 10 scenarios with chained tool calls, state management, and error recovery.</td><td>Average score 0-1. Pass threshold at 0.70. Measures end-to-end task completion.</td></tr>
+          <tr><td>Coding Compare</td><td>Single-turn coding smoke tasks. Measures whether generated code passes hidden checks without needing a full agent loop.</td><td>Average score 0-1 across the committed task set.</td></tr>
+          <tr><td>Agentic Barrage</td><td>Multi-step agentic task execution under pressure, including planning, revision, evidence triage, tool restraint, and tool followthrough.</td><td>Average score 0-1 across rubric-scored scenarios.</td></tr>
           <tr><td>Speed</td><td>Prompt processing and token prediction throughput on the target hardware. Peak VRAM and RAM usage under full context load.</td><td>Tokens per second for prompt and predict phases. GiB for peak memory usage.</td></tr>
         </tbody>
       </table>
       <div class="section-label">Scoring Rules</div>
-      <p class="prose">Primary sort: transcript replay partial score. Secondary: sim compare pass rate. Tertiary: coding compare average score. Agentic barrage is a tiebreaker. Speed is reported for hardware planning but does not affect ranking.</p>
-      <p class="prose">Archived models no longer receive new benchmark runs. Historical results are preserved for reference and longitudinal comparison.</p>
+      <p class="prose">Primary evidence is kept split by family instead of collapsed into one blended score. Transcript replay is the general-agent signal; sim compare is the coding-agent signal. Speed is reported for fit and hardware planning, not as a quality ranking.</p>
+      <p class="prose">Archived models no longer receive new benchmark runs. Historical results are preserved for reference and comparison only.</p>
       <div class="section-label">Elimination Rationale</div>
-      <p class="prose">Ornith-27B was retired from disk after Qwen3.6-27B showed equivalent or better scores across all suites with a smaller VRAM footprint. Gemma-4-31B variants were archived from a prior evaluation round &mdash; they remain useful for quantization comparison but were not competitive on agentic workloads.</p>
+      <p class="prose">Ornith Q5 was retired after hands-on prose/editing use despite strong benchmark results. Ornith Q6 was deleted because Q5 was faster, roomier, and cleaner in the local tests. Qwen3.6-27B Huihui stays as the daily default; Qwen3.6-35B Huihui stays as the retained 35B Huihui/abliterated option.</p>
       <div class="section-label">Hardware</div>
-      <p class="prose">All benchmarks run on a single host with Vulkan GPU acceleration via llama.cpp. Main chat uses MTP (Multi-Token Prediction) draft mode with n=3. Context window is 128k tokens for chat models, 8k for embedding/reranker.</p>
+      <p class="prose">All current benchmarks run on a single AMD AI Pro R9700 32 GB host with Vulkan GPU acceleration via llama.cpp. The daily 27B chat preset uses 128k context, q8 KV, and MTP draft n=3. The retained 35B Huihui preset uses 256k context, q8 KV, and MTP draft n=2.</p>
       <div class="section-label">Raw Data</div>
       <p class="prose">All benchmark results are stored as JSON in <code>benchmarks/summaries/</code>. Each suite produces a <code>summary.json</code> with per-candidate scores and a <code>published.json</code> with the public-facing label. Full run manifests and per-fixture output are in <code>benchmarks/model_eval/results/</code>.</p>
     </section>
@@ -783,13 +434,10 @@
 
     // Chart data
     const models = [
-      { id: 'qwen27', label: 'qwen27-huihui', color: '#e8943a', archived: false, replay: 95.1, sim: 93.8, coding: 0.89, agentic: 0.82, promptTok: 128, predictTok: 42, vram: 19.1, ram: 14.2 },
-      { id: 'qwen35', label: 'qwen35-huihui', color: '#c47a2a', archived: false, replay: 94.8, sim: 93.8, coding: 0.87, agentic: 0.79, promptTok: 112, predictTok: 36, vram: 21.3, ram: 16.1 },
-      { id: 'ornith-q5', label: 'ornith-q5', color: '#6a6558', archived: true, replay: 95.9, sim: 87.5, coding: 0.91, agentic: 0.85, promptTok: 135, predictTok: 44, vram: 18.8, ram: 13.9 },
-      { id: 'ornith-q6', label: 'ornith-q6', color: '#5a5548', archived: true, replay: 95.5, sim: 87.5, coding: 0.90, agentic: 0.84, promptTok: 125, predictTok: 41, vram: 19.4, ram: 14.5 },
-      { id: 'gemma-iq4', label: 'gemma-iq4nl', color: '#4a4538', archived: true, replay: 94.8, sim: 93.8, coding: 0.88, agentic: 0.81, promptTok: 142, predictTok: 48, vram: 18.2, ram: 12.4 },
-      { id: 'gemma-udq4', label: 'gemma-udq4kxl', color: '#3a3528', archived: true, replay: 94.6, sim: 87.5, coding: 0.87, agentic: 0.80, promptTok: 138, predictTok: 46, vram: 18.5, ram: 12.8 },
-      { id: 'gemma-q4', label: 'gemma-q4km', color: '#2a2818', archived: true, replay: 94.4, sim: 87.5, coding: 0.86, agentic: 0.79, promptTok: 140, predictTok: 47, vram: 18.0, ram: 12.2 },
+      { id: 'qwen27', label: 'qwen27-huihui', color: '#e8943a', archived: false, replay: 77.1, sim: 87.5, coding: 0.50, agentic: 0.95, promptTok: 680, predictTok: 47.4, vram: 28.2, ram: 0 },
+      { id: 'qwen35', label: 'qwen35-huihui', color: '#c47a2a', archived: false, replay: 51.6, sim: 100.0, coding: 0.50, agentic: 0.875, promptTok: 1826, predictTok: 123.6, vram: 32.0, ram: 0 },
+      { id: 'ornith-q5', label: 'ornith-q5', color: '#6a6558', archived: true, replay: 71.4, sim: 87.5, coding: 0.50, agentic: 1.00, promptTok: 2548, predictTok: 107.3, vram: 27.9, ram: 0 },
+      { id: 'ornith-q6', label: 'ornith-q6', color: '#5a5548', archived: true, replay: 68.6, sim: 87.5, coding: 0.25, agentic: 0.85, promptTok: 2450, predictTok: 98.5, vram: 31.4, ram: 0 },
     ];
 
     function norm(val, min, max) { return (val - min) / (max - min || 1); }

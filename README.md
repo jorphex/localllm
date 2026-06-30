@@ -130,6 +130,13 @@ This stops the full service stack, runs the configured suites one candidate at a
 
 See `benchmarks/README.md` for scoring details, configuration, and suite descriptions.
 
+Current durable benchmark read:
+
+- `qwen-3.6-27b-mtp-huihui-q6-fast-128k` is the daily default because it is the best retained Qwen replay/general-agent fit and can coexist with the reranker in VRAM.
+- `qwen-3.6-35b-a3b-huihui-mtp-q6-full-256k-q8` is retained as the stronger coding-sim 35B Huihui option, but it does not leave room for the reranker in VRAM at the tested full-context q8-KV shape.
+- Ornith Q5/Q6 are archived comparison points; Q5 benchmarked well but was removed after hands-on prose/editing use, and Q6 lost on speed/VRAM/behavior.
+- `benchmarks/BENCHMARK_RESULTS.md` is the canonical human readout; `benchmarks/summaries/` holds the committed machine-readable suite summaries.
+
 ## Prompt Cache Notes
 
 Relevant server-side knobs:

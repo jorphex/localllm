@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 
@@ -19,15 +20,25 @@ def load_json(path: Path) -> dict | None:
         return None
 
 
-def latest_summary(suite_dir: Path) -> tuple[Path, dict] | None:
-    runs = sorted(p for p in suite_dir.iterdir() if p.is_dir() and (p / "summary.json").exists())
-    if not runs:
-        return None
-    latest = runs[-1]
-    data = load_json(latest / "summary.json")
-    if data is None:
-        return None
-    return latest, data
+RUN_TS_RE = re.compile(r"(\d{8}T\d{6}Z)")
+
+
+def run_sort_key(path: Path) -> tuple[str, str]:
+    matches = RUN_TS_RE.findall(path.name)
+    return (matches[-1] if matches else "", path.name)
+
+
+def suite_summaries(suite_dir: Path) -> list[tuple[Path, dict]]:
+    runs = []
+    for run_dir in sorted(
+        (p for p in suite_dir.iterdir() if p.is_dir() and (p / "summary.json").exists()),
+        key=run_sort_key,
+        reverse=True,
+    ):
+        data = load_json(run_dir / "summary.json")
+        if data is not None:
+            runs.append((run_dir, data))
+    return runs
 
 
 def render_transcript_replay(summary: dict) -> str:
@@ -60,18 +71,45 @@ def render_scalar_score(summary: dict) -> str:
     return f"Average score: **{avg}**"
 
 
+def render_coding_compare(summary: dict) -> str:
+    lines = ["| Candidate | Average score | Task scores |", "| --- | --- | --- |"]
+    candidates = summary.get("candidates", {})
+    for candidate, tasks in sorted(candidates.items()):
+        scores = [
+            float(result.get("uncapped", {}).get("score", 0.0))
+            for result in tasks.values()
+            if isinstance(result, dict)
+        ]
+        avg = round(sum(scores) / len(scores), 4) if scores else 0.0
+        task_scores = ", ".join(
+            f"{task}: {float(result.get('uncapped', {}).get('score', 0.0)):g}"
+            for task, result in sorted(tasks.items())
+            if isinstance(result, dict)
+        )
+        lines.append(f"| {candidate} | {avg} | {task_scores} |")
+    return "\n".join(lines)
+
+
+def render_opencode_compare(summary: dict) -> str:
+    lines = ["| Candidate | Average score |", "| --- | --- |"]
+    candidates = summary.get("candidates", [])
+    for candidate in candidates:
+        lines.append(f"| {candidate.get('candidate')} | {candidate.get('average_score', 0.0)} |")
+    return "\n".join(lines)
+
+
 def render_suite(suite: str, run_dir: Path, summary: dict) -> str:
     renderer = {
         "transcript_replay": render_transcript_replay,
         "sim_compare": render_sim_compare,
         "agentic_barrage": render_scalar_score,
-        "opencode_compare": render_scalar_score,
-        "coding_compare": render_scalar_score,
+        "opencode_compare": render_opencode_compare,
+        "coding_compare": render_coding_compare,
     }.get(suite, render_scalar_score)
 
     return (
         f"## {suite}\n\n"
-        f"Latest run: `{run_dir.name}`\n\n"
+        f"Run: `{run_dir.name}`\n\n"
         f"{renderer(summary)}\n"
     )
 
@@ -80,7 +118,7 @@ MARKER = "<!-- BENCHMARK-AUTO-GENERATED -->"
 
 
 def main() -> None:
-    generated_sections = ["\n# Latest auto-generated results\n"]
+    generated_sections = ["\n# Committed Summary Rollup\n"]
 
     if not SUMMARIES_DIR.exists():
         generated_sections.append("No committed summaries yet.\n")
@@ -88,11 +126,11 @@ def main() -> None:
         for suite_dir in sorted(SUMMARIES_DIR.iterdir()):
             if not suite_dir.is_dir():
                 continue
-            latest = latest_summary(suite_dir)
-            if latest is None:
+            summaries = suite_summaries(suite_dir)
+            if not summaries:
                 continue
-            run_dir, summary = latest
-            generated_sections.append(render_suite(suite_dir.name, run_dir, summary))
+            for run_dir, summary in summaries:
+                generated_sections.append(render_suite(suite_dir.name, run_dir, summary))
 
     generated_text = "\n".join(generated_sections) + "\n"
 

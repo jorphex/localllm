@@ -1,11 +1,12 @@
-# Repo Commit Split Plan
+# Documentation Durability Plan
 
-Goal: preserve the new `site/` directory and commit current repo work in logical groups without removing user-owned content.
+Goal: keep the pushed repository's durable docs, notes, benchmark summaries, and current conclusions aligned with the latest retained local-LLM stack.
 
-- [x] Inspect dirty state and confirm `site/` is untracked, not ignored, and contains only intended site assets.
-- [x] Commit benchmark harness fixes, benchmark summaries, and chart renderers.
-- [x] Commit runtime preset cache/checkpoint tuning.
-- [x] Commit social `/x` cleanup.
-- [x] Commit the initial `site/` research page.
-- [x] Commit notes/plan maintenance.
-- [x] Verify the final working tree is clean.
+- [x] Verify the working tree and pushed branch state before editing.
+- [x] Audit current docs, notes, benchmark summaries, result JSONL files, presets, and site scaffold for stale claims.
+- [x] Fix the benchmark-results generator so committed summaries render newest-first instead of lexicographic-latest.
+- [x] Refresh `benchmarks/BENCHMARK_RESULTS.md` with the current Qwen3.6/Ornith decision layer, speed snapshots, prompt-cache conclusions, and regenerated committed-summary rollup.
+- [x] Refresh repo/benchmark README pointers so future agents know which files are canonical.
+- [x] Record the durable outcome in `NOTES.md`.
+- [x] Run syntax/lint checks for changed Python and docs tooling.
+- [x] Review final diff and commit the documentation refresh.

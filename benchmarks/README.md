@@ -92,7 +92,7 @@ After each run, `benchmarks/publish_summary.py` copies `summary.json` and `run_m
 benchmarks/summaries/<suite>/<run-label>/
 ```
 
-`benchmarks/generate_results_md.py` reads those committed summaries and regenerates the auto-generated section of `benchmarks/BENCHMARK_RESULTS.md`. The historical content of that file is preserved behind a marker.
+`benchmarks/generate_results_md.py` reads those committed summaries and regenerates the auto-generated section of `benchmarks/BENCHMARK_RESULTS.md`. The historical content of that file is preserved before a marker, and the generated rollup lists all committed suite summaries newest-first by the embedded run timestamp.
 
 ## Environment metadata
 
