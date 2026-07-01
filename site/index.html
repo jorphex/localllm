@@ -14,22 +14,23 @@
       --bg: #0a0a0f;
       --bg-elevated: #101018;
       --text: #e8e4de;
-      --text-muted: #7a7568;
-      --text-dim: #4a4538;
+      --text-muted: #8a8476;
+      --text-dim: #4f4a3d;
       --accent: #e8943a;
       --accent-dim: #e8943a33;
       --border: #2a2820;
-      --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
-      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', 'Roboto Mono', monospace;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
+    .mono { font-family: var(--mono); }
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: var(--mono);
-      font-size: 14px;
-      line-height: 1.6;
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.65;
       min-height: 100vh;
       overflow-x: hidden;
     }
@@ -40,27 +41,27 @@
       padding: 0 2rem; height: 3rem;
       display: flex; align-items: center; justify-content: space-between;
     }
-    .topbar-title { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; }
+    .topbar-title { font-family: var(--sans); font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.02em; }
     .topbar-nav { display: flex; gap: 0.25rem; }
     .topbar-nav button {
       background: none; border: none; color: var(--text-muted);
-      font-family: var(--mono); font-size: 12px; padding: 0.4rem 0.75rem;
+      font-family: var(--sans); font-size: 13px; padding: 0.4rem 0.75rem;
       cursor: pointer; border-radius: 4px; transition: color 0.2s, background 0.2s;
     }
     .topbar-nav button:hover { color: var(--text); background: #ffffff08; }
     .topbar-nav button.active { color: var(--accent); background: var(--accent-dim); }
     .main { max-width: 1100px; margin: 0 auto; padding: 4rem 2rem 4rem; }
     .header { margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
-    .header h1 { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    .header h1 { font-family: var(--sans); font-size: 30px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; margin-bottom: 0.5rem; text-wrap: balance; }
     .header h1 span { color: var(--accent); }
-    .header p { color: var(--text-muted); font-size: 13px; line-height: 1.7; max-width: 700px; }
-    .header .updated { margin-top: 0.75rem; font-size: 11px; color: var(--text-dim); }
+    .header p { color: var(--text-muted); font-size: 15px; line-height: 1.7; max-width: 720px; }
+    .header .updated { margin-top: 0.75rem; font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
     .tab-panel { display: none; padding-top: 3rem; animation: tabFadeIn 0.3s ease; }
     .tab-panel.active { display: block; }
     @keyframes tabFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .section-label {
-      font-size: 11px; font-weight: 600; color: var(--accent);
-      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.25rem;
+      font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--accent);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1.25rem;
     }
     .section-label + .section-label { margin-top: 2.5rem; }
     .stack-grid {
@@ -68,47 +69,53 @@
       gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 2rem;
     }
     .stack-item { background: var(--bg); padding: 1.25rem 1.5rem; }
-    .stack-item .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
-    .stack-item .name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 0.35rem; word-break: break-word; }
-    .stack-item .meta { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
-    .data-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; font-size: 12px; }
+    .stack-item .label { font-family: var(--sans); font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+    .stack-item .name { font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 0.35rem; word-break: break-word; }
+    .stack-item .meta { font-family: var(--mono); font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .data-table { width: 100%; border-collapse: collapse; margin-bottom: 2.5rem; font-size: 14px; font-variant-numeric: tabular-nums; }
     .data-table th {
-      text-align: left; padding: 0.6rem 1rem; font-size: 10px; font-weight: 600;
-      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em;
+      text-align: left; padding: 0.7rem 1rem; font-size: 11px; font-weight: 600;
+      font-family: var(--sans); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;
       border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap;
     }
-    .data-table th:hover { color: var(--text-muted); }
-    .data-table th .sort-arrow { margin-left: 0.25rem; opacity: 0.3; }
+    .data-table th:hover { color: var(--text); }
+    .data-table th .sort-arrow { margin-left: 0.35rem; opacity: 0.4; font-size: 10px; }
+    .data-table th.sorted { color: var(--accent); }
     .data-table th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
-    .data-table td { padding: 0.6rem 1rem; border-bottom: 1px solid #1a1810; color: var(--text); white-space: nowrap; }
-    .data-table tr:hover td { background: #ffffff05; }
-    .data-table tr.archived td { color: var(--text-dim); }
-    .data-table tr.archived td:first-child::after { content: ' \u2020'; color: var(--text-dim); font-size: 10px; }
+    .data-table td { padding: 0.7rem 1rem; border-bottom: 1px solid #171710; color: var(--text); white-space: nowrap; }
+    .data-table tbody tr { transition: background 0.15s ease; }
+    .data-table tbody tr:hover td { background: #ffffff06; }
+    .data-table td:first-child { font-family: var(--mono); }
+    .data-table tr.archived td { color: var(--text-muted); }
+    .data-table tr.archived td:first-child::after { content: ' †'; color: var(--text-dim); font-size: 10px; margin-left: 0.25rem; }
     .badge { display: inline-block; padding: 0.15rem 0.5rem; font-size: 10px; font-weight: 600; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
     .badge.active { color: var(--accent); background: var(--accent-dim); }
     .badge.archived { color: var(--text-dim); background: #2a2820; }
-    .prose { color: var(--text-muted); font-size: 13px; line-height: 1.8; margin-bottom: 1.5rem; max-width: 720px; }
-    .prose code { background: #1a1810; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 12px; color: var(--text); }
+    .prose { color: var(--text-muted); font-size: 15px; line-height: 1.75; margin-bottom: 1.5rem; max-width: 720px; }
+    .prose code { font-family: var(--mono); background: #1a1810; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 13px; color: var(--text); }
     .prose ul { margin: 0.5rem 0 1rem 1.25rem; }
     .prose li { margin-bottom: 0.35rem; }
     .prose p { margin-bottom: 1rem; }
     .callout { border-left: 2px solid var(--accent); padding: 1rem 1.5rem; margin-bottom: 2rem; background: #e8943a08; }
-    .callout p { color: var(--text); font-size: 13px; line-height: 1.7; margin: 0; }
+    .callout p { font-family: var(--sans); color: var(--text); font-size: 15px; line-height: 1.7; margin: 0; }
     .callout strong { color: var(--accent); font-weight: 600; }
     .chart-container { margin-bottom: 2.5rem; position: relative; }
-    .chart-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
+    .chart-title { font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
     .chart-svg { width: 100%; height: auto; }
     .chart-svg text { font-family: var(--mono); }
     .chart-tooltip {
       position: absolute; background: var(--bg-elevated); border: 1px solid var(--border);
-      padding: 0.5rem 0.75rem; font-size: 11px; color: var(--text); border-radius: 4px;
+      padding: 0.5rem 0.75rem; font-size: 12px; color: var(--text); border-radius: 4px;
       pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 50;
+      max-width: 220px; line-height: 1.5;
     }
     .chart-tooltip.visible { opacity: 1; }
+    body.chart-dim [data-model-id] { opacity: 0.18 !important; transition: opacity 0.15s ease; }
+    body.chart-dim [data-model-id].chart-highlight { opacity: 1 !important; }
     .model-selector { display: flex; gap: 0.25rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
     .model-selector button {
       background: none; border: 1px solid var(--border); color: var(--text-muted);
-      font-family: var(--mono); font-size: 11px; padding: 0.35rem 0.75rem;
+      font-family: var(--sans); font-size: 12px; padding: 0.35rem 0.75rem;
       cursor: pointer; border-radius: 3px; transition: color 0.2s, border-color 0.2s, background 0.2s;
     }
     .model-selector button:hover { border-color: var(--text-dim); color: var(--text); }
@@ -120,20 +127,20 @@
       gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 1.5rem;
     }
     .fixture-cell { background: var(--bg); padding: 0.75rem 1rem; }
-    .fixture-cell .name { font-size: 11px; color: var(--text-muted); margin-bottom: 0.25rem; }
-    .fixture-cell .score { font-size: 18px; font-weight: 700; color: var(--text); }
+    .fixture-cell .name { font-family: var(--sans); font-size: 12px; color: var(--text-muted); margin-bottom: 0.25rem; }
+    .fixture-cell .score { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--text); }
     .fixture-cell .score.pass { color: var(--accent); }
     .fixture-cell .score.fail { color: var(--text-dim); }
-    .method-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; font-size: 12px; table-layout: fixed; }
+    .method-table { width: 100%; border-collapse: collapse; margin-bottom: 2.5rem; font-size: 14px; table-layout: fixed; }
     .method-table th {
-      text-align: left; padding: 0.6rem 1rem; font-size: 10px; font-weight: 600;
-      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border);
+      text-align: left; padding: 0.7rem 1rem; font-size: 11px; font-weight: 600;
+      font-family: var(--sans); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border);
     }
-    .method-table td { padding: 0.6rem 1rem; border-bottom: 1px solid #1a1810; color: var(--text-muted); word-wrap: break-word; overflow-wrap: break-word; }
-    .method-table td:first-child { color: var(--text); font-weight: 500; }
+    .method-table td { padding: 0.7rem 1rem; border-bottom: 1px solid #171710; color: var(--text-muted); word-wrap: break-word; overflow-wrap: break-word; }
+    .method-table td:first-child { font-family: var(--sans); color: var(--text); font-weight: 500; }
     .footer {
       margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
-      font-size: 11px; color: var(--text-dim); display: flex; justify-content: space-between;
+      font-family: var(--sans); font-size: 12px; color: var(--text-dim); display: flex; justify-content: space-between;
       align-items: center; flex-wrap: wrap; gap: 0.5rem;
     }
     .footer a { color: var(--text-muted); text-decoration: none; }
@@ -141,17 +148,22 @@
     @media (max-width: 768px) {
       .main { padding: 3.5rem 1rem 3rem; }
       .topbar { padding: 0 1rem; }
-      .header h1 { font-size: 22px; }
+      .header h1 { font-size: 24px; }
       .stack-grid { grid-template-columns: 1fr; }
-      .data-table { font-size: 11px; }
-      .data-table th, .data-table td { padding: 0.5rem 0.6rem; }
+      .data-table { font-size: 13px; }
+      .data-table th, .data-table td { padding: 0.6rem 0.5rem; }
       .fixture-grid { grid-template-columns: repeat(2, 1fr); }
-      .topbar-nav button { padding: 0.35rem 0.5rem; font-size: 11px; }
+      .topbar-nav button { padding: 0.35rem 0.5rem; font-size: 12px; }
     }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .tab-panel { animation: none; }
+      .data-table tbody tr, .topbar-nav button, .model-selector button, .footer a { transition: none; }
+    }
   </style>
 </head>
 <body>
@@ -199,14 +211,14 @@
       <div class="section-label">Current Comparison Models</div>
       <table class="data-table" data-sortable="true">
         <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">\u2195</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">\u2195</span></th>
-          <th data-col="2">Quant <span class="sort-arrow">\u2195</span></th>
-          <th data-col="3">Params <span class="sort-arrow">\u2195</span></th>
-          <th data-col="4">Replay <span class="sort-arrow">\u2195</span></th>
-          <th data-col="5">Sim <span class="sort-arrow">\u2195</span></th>
-          <th data-col="6">Coding <span class="sort-arrow">\u2195</span></th>
-          <th data-col="7">Agentic <span class="sort-arrow">\u2195</span></th>
+          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
+          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
+          <th data-col="2">Quant <span class="sort-arrow">↕</span></th>
+          <th data-col="3">Params <span class="sort-arrow">↕</span></th>
+          <th data-col="4">Replay <span class="sort-arrow">↕</span></th>
+          <th data-col="5">Sim <span class="sort-arrow">↕</span></th>
+          <th data-col="6">Coding <span class="sort-arrow">↕</span></th>
+          <th data-col="7">Agentic <span class="sort-arrow">↕</span></th>
           <th data-col="8">Status</th>
         </tr></thead>
         <tbody>
@@ -217,14 +229,14 @@
       <div class="section-label">Archived Candidates</div>
       <table class="data-table" data-sortable="true">
         <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">\u2195</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">\u2195</span></th>
-          <th data-col="2">Quant <span class="sort-arrow">\u2195</span></th>
-          <th data-col="3">Params <span class="sort-arrow">\u2195</span></th>
-          <th data-col="4">Replay <span class="sort-arrow">\u2195</span></th>
-          <th data-col="5">Sim <span class="sort-arrow">\u2195</span></th>
-          <th data-col="6">Coding <span class="sort-arrow">\u2195</span></th>
-          <th data-col="7">Agentic <span class="sort-arrow">\u2195</span></th>
+          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
+          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
+          <th data-col="2">Quant <span class="sort-arrow">↕</span></th>
+          <th data-col="3">Params <span class="sort-arrow">↕</span></th>
+          <th data-col="4">Replay <span class="sort-arrow">↕</span></th>
+          <th data-col="5">Sim <span class="sort-arrow">↕</span></th>
+          <th data-col="6">Coding <span class="sort-arrow">↕</span></th>
+          <th data-col="7">Agentic <span class="sort-arrow">↕</span></th>
           <th data-col="8">Status</th>
         </tr></thead>
         <tbody>
@@ -243,13 +255,13 @@
       <p class="prose">Turn-level accuracy against known-good transcript fixtures. Measures how faithfully a model reproduces expected conversation flow.</p>
       <table class="data-table" data-sortable="true">
         <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">\u2195</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">\u2195</span></th>
-          <th data-col="2">Turns <span class="sort-arrow">\u2195</span></th>
-          <th data-col="3">Match Rate <span class="sort-arrow">\u2195</span></th>
-          <th data-col="4">Fixtures <span class="sort-arrow">\u2195</span></th>
-          <th data-col="5">Pass Rate <span class="sort-arrow">\u2195</span></th>
-          <th data-col="6">Avg Score <span class="sort-arrow">\u2195</span></th>
+          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
+          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
+          <th data-col="2">Turns <span class="sort-arrow">↕</span></th>
+          <th data-col="3">Match Rate <span class="sort-arrow">↕</span></th>
+          <th data-col="4">Fixtures <span class="sort-arrow">↕</span></th>
+          <th data-col="5">Pass Rate <span class="sort-arrow">↕</span></th>
+          <th data-col="6">Avg Score <span class="sort-arrow">↕</span></th>
         </tr></thead>
         <tbody>
           <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>27/35</td><td>77.1%</td><td>2/5</td><td>40.0%</td><td>0.9143</td></tr>
@@ -262,13 +274,13 @@
       <p class="prose">Semantic similarity against reference responses across coding and agentic scenarios. Measures output quality beyond exact match.</p>
       <table class="data-table" data-sortable="true">
         <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">\u2195</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">\u2195</span></th>
-          <th data-col="2">Pass <span class="sort-arrow">\u2195</span></th>
-          <th data-col="3">Pass Rate <span class="sort-arrow">\u2195</span></th>
-          <th data-col="4">Scope Clean <span class="sort-arrow">\u2195</span></th>
-          <th data-col="5">Tool Error Free <span class="sort-arrow">\u2195</span></th>
-          <th data-col="6">Avg Score <span class="sort-arrow">\u2195</span></th>
+          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
+          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
+          <th data-col="2">Pass <span class="sort-arrow">↕</span></th>
+          <th data-col="3">Pass Rate <span class="sort-arrow">↕</span></th>
+          <th data-col="4">Scope Clean <span class="sort-arrow">↕</span></th>
+          <th data-col="5">Tool Error Free <span class="sort-arrow">↕</span></th>
+          <th data-col="6">Avg Score <span class="sort-arrow">↕</span></th>
         </tr></thead>
         <tbody>
           <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>8/8</td><td>100%</td><td>7/8</td><td>7/8</td><td>0.9437</td></tr>
@@ -280,12 +292,12 @@
       <div class="section-label">Coding Compare</div>
       <table class="data-table" data-sortable="true">
         <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">\u2195</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">\u2195</span></th>
-          <th data-col="2">Avg Score <span class="sort-arrow">\u2195</span></th>
-          <th data-col="3">Fixtures <span class="sort-arrow">\u2195</span></th>
-          <th data-col="4">Pass <span class="sort-arrow">\u2195</span></th>
-          <th data-col="5">Fail <span class="sort-arrow">\u2195</span></th>
+          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
+          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
+          <th data-col="2">Avg Score <span class="sort-arrow">↕</span></th>
+          <th data-col="3">Fixtures <span class="sort-arrow">↕</span></th>
+          <th data-col="4">Pass <span class="sort-arrow">↕</span></th>
+          <th data-col="5">Fail <span class="sort-arrow">↕</span></th>
         </tr></thead>
         <tbody>
           <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>0.50</td><td>4</td><td>2</td><td>2</td></tr>
@@ -297,12 +309,12 @@
       <div class="section-label">Agentic Barrage</div>
       <table class="data-table" data-sortable="true">
         <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">\u2195</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">\u2195</span></th>
-          <th data-col="2">Avg Score <span class="sort-arrow">\u2195</span></th>
-          <th data-col="3">Scenarios <span class="sort-arrow">\u2195</span></th>
-          <th data-col="4">Pass <span class="sort-arrow">\u2195</span></th>
-          <th data-col="5">Fail <span class="sort-arrow">\u2195</span></th>
+          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
+          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
+          <th data-col="2">Avg Score <span class="sort-arrow">↕</span></th>
+          <th data-col="3">Scenarios <span class="sort-arrow">↕</span></th>
+          <th data-col="4">Pass <span class="sort-arrow">↕</span></th>
+          <th data-col="5">Fail <span class="sort-arrow">↕</span></th>
         </tr></thead>
         <tbody>
           <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>1.00</td><td>scored</td><td>-</td><td>-</td></tr>
@@ -314,12 +326,12 @@
       <div class="section-label">Speed</div>
       <table class="data-table" data-sortable="true">
         <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">\u2195</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">\u2195</span></th>
-          <th data-col="2">Prompt tok/s <span class="sort-arrow">\u2195</span></th>
-          <th data-col="3">Predict tok/s <span class="sort-arrow">\u2195</span></th>
-          <th data-col="4">Peak VRAM <span class="sort-arrow">\u2195</span></th>
-          <th data-col="5">Peak RAM <span class="sort-arrow">\u2195</span></th>
+          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
+          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
+          <th data-col="2">Prompt tok/s <span class="sort-arrow">↕</span></th>
+          <th data-col="3">Predict tok/s <span class="sort-arrow">↕</span></th>
+          <th data-col="4">Peak VRAM <span class="sort-arrow">↕</span></th>
+          <th data-col="5">Peak RAM <span class="sort-arrow">↕</span></th>
         </tr></thead>
         <tbody>
           <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>2548</td><td>107.3</td><td>27.9 GiB</td><td>-</td></tr>
@@ -381,19 +393,50 @@
 
     <footer class="footer">
       <span>localllm &middot; local model evaluation</span>
-      <span><a href="https://jjjjj.dev">jjjjj.dev</a></span>
+      <span><a href="https://github.com/jorphex/localllm/tree/master/benchmarks/summaries">source data</a> &middot; <a href="https://jjjjj.dev">jjjjj.dev</a></span>
     </footer>
   </main>
 
   <script>
     // Tab switching
+    function switchTab(tabId, pushState = true) {
+      document.querySelectorAll('.topbar-nav button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      const btn = document.querySelector('.topbar-nav button[data-tab="' + tabId + '"]');
+      const panel = document.getElementById('tab-' + tabId);
+      if (btn) btn.classList.add('active');
+      if (panel) panel.classList.add('active');
+      if (pushState) {
+        const url = new URL(window.location.href);
+        url.hash = tabId;
+        history.replaceState(null, '', url.toString());
+      }
+    }
+
     document.querySelectorAll('.topbar-nav button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.topbar-nav button').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-      });
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    window.addEventListener('hashchange', () => {
+      const tabId = window.location.hash.replace('#', '') || 'overview';
+      switchTab(tabId, false);
+    });
+
+    // Initialize tab from URL hash
+    (function() {
+      const tabId = window.location.hash.replace('#', '') || 'overview';
+      switchTab(tabId, false);
+    })();
+
+    // Wrap data tables for horizontal scrolling on narrow viewports
+    document.querySelectorAll('.data-table').forEach(table => {
+      const wrap = document.createElement('div');
+      wrap.style.overflowX = 'auto';
+      wrap.style.webkitOverflowScrolling = 'touch';
+      wrap.style.marginBottom = '2.5rem';
+      table.parentNode.insertBefore(wrap, table);
+      wrap.appendChild(table);
+      table.style.marginBottom = '0';
     });
 
     // Model selector
@@ -417,7 +460,7 @@
           else { sortCol = col; sortAsc = true; }
           headers.forEach(h => h.classList.remove('sorted'));
           header.classList.add('sorted');
-          header.querySelector('.sort-arrow').textContent = sortAsc ? '\u2191' : '\u2193';
+          header.querySelector('.sort-arrow').textContent = sortAsc ? '↑' : '↓';
           const tbody = table.querySelector('tbody');
           const rows = Array.from(tbody.querySelectorAll('tr'));
           rows.sort((a, b) => {
@@ -443,9 +486,46 @@
 
     function norm(val, min, max) { return (val - min) / (max - min || 1); }
 
+    function createTooltip(container) {
+      const tooltip = document.createElement('div');
+      tooltip.className = 'chart-tooltip';
+      container.appendChild(tooltip);
+      return tooltip;
+    }
+
+    function showTooltip(tooltip, html, x, y, container) {
+      tooltip.innerHTML = html;
+      tooltip.classList.add('visible');
+      const rect = container.getBoundingClientRect();
+      const tipRect = tooltip.getBoundingClientRect();
+      let left = x - rect.left + 12;
+      let top = y - rect.top + 12;
+      if (left + tipRect.width > rect.width) left = x - rect.left - tipRect.width - 12;
+      if (top + tipRect.height > rect.height) top = y - rect.top - tipRect.height - 12;
+      if (left < 0) left = 0;
+      if (top < 0) top = 0;
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    }
+
+    function hideTooltip(tooltip) {
+      tooltip.classList.remove('visible');
+    }
+
+    function highlightModel(modelId) {
+      document.body.classList.add('chart-dim');
+      document.querySelectorAll('[data-model-id="' + modelId + '"]').forEach(el => el.classList.add('chart-highlight'));
+    }
+
+    function unhighlightModel() {
+      document.body.classList.remove('chart-dim');
+      document.querySelectorAll('.chart-highlight').forEach(el => el.classList.remove('chart-highlight'));
+    }
+
     // RADAR CHART
     (function() {
       const svg = document.getElementById('radar-chart');
+      const tooltip = createTooltip(svg.parentElement);
       const ns = 'http://www.w3.org/2000/svg';
       const cx = 300, cy = 240, r = 180;
       const axes = ['replay', 'sim', 'coding', 'agentic'];
@@ -501,9 +581,15 @@
         poly.setAttribute('stroke', model.color);
         poly.setAttribute('stroke-width', model.archived ? '0.5' : '1.5');
         poly.setAttribute('stroke-opacity', model.archived ? '0.3' : '0.8');
+        poly.setAttribute('data-model-id', model.id);
         poly.style.cursor = 'pointer';
-        poly.addEventListener('mouseenter', () => { poly.setAttribute('fill-opacity', '0.3'); poly.setAttribute('stroke-opacity', '1'); });
-        poly.addEventListener('mouseleave', () => { poly.setAttribute('fill-opacity', model.archived ? '0.08' : '0.15'); poly.setAttribute('stroke-opacity', model.archived ? '0.3' : '0.8'); });
+        poly.addEventListener('mouseenter', () => { highlightModel(model.id); poly.setAttribute('fill-opacity', '0.3'); poly.setAttribute('stroke-opacity', '1'); });
+        poly.addEventListener('mousemove', (e) => {
+          const html = '<strong style="color:' + model.color + '">' + model.label + '</strong><br>' +
+            axes.map((axis, i) => axisLabels[i] + ': ' + model[axis]).join('<br>');
+          showTooltip(tooltip, html, e.clientX, e.clientY, svg.parentElement);
+        });
+        poly.addEventListener('mouseleave', () => { unhighlightModel(); poly.setAttribute('fill-opacity', model.archived ? '0.08' : '0.15'); poly.setAttribute('stroke-opacity', model.archived ? '0.3' : '0.8'); hideTooltip(tooltip); });
         svg.appendChild(poly);
       });
 
@@ -528,6 +614,7 @@
     // BAR CHART
     (function() {
       const svg = document.getElementById('bar-chart');
+      const tooltip = createTooltip(svg.parentElement);
       const ns = 'http://www.w3.org/2000/svg';
       const sorted = [...models].sort((a, b) => b.replay - a.replay);
       const barH = 28, gap = 12, startX = 120, startY = 30;
@@ -555,9 +642,13 @@
         rect.setAttribute('width', w); rect.setAttribute('height', barH);
         rect.setAttribute('rx', '2'); rect.setAttribute('fill', model.color);
         rect.setAttribute('opacity', model.archived ? '0.4' : '0.85');
+        rect.setAttribute('data-model-id', model.id);
         rect.style.cursor = 'pointer';
-        rect.addEventListener('mouseenter', () => rect.setAttribute('opacity', model.archived ? '0.6' : '1'));
-        rect.addEventListener('mouseleave', () => rect.setAttribute('opacity', model.archived ? '0.4' : '0.85'));
+        rect.addEventListener('mouseenter', () => { highlightModel(model.id); rect.setAttribute('opacity', model.archived ? '0.6' : '1'); });
+        rect.addEventListener('mousemove', (e) => {
+          showTooltip(tooltip, '<strong style="color:' + model.color + '">' + model.label + '</strong><br>Replay: ' + model.replay + '%', e.clientX, e.clientY, svg.parentElement);
+        });
+        rect.addEventListener('mouseleave', () => { unhighlightModel(); rect.setAttribute('opacity', model.archived ? '0.4' : '0.85'); hideTooltip(tooltip); });
         svg.appendChild(rect);
         const label = document.createElementNS(ns, 'text');
         label.setAttribute('x', startX - 8); label.setAttribute('y', y + barH / 2);
@@ -577,6 +668,7 @@
     // SCATTER CHART
     (function() {
       const svg = document.getElementById('scatter-chart');
+      const tooltip = createTooltip(svg.parentElement);
       const ns = 'http://www.w3.org/2000/svg';
       const pad = { top: 30, right: 30, bottom: 50, left: 60 };
       const w = 600 - pad.left - pad.right, h = 400 - pad.top - pad.bottom;
@@ -632,9 +724,13 @@
         circle.setAttribute('r', model.archived ? '5' : '7');
         circle.setAttribute('fill', model.color);
         circle.setAttribute('opacity', model.archived ? '0.4' : '0.85');
+        circle.setAttribute('data-model-id', model.id);
         circle.style.cursor = 'pointer';
-        circle.addEventListener('mouseenter', () => { circle.setAttribute('r', '9'); circle.setAttribute('opacity', '1'); });
-        circle.addEventListener('mouseleave', () => { circle.setAttribute('r', model.archived ? '5' : '7'); circle.setAttribute('opacity', model.archived ? '0.4' : '0.85'); });
+        circle.addEventListener('mouseenter', () => { highlightModel(model.id); circle.setAttribute('r', '9'); circle.setAttribute('opacity', '1'); });
+        circle.addEventListener('mousemove', (e) => {
+          showTooltip(tooltip, '<strong style="color:' + model.color + '">' + model.label + '</strong><br>predict: ' + model.predictTok + ' tok/s<br>coding: ' + model.coding, e.clientX, e.clientY, svg.parentElement);
+        });
+        circle.addEventListener('mouseleave', () => { unhighlightModel(); circle.setAttribute('r', model.archived ? '5' : '7'); circle.setAttribute('opacity', model.archived ? '0.4' : '0.85'); hideTooltip(tooltip); });
         svg.appendChild(circle);
         const text = document.createElementNS(ns, 'text');
         text.setAttribute('x', x + 10); text.setAttribute('y', y + 4);
@@ -647,6 +743,7 @@
     // GROUPED BAR CHART
     (function() {
       const svg = document.getElementById('grouped-bar-chart');
+      const tooltip = createTooltip(svg.parentElement);
       const ns = 'http://www.w3.org/2000/svg';
       const groupW = 70, barW = 28, gap = 4;
       const startY = 30, startX = 80;
@@ -679,9 +776,14 @@
           rect.setAttribute('rx', '2');
           rect.setAttribute('fill', j === 0 ? model.color : (model.archived ? '#3a3528' : '#c47a2a'));
           rect.setAttribute('opacity', model.archived ? '0.35' : '0.75');
+          rect.setAttribute('data-model-id', model.id);
           rect.style.cursor = 'pointer';
-          rect.addEventListener('mouseenter', () => rect.setAttribute('opacity', '1'));
-          rect.addEventListener('mouseleave', () => rect.setAttribute('opacity', model.archived ? '0.35' : '0.75'));
+          const metricName = j === 0 ? 'sim compare' : 'transcript replay';
+          rect.addEventListener('mouseenter', () => { highlightModel(model.id); rect.setAttribute('opacity', '1'); });
+          rect.addEventListener('mousemove', (e) => {
+            showTooltip(tooltip, '<strong style="color:' + model.color + '">' + model.label + '</strong><br>' + metricName + ': ' + bar.val + '%', e.clientX, e.clientY, svg.parentElement);
+          });
+          rect.addEventListener('mouseleave', () => { unhighlightModel(); rect.setAttribute('opacity', model.archived ? '0.35' : '0.75'); hideTooltip(tooltip); });
           svg.appendChild(rect);
         });
         const text = document.createElementNS(ns, 'text');
@@ -711,6 +813,7 @@
     // LINE CHART
     (function() {
       const svg = document.getElementById('line-chart');
+      const tooltip = createTooltip(svg.parentElement);
       const ns = 'http://www.w3.org/2000/svg';
       const pad = { top: 30, right: 30, bottom: 50, left: 60 };
       const w = 600 - pad.left - pad.right, h = 400 - pad.top - pad.bottom;
@@ -780,9 +883,13 @@
         circle.setAttribute('r', model.archived ? '4' : '6');
         circle.setAttribute('fill', model.color);
         circle.setAttribute('opacity', model.archived ? '0.4' : '0.85');
+        circle.setAttribute('data-model-id', model.id);
         circle.style.cursor = 'pointer';
-        circle.addEventListener('mouseenter', () => { circle.setAttribute('r', '8'); circle.setAttribute('opacity', '1'); });
-        circle.addEventListener('mouseleave', () => { circle.setAttribute('r', model.archived ? '4' : '6'); circle.setAttribute('opacity', model.archived ? '0.4' : '0.85'); });
+        circle.addEventListener('mouseenter', () => { highlightModel(model.id); circle.setAttribute('r', '8'); circle.setAttribute('opacity', '1'); });
+        circle.addEventListener('mousemove', (e) => {
+          showTooltip(tooltip, '<strong style="color:' + model.color + '">' + model.label + '</strong><br>predict: ' + model.predictTok + ' tok/s<br>VRAM: ' + model.vram + ' GiB', e.clientX, e.clientY, svg.parentElement);
+        });
+        circle.addEventListener('mouseleave', () => { unhighlightModel(); circle.setAttribute('r', model.archived ? '4' : '6'); circle.setAttribute('opacity', model.archived ? '0.4' : '0.85'); hideTooltip(tooltip); });
         svg.appendChild(circle);
         const text = document.createElementNS(ns, 'text');
         text.setAttribute('x', x + 8); text.setAttribute('y', y - 6);
