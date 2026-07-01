@@ -160,6 +160,7 @@
     <nav class="topbar-nav">
       <button class="active" data-tab="overview">Overview</button>
       <button data-tab="leaderboard">Leaderboard</button>
+      <button data-tab="charts">Charts</button>
       <button data-tab="methodology">Methodology</button>
     </nav>
   </header>
@@ -167,7 +168,7 @@
     <div class="header">
       <h1>local<span>llm</span></h1>
       <p>Local model evaluation and benchmark results. Qwen3.6-27B and 35B abliterated MTP models running on llama.cpp with CPU TTS sidecar.</p>
-      <div class="updated">last updated 2026-06-30 &middot; 4 current comparison models &middot; 5 benchmark suites</div>
+      <div class="updated">last updated 2026-07-01 &middot; 2 models on disk &middot; 4 comparison candidates &middot; 5 benchmark suites</div>
     </div>
 
     <!-- Overview -->
@@ -195,7 +196,7 @@
           <div class="meta">Q4_K_M &middot; Vulkan &middot; 2048 ctx</div>
         </div>
       </div>
-      <div class="section-label">Models on Disk</div>
+      <div class="section-label">Current Comparison Models</div>
       <table class="data-table" data-sortable="true">
         <thead><tr>
           <th data-col="0">Model <span class="sort-arrow">\u2195</span></th>
@@ -227,7 +228,7 @@
           <th data-col="8">Status</th>
         </tr></thead>
         <tbody>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>Q5_K_M</td><td>35B</td><td>25/35</td><td>7/8</td><td>0.50</td><td>1.00</td><td><span class="badge archived">Archived</span></td></tr>
+          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>Q5_K_M</td><td>35B</td><td>25/35</td><td>7/8</td><td>0.50</td><td>1.00</td><td><span class="badge archived">Deleted</span></td></tr>
           <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>Q6_K</td><td>35B</td><td>24/35</td><td>7/8</td><td>0.25</td><td>0.85</td><td><span class="badge archived">Deleted</span></td></tr>
         </tbody>
       </table>
@@ -449,7 +450,7 @@
       const cx = 300, cy = 240, r = 180;
       const axes = ['replay', 'sim', 'coding', 'agentic'];
       const axisLabels = ['Replay %', 'Sim %', 'Coding', 'Agentic'];
-      const ranges = { replay: [94, 97], sim: [86, 95], coding: [0.78, 0.92], agentic: [0.77, 0.86] };
+      const ranges = { replay: [45, 80], sim: [80, 105], coding: [0.15, 0.55], agentic: [0.80, 1.05] };
       const angleStep = (Math.PI * 2) / axes.length;
 
       for (let ring = 1; ring <= 4; ring++) {
@@ -530,9 +531,9 @@
       const ns = 'http://www.w3.org/2000/svg';
       const sorted = [...models].sort((a, b) => b.replay - a.replay);
       const barH = 28, gap = 12, startX = 120, startY = 30;
-      const maxVal = 97, minVal = 93;
+      const maxVal = 80, minVal = 45;
 
-      [93, 94, 95, 96, 97].forEach(v => {
+      [45, 50, 55, 60, 65, 70, 75, 80].forEach(v => {
         const x = startX + ((v - minVal) / (maxVal - minVal)) * 500;
         const line = document.createElementNS(ns, 'line');
         line.setAttribute('x1', x); line.setAttribute('y1', startY);
@@ -579,9 +580,9 @@
       const ns = 'http://www.w3.org/2000/svg';
       const pad = { top: 30, right: 30, bottom: 50, left: 60 };
       const w = 600 - pad.left - pad.right, h = 400 - pad.top - pad.bottom;
-      const xMin = 30, xMax = 55, yMin = 0.75, yMax = 0.95;
+      const xMin = 0, xMax = 140, yMin = 0, yMax = 0.6;
 
-      for (let v = 30; v <= 55; v += 5) {
+      for (let v = 0; v <= 140; v += 20) {
         const x = pad.left + ((v - xMin) / (xMax - xMin)) * w;
         const line = document.createElementNS(ns, 'line');
         line.setAttribute('x1', x); line.setAttribute('y1', pad.top);
@@ -594,7 +595,7 @@
         text.setAttribute('font-size', '9'); text.textContent = v;
         svg.appendChild(text);
       }
-      for (let v = 0.75; v <= 0.95; v += 0.05) {
+      for (let v = 0; v <= 0.6; v += 0.1) {
         const y = pad.top + h - ((v - yMin) / (yMax - yMin)) * h;
         const line = document.createElementNS(ns, 'line');
         line.setAttribute('x1', pad.left); line.setAttribute('y1', y);
@@ -649,9 +650,9 @@
       const ns = 'http://www.w3.org/2000/svg';
       const groupW = 70, barW = 28, gap = 4;
       const startY = 30, startX = 80;
-      const maxVal = 100, minVal = 80;
+      const maxVal = 100, minVal = 0;
 
-      [80, 85, 90, 95, 100].forEach(v => {
+      [0, 20, 40, 60, 80, 100].forEach(v => {
         const y = startY + (1 - (v - minVal) / (maxVal - minVal)) * 260;
         const line = document.createElementNS(ns, 'line');
         line.setAttribute('x1', startX); line.setAttribute('y1', y);
@@ -714,9 +715,9 @@
       const pad = { top: 30, right: 30, bottom: 50, left: 60 };
       const w = 600 - pad.left - pad.right, h = 400 - pad.top - pad.bottom;
       const sorted = [...models].sort((a, b) => a.predictTok - b.predictTok);
-      const xMin = 30, xMax = 55, yMin = 15, yMax = 25;
+      const xMin = 0, xMax = 140, yMin = 25, yMax = 35;
 
-      for (let v = 30; v <= 55; v += 5) {
+      for (let v = 0; v <= 140; v += 20) {
         const x = pad.left + ((v - xMin) / (xMax - xMin)) * w;
         const line = document.createElementNS(ns, 'line');
         line.setAttribute('x1', x); line.setAttribute('y1', pad.top);
@@ -729,7 +730,7 @@
         text.setAttribute('font-size', '9'); text.textContent = v;
         svg.appendChild(text);
       }
-      for (let v = 15; v <= 25; v += 2) {
+      for (let v = 25; v <= 35; v += 2) {
         const y = pad.top + h - ((v - yMin) / (yMax - yMin)) * h;
         const line = document.createElementNS(ns, 'line');
         line.setAttribute('x1', pad.left); line.setAttribute('y1', y);
