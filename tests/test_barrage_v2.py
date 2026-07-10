@@ -198,13 +198,57 @@ class BarrageV2Tests(unittest.TestCase):
 
     def test_openwendy_event_evaluation_requires_terminal_text_and_tool(self):
         result = openwendy_driver.evaluate_task(
-            {"id": "calculate", "expect": {"text": "323", "tool": "calculate"}},
+            {
+                "id": "calculate",
+                "expect": {
+                    "text": "323",
+                    "tool": {
+                        "name": "calculate",
+                        "arguments": {"operation": "evaluate_expression"},
+                        "output": "Exact result: 323",
+                    },
+                },
+            },
             {"terminal_type": "run_completed", "answer_text": "The result is 323."},
-            [{"type": "user_message", "text": "Use calculate"}, {"type": "tool_end", "tool_name": "calculate", "state": "completed"}],
+            [
+                {"type": "user_message", "text": "Use calculate"},
+                {
+                    "type": "tool_end",
+                    "tool_name": "calculate",
+                    "state": "completed",
+                    "arguments": {"operation": "evaluate_expression", "expression": "17 * 19"},
+                    "output": "Exact result: 323",
+                },
+            ],
         )
         self.assertTrue(result["passed"])
-        self.assertEqual(result["completed_tool_names"], ["calculate"])
+        self.assertEqual(result["matching_tool_events"][0]["output"], "Exact result: 323")
         self.assertEqual(result["answer_text"], "The result is 323.")
+
+    def test_openwendy_event_evaluation_rejects_wrong_tool_arguments_or_output(self):
+        task = {
+            "id": "calculate",
+            "expect": {
+                "text": "323",
+                "tool": {
+                    "name": "calculate",
+                    "arguments": {"operation": "evaluate_expression"},
+                    "output": "Exact result: 323",
+                },
+            },
+        }
+        snapshot = {"terminal_type": "run_completed", "answer_text": "The result is 323."}
+        for event in (
+            {"arguments": {"operation": "round"}, "output": "Exact result: 323"},
+            {"arguments": {"operation": "evaluate_expression"}, "output": "323"},
+        ):
+            result = openwendy_driver.evaluate_task(
+                task,
+                snapshot,
+                [{"type": "tool_end", "tool_name": "calculate", "state": "completed", **event}],
+            )
+            self.assertFalse(result["passed"])
+            self.assertFalse(result["required_tool_found"])
 
     def test_openwendy_event_evaluation_rejects_prompt_and_tool_output_false_positives(self):
         result = openwendy_driver.evaluate_task(
@@ -232,6 +276,30 @@ class BarrageV2Tests(unittest.TestCase):
             untracked = openwendy_driver.source_digest(root)
         self.assertNotEqual(clean, dirty)
         self.assertNotEqual(dirty, untracked)
+
+    def test_openwendy_live_service_identity_rejects_a_stale_or_wrong_process(self):
+        root = Path("/expected")
+        with patch("benchmarks.barrage_v2.openwendy_driver.listener_pid", return_value=42), patch(
+            "benchmarks.barrage_v2.openwendy_driver.process_cwd", return_value=root
+        ), patch("benchmarks.barrage_v2.openwendy_driver.process_started_at", return_value=100.0), patch(
+            "benchmarks.barrage_v2.openwendy_driver.active_source_mtime", return_value=101.0
+        ):
+            with self.assertRaisesRegex(ValueError, "predates"):
+                openwendy_driver.live_service_identity("http://127.0.0.1:7347", root)
+        with patch("benchmarks.barrage_v2.openwendy_driver.listener_pid", return_value=42), patch(
+            "benchmarks.barrage_v2.openwendy_driver.process_cwd", return_value=Path("/other")
+        ):
+            with self.assertRaisesRegex(ValueError, "cwd mismatch"):
+                openwendy_driver.live_service_identity("http://127.0.0.1:7347", root)
+        with patch("benchmarks.barrage_v2.openwendy_driver.listener_pid", return_value=42), patch(
+            "benchmarks.barrage_v2.openwendy_driver.process_cwd", return_value=root
+        ), patch("benchmarks.barrage_v2.openwendy_driver.process_started_at", return_value=101.0), patch(
+            "benchmarks.barrage_v2.openwendy_driver.active_source_mtime", return_value=100.0
+        ):
+            self.assertEqual(
+                openwendy_driver.live_service_identity("http://127.0.0.1:7347", root),
+                {"pid": 42, "process_started_at": 101.0, "source_mtime": 100.0},
+            )
 
     def test_openwendy_rejects_a_candidate_profile_mismatch_before_network_use(self):
         request = {
@@ -320,14 +388,18 @@ class BarrageV2Tests(unittest.TestCase):
     def test_runner_writes_complete_normalized_artifacts(self):
         with tempfile.TemporaryDirectory() as tempdir:
             out_dir = Path(tempdir) / "run"
+            model_path = Path(tempdir) / "model.gguf"
+            model_path.write_bytes(b"x" * 1024)
             server_log = Path(tempdir) / "server.log"
-            server_log.write_text("offloaded 99/99 layers to GPU\n", encoding="utf-8")
+            server_log.write_text("load_tensors: layer   0 assigned to device Vulkan0, is_swa = 0\n", encoding="utf-8")
             argv = [
                 "runner.py",
                 "--base-url",
                 "http://fake",
                 "--model",
                 "fake",
+                "--model-path",
+                str(model_path),
                 "--out-dir",
                 str(out_dir),
                 "--profile-class",
@@ -345,7 +417,7 @@ class BarrageV2Tests(unittest.TestCase):
                 "--candidate-order",
                 '["fake"]',
                 "--launch-argv",
-                '["llama-server","--cache-prompt"]',
+                '["llama-server","-v","--gpu-layers","auto","--cache-prompt"]',
                 "--launch-cache-prompt",
                 "true",
                 "--launch-cache-ram",
@@ -365,7 +437,7 @@ class BarrageV2Tests(unittest.TestCase):
                 "--server-log-path",
                 str(server_log),
                 "--stabilization",
-                '{"gpu_mem":{"used_mib":0}}',
+                '{"gpu_mem":{"used_mib":0},"postload_gpu":{"used_mib":500}}',
             ]
             with patch.object(sys, "argv", argv), patch("benchmarks.barrage_v2.runner.httpx.Client", return_value=FakeClient()):
                 runner.main()
@@ -376,7 +448,7 @@ class BarrageV2Tests(unittest.TestCase):
             self.assertTrue(run["manifest"]["launch"]["cache_prompt"])
             self.assertEqual(run["manifest"]["execution_order"]["candidate_order"], ["fake"])
             self.assertEqual(run["manifest"]["server_runtime"]["slots"][0]["n_ctx"], 131072)
-            self.assertEqual(run["manifest"]["server_runtime"]["offload"]["offloaded_layers"], 99)
+            self.assertEqual(run["manifest"]["server_runtime"]["offload"]["evidence"], "verbose_layer_assignment")
             self.assertEqual(run["manifest"]["evaluation"], {"performance_repeats": 1, "quality_repeats": 3, "include_holdout": False})
             self.assertEqual(run["suites"]["sandbox"]["splits"]["core"]["total"], 9)
             self.assertEqual(
@@ -395,6 +467,7 @@ class BarrageV2Tests(unittest.TestCase):
             check=True,
         )
         payload = json.loads(result.stdout)
+        self.assertIn("-v", payload["extra_args"].split())
         self.assertTrue(payload["cache"]["prompt"])
         self.assertEqual(payload["cache"]["ram_mib"], 2048)
         self.assertEqual(payload["order_seed"], 7)
@@ -514,7 +587,7 @@ class BarrageV2Tests(unittest.TestCase):
                 "offloaded 42/43 layers to GPU\n",
             )
 
-    def test_fair_runtime_accepts_auto_layers_with_postload_vram_evidence(self):
+    def test_fair_runtime_accepts_verbose_gpu_layers_with_postload_vram_evidence(self):
         with tempfile.TemporaryDirectory() as tempdir:
             model_path = Path(tempdir) / "model.gguf"
             model_path.write_bytes(b"x" * 1024)
@@ -522,16 +595,36 @@ class BarrageV2Tests(unittest.TestCase):
                 {"fair_profile": {"context": 131072}, "execution": {"min_model_vram_residency_ratio": 1.0}},
                 {"default_generation_settings": {"n_ctx": 131072}},
                 [{"n_ctx": 131072}],
-                "",
+                "load_tensors: layer   0 assigned to device Vulkan0, is_swa = 0\n",
                 stabilization={"gpu_mem": {"used_mib": 100}, "postload_gpu": {"used_mib": 500}},
-                launch_argv=["llama-server", "--gpu-layers", "auto"],
+                launch_argv=["llama-server", "-v", "--gpu-layers", "auto"],
                 model_path=model_path,
             )
-        self.assertEqual(evidence["evidence"], "auto_layers_vram_residency")
+        self.assertEqual(evidence["evidence"], "verbose_layer_assignment")
         self.assertEqual(evidence["delta_mib"], 400)
-        self.assertTrue(evidence["full_model_residency_inferred"])
+        self.assertTrue(evidence["model_residency_supporting_evidence"])
 
-    def test_fair_runtime_rejects_a_sub_model_size_vram_delta(self):
+    def test_fair_runtime_rejects_missing_or_cpu_verbose_layer_assignments(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            model_path = Path(tempdir) / "model.gguf"
+            model_path.write_bytes(b"x" * 1024)
+            args = {
+                "cfg": {"fair_profile": {"context": 131072}, "execution": {"min_model_vram_residency_ratio": 1.0}},
+                "props": {"default_generation_settings": {"n_ctx": 131072}},
+                "slots": [{"n_ctx": 131072}],
+                "stabilization": {"gpu_mem": {"used_mib": 100}, "postload_gpu": {"used_mib": 500}},
+                "launch_argv": ["llama-server", "-v", "--gpu-layers", "auto"],
+                "model_path": model_path,
+            }
+            with self.assertRaisesRegex(ValueError, "verbose tensor-layer"):
+                runner.validate_fair_runtime(**args, startup_log="offloaded 99/99 layers to GPU\n")
+            with self.assertRaisesRegex(ValueError, "assigned model layers to CPU"):
+                runner.validate_fair_runtime(
+                    **args,
+                    startup_log="load_tensors: layer   0 assigned to device CPU, is_swa = 0\n",
+                )
+
+    def test_fair_runtime_records_a_sub_model_size_vram_delta_as_supporting_evidence(self):
         with tempfile.TemporaryDirectory() as tempdir:
             model_path = Path(tempdir) / "model.gguf"
             with model_path.open("wb") as model_file:
@@ -540,20 +633,20 @@ class BarrageV2Tests(unittest.TestCase):
                 "cfg": {"fair_profile": {"context": 131072}, "execution": {"min_model_vram_residency_ratio": 1.0}},
                 "props": {"default_generation_settings": {"n_ctx": 131072}},
                 "slots": [{"n_ctx": 131072}],
-                "startup_log": "",
-                "launch_argv": ["llama-server", "--gpu-layers", "auto"],
+                "startup_log": "load_tensors: layer   0 assigned to device Vulkan0, is_swa = 0\n",
+                "launch_argv": ["llama-server", "-v", "--gpu-layers", "auto"],
                 "model_path": model_path,
             }
-            with self.assertRaises(ValueError):
-                runner.validate_fair_runtime(
-                    **args,
-                    stabilization={"gpu_mem": {"used_mib": 100}, "postload_gpu": {"used_mib": 600}},
-                )
-            evidence = runner.validate_fair_runtime(
+            insufficient = runner.validate_fair_runtime(
+                **args,
+                stabilization={"gpu_mem": {"used_mib": 100}, "postload_gpu": {"used_mib": 600}},
+            )
+            sufficient = runner.validate_fair_runtime(
                 **args,
                 stabilization={"gpu_mem": {"used_mib": 100}, "postload_gpu": {"used_mib": 700}},
             )
-        self.assertTrue(evidence["full_model_residency_inferred"])
+        self.assertFalse(insufficient["model_residency_supporting_evidence"])
+        self.assertTrue(sufficient["model_residency_supporting_evidence"])
 
     def test_runner_writes_preflight_failure_artifact(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -601,13 +694,15 @@ class BarrageV2Tests(unittest.TestCase):
     def test_runner_retains_suite_failures(self):
         with tempfile.TemporaryDirectory() as tempdir:
             out_dir = Path(tempdir) / "run"
+            model_path = Path(tempdir) / "model.gguf"
+            model_path.write_bytes(b"x" * 1024)
             server_log = Path(tempdir) / "server.log"
-            server_log.write_text("offloaded 1/1 layers to GPU\n", encoding="utf-8")
+            server_log.write_text("load_tensors: layer   0 assigned to device Vulkan0, is_swa = 0\n", encoding="utf-8")
             argv = [
-                "runner.py", "--base-url", "http://fake", "--model", "fake", "--out-dir", str(out_dir), "--profile-class", "fair", "--profile-id", "fair-v1-128k-q8", "--suites", "performance,tool_contract,sandbox",
-                "--order-seed", "7", "--candidate-order-index", "0", "--candidate-count", "1", "--candidate-order", '["fake"]', "--launch-argv", '["llama-server"]',
+                "runner.py", "--base-url", "http://fake", "--model", "fake", "--model-path", str(model_path), "--out-dir", str(out_dir), "--profile-class", "fair", "--profile-id", "fair-v1-128k-q8", "--suites", "performance,tool_contract,sandbox",
+                "--order-seed", "7", "--candidate-order-index", "0", "--candidate-count", "1", "--candidate-order", '["fake"]', "--launch-argv", '["llama-server","-v","--gpu-layers","auto"]',
                 "--launch-cache-prompt", "true", "--launch-cache-ram", "2048", "--launch-cache-reuse", "0", "--launch-slot-similarity", "0.1", "--server-props", '{"default_generation_settings":{"n_ctx":131072}}',
-                "--server-slots", '[{"n_ctx":131072}]', "--server-log-path", str(server_log), "--stabilization", '{}', "--schedule", "test", "--cooldown-seconds", "0",
+                "--server-slots", '[{"n_ctx":131072}]', "--server-log-path", str(server_log), "--stabilization", '{"gpu_mem":{"used_mib":0},"postload_gpu":{"used_mib":500}}', "--schedule", "test", "--cooldown-seconds", "0",
             ]
             with patch.object(sys, "argv", argv), patch("benchmarks.barrage_v2.runner.httpx.Client", return_value=FailingClient()):
                 self.assertEqual(runner.main(), 1)

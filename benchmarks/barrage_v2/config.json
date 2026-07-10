@@ -3,7 +3,7 @@
   "fair_profile": {
     "id": "fair-v1-128k-q8",
     "context": 131072,
-    "extra_args": "-np 1 -tb 8 -b 1024 -ub 512 -fa on --threads-http 4 -ctk q8_0 -ctv q8_0 --metrics --no-warmup",
+    "extra_args": "-v -np 1 -tb 8 -b 1024 -ub 512 -fa on --threads-http 4 -ctk q8_0 -ctv q8_0 --metrics --no-warmup",
     "cache": {
       "prompt": true,
       "ram_mib": 2048,

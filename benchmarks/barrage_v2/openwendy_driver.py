@@ -4,10 +4,12 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -68,13 +70,87 @@ def working_tree_digest(root: Path) -> str:
     return digest.hexdigest()
 
 
-def completed_tool_names(events: list[dict[str, Any]]) -> list[str]:
-    return sorted(
-        str(event.get("tool_name") or "").lower()
+def completed_tool_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "tool_name": str(event.get("tool_name") or "").lower(),
+            "arguments": dict(event.get("arguments") or {}) if isinstance(event.get("arguments"), dict) else {},
+            "output": str(event.get("output") or ""),
+        }
         for event in events
         if str(event.get("type") or "").lower() == "tool_end"
         and str(event.get("state") or "").lower() == "completed"
-    )
+    ]
+
+
+def listener_pid(base_url: str) -> int:
+    port = urlparse(base_url).port
+    if port is None:
+        raise ValueError("OpenWendy base URL must include an explicit port")
+    try:
+        output = subprocess.run(["ss", "-ltnp", f"sport = :{port}"], check=True, capture_output=True, text=True).stdout
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise ValueError("could not inspect the OpenWendy listener process") from exc
+    matches = {int(value) for value in re.findall(r"pid=(\d+)", output)}
+    if len(matches) != 1:
+        raise ValueError(f"could not identify one OpenWendy listener on port {port}")
+    return matches.pop()
+
+
+def active_source_mtime(root: Path) -> float:
+    try:
+        tracked = subprocess.run(["git", "-C", str(root), "ls-files", "-z"], check=True, capture_output=True).stdout
+        untracked = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--others", "--exclude-standard", "-z"],
+            check=True,
+            capture_output=True,
+        ).stdout
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise ValueError("could not inspect the OpenWendy source tree") from exc
+    mtimes = [
+        path.stat().st_mtime
+        for raw_path in [*tracked.split(b"\0"), *untracked.split(b"\0")]
+        if raw_path
+        for path in [root / os.fsdecode(raw_path)]
+        if path.is_file()
+    ]
+    if not mtimes:
+        raise ValueError("could not find OpenWendy source files")
+    return max(mtimes)
+
+
+def process_cwd(pid: int) -> Path:
+    return Path(f"/proc/{pid}/cwd").resolve()
+
+
+def process_started_at(pid: int) -> float:
+    try:
+        stat_fields = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8").rsplit(") ", maxsplit=1)[1].split()
+        start_ticks = int(stat_fields[19])
+        boot_time = next(
+            int(line.split()[1])
+            for line in Path("/proc/stat").read_text(encoding="utf-8").splitlines()
+            if line.startswith("btime ")
+        )
+        return boot_time + start_ticks / os.sysconf("SC_CLK_TCK")
+    except (IndexError, OSError, StopIteration, ValueError) as exc:
+        raise ValueError(f"could not determine OpenWendy listener start time for PID {pid}") from exc
+
+
+def live_service_identity(base_url: str, root: Path) -> dict[str, Any]:
+    pid = listener_pid(base_url)
+    process_root = process_cwd(pid)
+    if process_root != root.resolve():
+        raise ValueError(f"OpenWendy listener cwd mismatch: expected {root}, got {process_root}")
+    started_at = process_started_at(pid)
+    source_mtime = active_source_mtime(root)
+    if source_mtime > started_at:
+        raise ValueError("OpenWendy listener predates the active source tree; restart it before benchmarking")
+    return {
+        "pid": pid,
+        "process_started_at": round(started_at, 3),
+        "source_mtime": round(source_mtime, 3),
+    }
 
 
 def evaluate_task(task: dict[str, Any], snapshot: dict[str, Any], events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -82,17 +158,33 @@ def evaluate_task(task: dict[str, Any], snapshot: dict[str, Any], events: list[d
     terminal_type = snapshot.get("terminal_type")
     answer_text = str(snapshot.get("answer_text") or "").lower()
     required_text = str(expect.get("text", "")).lower()
-    required_tool = str(expect.get("tool", "")).lower()
-    tool_names = completed_tool_names(events)
+    tool_expect = expect.get("tool", {})
+    tool_expect = {"name": tool_expect} if isinstance(tool_expect, str) else tool_expect
+    if not isinstance(tool_expect, dict):
+        raise ValueError("task tool expectation must be a string or object")
+    required_tool = str(tool_expect.get("name") or "").lower()
+    expected_arguments = tool_expect.get("arguments", {})
+    if not isinstance(expected_arguments, dict):
+        raise ValueError("task tool arguments expectation must be an object")
+    expected_output = tool_expect.get("output")
+    tool_events = completed_tool_events(events)
+    matching_events = [
+        event
+        for event in tool_events
+        if event["tool_name"] == required_tool
+        and all(event["arguments"].get(key) == value for key, value in expected_arguments.items())
+        and (expected_output is None or event["output"] == expected_output)
+    ]
     return {
         "task_id": task["id"],
-        "passed": terminal_type == "run_completed" and (not required_text or required_text in answer_text) and (not required_tool or required_tool in tool_names),
+        "passed": terminal_type == "run_completed" and (not required_text or required_text in answer_text) and (not required_tool or bool(matching_events)),
         "terminal_type": terminal_type,
         "event_count": len(events),
         "answer_text": str(snapshot.get("answer_text") or ""),
         "required_text_found": not required_text or required_text in answer_text,
-        "required_tool_found": not required_tool or required_tool in tool_names,
-        "completed_tool_names": tool_names,
+        "required_tool_found": not required_tool or bool(matching_events),
+        "completed_tool_events": tool_events,
+        "matching_tool_events": matching_events,
     }
 
 
@@ -147,6 +239,7 @@ def run_request(request: dict[str, Any], *, base_url: str, model_id: str, timeou
     candidate = request.get("candidate")
     if not isinstance(candidate, dict) or candidate.get("model") != model_id:
         raise ValueError("OpenWendy candidate alias must match the selected model profile")
+    service_identity = live_service_identity(base_url, root)
     with httpx.Client(timeout=timeout) as client:
         client.get(f"{base_url}/api/health/details").raise_for_status()
         results = [run_openwendy_task(client, base_url, task, model_id, timeout) for task in request["tasks"]]
@@ -154,7 +247,7 @@ def run_request(request: dict[str, Any], *, base_url: str, model_id: str, timeou
         "schema_version": SCHEMA_VERSION,
         "profile": request["profile"],
         "harness": request["harness"],
-        "driver_metadata": {"adapter": "openwendy-core-api", "model_id": model_id},
+        "driver_metadata": {"adapter": "openwendy-core-api", "model_id": model_id, "service_identity": service_identity},
         "results": results,
     }
 

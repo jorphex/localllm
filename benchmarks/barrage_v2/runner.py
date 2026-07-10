@@ -353,26 +353,42 @@ def validate_fair_runtime(
         offloaded, total = map(int, matches[-1])
         if offloaded != total:
             raise ValueError(f"fair runtime has partial GPU offload: {offloaded}/{total}")
-        return {"evidence": "startup_log", "offloaded_layers": offloaded, "total_layers": total}
+    layer_assignments = re.findall(r"load_tensors:\s+layer\s+\d+\s+assigned to device\s+([^,\n]+)", startup_log)
+    offload_evidence: dict[str, Any] | None = None
+    if layer_assignments:
+        cpu_assignments = [device.strip() for device in layer_assignments if device.strip().lower().startswith("cpu")]
+        if cpu_assignments:
+            raise ValueError(f"fair runtime assigned model layers to CPU: {cpu_assignments}")
+        offload_evidence = {
+            "evidence": "verbose_layer_assignment",
+            "layer_assignment_count": len(layer_assignments),
+            "assigned_devices": sorted(set(device.strip() for device in layer_assignments)),
+        }
     argv = launch_argv or []
     if "--gpu-layers" not in argv or "auto" not in argv:
         raise ValueError("fair runtime lacks --gpu-layers auto evidence")
+    if "-v" not in argv and "--verbose" not in argv:
+        raise ValueError("fair runtime lacks verbose tensor-placement logging")
+    if offload_evidence is None:
+        raise ValueError("fair runtime did not retain verbose tensor-layer placement evidence")
     baseline = (stabilization or {}).get("gpu_mem", {}).get("used_mib")
     postload = (stabilization or {}).get("postload_gpu", {}).get("used_mib")
-    if not isinstance(baseline, int) or not isinstance(postload, int) or model_path is None:
+    if not isinstance(baseline, int) or not isinstance(postload, int):
         raise ValueError("fair runtime did not retain post-load GPU residency evidence")
-    model_mib = model_path.stat().st_size / (1024 * 1024)
-    required_delta = max(256, int(model_mib * float(cfg["execution"]["min_model_vram_residency_ratio"])))
     delta = postload - baseline
-    if delta < required_delta:
-        raise ValueError(f"fair runtime GPU residency is too small: delta={delta} MiB, required={required_delta} MiB")
+    model_mib = model_path.stat().st_size / (1024 * 1024) if model_path is not None else None
+    expected_delta = (
+        max(256, int(model_mib * float(cfg["execution"]["min_model_vram_residency_ratio"])))
+        if model_mib is not None
+        else None
+    )
     return {
-        "evidence": "auto_layers_vram_residency",
+        **offload_evidence,
         "baseline_mib": baseline,
         "postload_mib": postload,
         "delta_mib": delta,
-        "required_delta_mib": required_delta,
-        "full_model_residency_inferred": delta >= int(model_mib),
+        "expected_model_delta_mib": expected_delta,
+        "model_residency_supporting_evidence": expected_delta is not None and delta >= expected_delta,
     }
 
 

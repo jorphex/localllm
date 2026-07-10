@@ -1,0 +1,61 @@
+{
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "environment": {
+        "gpu": {
+          "backend": "rocm",
+          "driver": "============================ ROCm System Management Interface ============================\n============================== Version of System Component ===============================\nDriver version: 6.16.13\n==========================================================================================\n================================== End of ROCm SMI Log ==================================="
+        },
+        "model": {
+          "path": "/home/j/projects/localllm/models/qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf",
+          "sha256": "773f1bf0be0589d056ce05476a8a135b50494a3f2ecc3f8f0c4f2c3594bba02e",
+          "size_bytes": 22884406400
+        },
+        "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+        "runtime_backend": "unknown",
+        "server_version": null
+      },
+      "evaluation": {
+        "include_holdout": false,
+        "performance_repeats": 5,
+        "quality_repeats": 1
+      },
+      "failures": [],
+      "model": "local",
+      "production": {
+        "driver_metadata": {
+          "adapter": "openwendy-core-api",
+          "model_id": "local",
+          "service_identity": {
+            "pid": 3892640,
+            "process_started_at": 1783045347.0,
+            "source_mtime": 1783045262.388
+          }
+        },
+        "harness": {
+          "digest": "2d8bf60cd4c54e20a6eeb31518e5e57ab12cec4f4d8880d9fb5e113e0aa267ee",
+          "id": "openwendy-core-api"
+        },
+        "passed": 0,
+        "splits": {
+          "core": {
+            "errors": 0,
+            "passed": 0,
+            "total": 1
+          }
+        },
+        "status": "ok",
+        "total": 1
+      },
+      "profile": {
+        "class": "production",
+        "id": "openwendy-core-local"
+      },
+      "status": "completed"
+    }
+  ],
+  "digest": "1fb262fd268d8fd42513a3467c1a1138adb4deaca2aff32a2c75b7e1c2439083",
+  "label": "openwendy-evidence-live-20260710T",
+  "schema_version": "barrage-v2.0"
+}
