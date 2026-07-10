@@ -119,23 +119,23 @@ There is no retained localllm shared-chat service or public Tailscale Funnel rou
 
 ## Benchmarks
 
-Run a standardized model-evaluation pass:
+Run a standardized fair evaluation pass:
 
 ```bash
-MODEL_EVAL_CANDIDATE_SPECS="qwen|qwen-3.6/Qwen3.6-27B-abliterated-MTP-Q6_K-Huihui.gguf||131072||9711" \
-  bash benchmarks/run_model_eval.sh
+BARRAGE_V2_CANDIDATES="qwen|qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf|qwen-3.6/Qwen3.6-27B-MTP-mmproj-F16-unsloth.gguf" \
+  bash benchmarks/run_barrage_v2.sh
 ```
 
-This stops the full service stack, runs the configured suites one candidate at a time, and publishes `summary.json` + `run_manifest.json` under `benchmarks/summaries/`.
+This stops the full service stack, runs one scratch candidate at a time, and writes a versioned manifest, normalized run summary, and per-trial artifacts under `benchmarks/barrage-v2-results/`. It completes the candidate list and restores the stack even when one candidate is invalid, then exits nonzero so automation cannot treat incomplete results as clean.
 
-See `benchmarks/README.md` for scoring details, configuration, and suite descriptions.
+See `benchmarks/README.md` for the fair-vs-production profile boundary, scoring details, and the external production-driver protocol. The prior `run_model_eval.sh` results are archived observations, not standardized rankings.
 
 Current durable benchmark read:
 
 - `qwen-3.6-27b-mtp-huihui-q6-fast-128k` is the daily default because it is the best retained Qwen replay/general-agent fit and can coexist with the reranker in VRAM.
 - `qwen-3.6-35b-a3b-huihui-mtp-q6-full-256k-q8` is retained as the stronger coding-sim 35B Huihui option, but it does not leave room for the reranker in VRAM at the tested full-context q8-KV shape.
 - Ornith Q5/Q6 are archived comparison points; Q5 benchmarked well but was removed after hands-on prose/editing use, and Q6 lost on speed/VRAM/behavior.
-- `benchmarks/BENCHMARK_RESULTS.md` is the canonical human readout; `benchmarks/summaries/` holds the committed machine-readable suite summaries.
+- `benchmarks/BENCHMARK_RESULTS.md` and `benchmarks/summaries/` are archived V1 readouts; V2 run manifests and normalized artifacts are the source of truth for future comparisons.
 
 ## Prompt Cache Notes
 

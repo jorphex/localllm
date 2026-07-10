@@ -1,0 +1,6 @@
+{
+  "suite": "agentic_barrage",
+  "label": "ornith-q5-agentic-barrage-20260626T035105Z-ornith-q5-agentic_barrage",
+  "source": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T035105Z-ornith-q5-agentic-barrage-20260626T035105Z/ornith-q5/agentic_barrage",
+  "destination": "/home/j/projects/localllm/benchmarks/summaries/agentic_barrage/ornith-q5-agentic-barrage-20260626T035105Z-ornith-q5-agentic_barrage"
+}

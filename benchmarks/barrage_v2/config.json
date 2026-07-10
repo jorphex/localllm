@@ -1,0 +1,24 @@
+{
+  "schema_version": "barrage-v2.0",
+  "fair_profile": {
+    "id": "fair-v1-128k-q8",
+    "context": 131072,
+    "extra_args": "-np 1 -tb 8 -b 1024 -ub 512 -fa on --threads-http 4 -ctk q8_0 -ctv q8_0 --metrics --no-warmup",
+    "cache": {
+      "prompt": true,
+      "ram_mib": 2048,
+      "reuse": 0,
+      "slot_prompt_similarity": 0.1
+    }
+  },
+  "execution": {
+    "repeats": 5,
+    "quality_repeats": 3,
+    "request_timeout_seconds": 600,
+    "sandbox_max_turns": 12,
+    "tg_max_tokens": 128,
+    "cooldown_seconds": 30,
+    "max_baseline_vram_mib": 1024,
+    "min_model_vram_residency_ratio": 0.6
+  }
+}

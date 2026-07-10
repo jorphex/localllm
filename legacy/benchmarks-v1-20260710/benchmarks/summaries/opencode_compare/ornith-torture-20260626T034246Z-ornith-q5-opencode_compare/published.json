@@ -1,0 +1,6 @@
+{
+  "suite": "opencode_compare",
+  "label": "ornith-torture-20260626T034246Z-ornith-q5-opencode_compare",
+  "source": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T034246Z-ornith-torture-20260626T034246Z/ornith-q5/opencode_compare",
+  "destination": "/home/j/projects/localllm/benchmarks/summaries/opencode_compare/ornith-torture-20260626T034246Z-ornith-q5-opencode_compare"
+}

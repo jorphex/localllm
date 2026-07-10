@@ -1,0 +1,6 @@
+{
+  "suite": "agentic_barrage",
+  "label": "huihui-qwen-torture-20260626T090539Z-qwen27-huihui-agentic_barrage",
+  "source": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T090539Z-huihui-qwen-torture-20260626T090539Z/qwen27-huihui/agentic_barrage",
+  "destination": "/home/j/projects/localllm/benchmarks/summaries/agentic_barrage/huihui-qwen-torture-20260626T090539Z-qwen27-huihui-agentic_barrage"
+}

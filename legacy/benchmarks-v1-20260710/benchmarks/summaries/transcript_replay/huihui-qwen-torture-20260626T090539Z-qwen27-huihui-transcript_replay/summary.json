@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "family": "general_agentic",
+  "suite": "transcript_replay",
+  "results_dir": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T090539Z-huihui-qwen-torture-20260626T090539Z/qwen27-huihui/transcript_replay",
+  "candidates": [
+    {
+      "candidate": "qwen27-huihui",
+      "fixtures": [
+        {
+          "fixture": "retry_triage_real",
+          "all_expectations_met": true,
+          "matched_turns": 2,
+          "turn_count": 2,
+          "total_elapsed_seconds": 16.043919742005528,
+          "partial_score_sum": 2.0,
+          "partial_score_avg": 1.0
+        },
+        {
+          "fixture": "retry_fix_real",
+          "all_expectations_met": false,
+          "matched_turns": 4,
+          "turn_count": 5,
+          "total_elapsed_seconds": 26.414871842993307,
+          "partial_score_sum": 4.6667,
+          "partial_score_avg": 0.9333
+        },
+        {
+          "fixture": "queue_fix_real",
+          "all_expectations_met": true,
+          "matched_turns": 7,
+          "turn_count": 7,
+          "total_elapsed_seconds": 36.36703102001047,
+          "partial_score_sum": 7.0,
+          "partial_score_avg": 1.0
+        },
+        {
+          "fixture": "retry_tool_followthrough",
+          "all_expectations_met": false,
+          "matched_turns": 1,
+          "turn_count": 2,
+          "total_elapsed_seconds": 5.992933254005038,
+          "partial_score_sum": 1.6667,
+          "partial_score_avg": 0.8334
+        },
+        {
+          "fixture": "soak_real",
+          "all_expectations_met": false,
+          "matched_turns": 13,
+          "turn_count": 19,
+          "total_elapsed_seconds": 139.540203105018,
+          "partial_score_sum": 16.6668,
+          "partial_score_avg": 0.8772
+        }
+      ],
+      "passed_fixtures": 2,
+      "fixture_count": 5,
+      "matched_turns": 27,
+      "turn_count": 35,
+      "partial_score_avg": 0.9143
+    }
+  ]
+}

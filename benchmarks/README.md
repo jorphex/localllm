@@ -1,118 +1,115 @@
-# Benchmarks
+# Benchmark Barrage V2
 
-All model evaluation code lives in this folder.
+V2 is the default evaluation system. It measures four separate things and never combines them into one model score:
 
-## Quick start
+- `performance`: repeated cold short/long PP, fixed-workload TG, streamed agent-shaped TTFT/TG, warm append-only cache reuse, and a transparent two-request reference agent loop.
+- `tool_contract`: executable tool restraint and tool-followthrough checks, including exact JSON arguments.
+- `sandbox`: independent disposable coding tasks with public tests and separate acceptance checks. Completion is primary; tool errors, turns, and file scope are diagnostics.
+- `production`: an external-driver protocol for the real OpenWendy or multillm harness. This is deliberately a separate profile class.
 
-Run every scored suite against one or more candidates:
+## Fair runs
 
-```bash
-MODEL_EVAL_CANDIDATE_SPECS="qwen|qwen-3.6/Qwen3.6-27B-abliterated-MTP-Q6_K-Huihui.gguf||131072||9711" \
-  bash benchmarks/run_model_eval.sh
-```
-
-By default this stops the full localllm service stack before the first candidate and restarts it when the run finishes, so each candidate gets a clean GPU.
+Fair runs use the fixed `fair-v1-128k-q8` profile in `benchmarks/barrage_v2/config.json`. Candidate specs contain only an alias, model path, optional mmproj path, and optional port; per-model tuning is rejected.
 
 ```bash
-# keep the stack running (not recommended if VRAM is tight)
-MODEL_EVAL_STOP_STACK=false bash benchmarks/run_model_eval.sh
+BARRAGE_V2_CANDIDATES='qwen27|qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf|qwen-3.6/Qwen3.6-27B-MTP-mmproj-F16-unsloth.gguf' \
+  bash benchmarks/run_barrage_v2.sh
 ```
 
-## Families and decision weight
+The launcher stops the managed stack, waits for the configured cooldown, verifies that baseline VRAM is at or below `max_baseline_vram_mib`, then runs one scratch server at a time and restores the stack. Set `BARRAGE_V2_STOP_STACK=false` only when GPU residency is already known to be safe; the same baseline gate still applies.
 
-The repo splits behavior into two families and keeps their scores separate:
+Every candidate writes:
 
-- `general_agentic`
-  - primary: `transcript_replay`
-  - secondary: `agentic_barrage`
-- `coding_agentic`
-  - primary: `sim_compare`
-  - secondary: `opencode_compare`
-  - tertiary: `coding_compare`
-
-Primary suites decide rankings. Secondary/tertiary suites explain variance.
-
-## Shared configuration
-
-Server defaults, sampling parameters, and scenario lists are centralized in:
-
-- `benchmarks/config.json`
-- `benchmarks/config.py` (Python loader/builder)
-- `benchmarks/config.sh` (bash loader)
-
-Individual harnesses read from these files instead of duplicating `DEFAULT_EXTRA_ARGS`.
-
-## Scoring
-
-### `transcript_replay`
-
-Replays real exported session fixtures and checks each turn.
-
-Primary metrics:
-
-- `all_expectations_met` / `passed_fixtures` — exact finish_reason and exact tool-name list match.
-- `matched_turns` / `turn_count` — turn-level exact match.
-
-Partial-credit diagnostics (new):
-
-- `finish_reason_match`
-- `tool_set_jaccard` — order-independent tool-name overlap.
-- `tool_count_match`
-- `partial_score_avg` — average of the three above.
-
-### `sim_compare`
-
-Drops the model into a disposable repo with failing tests and lets it inspect, patch, and verify.
-
-Primary metrics:
-
-- `scorecard.pass` — target tests pass.
-- `scorecard.scope_clean` — only expected files were modified.
-- `scorecard.tool_error_free` — no tool execution errors.
-- `scorecard.efficiency` — turns used vs scenario max.
-- `scorecard.composite` / `agent_score_avg` — weighted composite:
-  - `0.40 * pass + 0.25 * scope_clean + 0.20 * tool_error_free + 0.15 * efficiency`
-
-Diagnostics (new):
-
-- `scope_score` — Jaccard overlap of changed files vs expected files.
-- `scope_details` — extra files, missing files, overlap count.
-
-### Diagnostic suites (now scored but still secondary)
-
-- `agentic_barrage_score.py` — scenario-specific rubrics for planning, revision, evidence triage, tool restraint, and tool followthrough.
-- `opencode_compare/score_compare.py` — rubrics for repo triage, revise-after-feedback, and tool followthrough.
-- `coding_compare_score.py` — executes generated code against hidden tests for `simple_edit`, `retry_bug`, `task_runner`, and `merge_intervals`.
-
-## Result publishing and reporting
-
-After each run, `benchmarks/publish_summary.py` copies `summary.json` and `run_manifest.json` into:
-
-```
-benchmarks/summaries/<suite>/<run-label>/
+```text
+benchmarks/barrage-v2-results/<timestamp>/<alias>/
+  manifest.json
+  run.json
+  trials/*.json
 ```
 
-`benchmarks/generate_results_md.py` reads those committed summaries and regenerates the auto-generated section of `benchmarks/BENCHMARK_RESULTS.md`. The historical content of that file is preserved before a marker, and the generated rollup lists all committed suite summaries newest-first by the embedded run timestamp.
+The manifest includes the exact profile class/id, resolved process argv, post-load `/props` and `/slots` state, GPU-residency evidence, cache settings, candidate/workload ordering seed, cooldown and baseline-GPU state, config and workload digests, server version, actual GPU probe, and model SHA-256. Fair runs fail when their actual slot context differs from the fixed profile, when a backend reports partial layer offload, or when `--gpu-layers auto` does not produce sufficient post-load model residency in VRAM. Every trial retains its full request and response payload, including any completed turns before a tool or sandbox request fails. A preflight failure writes `trials/preflight-failure.json` plus an `invalid` run summary containing the raw runtime evidence.
 
-## Environment metadata
+The runner exits `0` only for a complete candidate, `1` for a completed candidate with workload errors, and `2` for a preflight-invalid candidate. The launcher continues through every candidate, restores the managed stack, then exits nonzero when any candidate was incomplete or invalid.
 
-Every `run_manifest.json` now records:
+## Core and holdout evaluation
 
-- `llama-server --version`
-- `llama.cpp` git commit (derived from the binary path when possible)
-- GPU backend/driver
-- Model artifact fingerprint (size + mtime)
-- Benchmark config digest
+Performance trials use the configured repeat count. Tool contracts and coding-agent sandbox tasks use `quality_repeats` (currently three) with a trial-specific seed. Every capability task is labeled `core` or `holdout`; core is the default tuning/comparison set, while holdout is a separately reported release-validation set with independent acceptance checks. This is a governance split, not a secret benchmark: the task definitions remain visible and no core/holdout score is blended into one model rank.
 
-## Entrypoints
+Run the holdout set explicitly:
 
-- `benchmarks/run_model_eval.sh` — run all suites across candidates.
-- `benchmarks/transcript_replay/run_compare.sh` — replay fixtures for one candidate.
-- `benchmarks/sim_compare/run_compare.sh` — coding-agent scenarios for one candidate.
-- `benchmarks/opencode_compare/run_compare.sh` — OpenCode-shaped prompts for one candidate.
-- `benchmarks/coding_compare.sh` — single-turn coding smoke test.
-- `benchmarks/agentic_barrage.sh` / `benchmarks/agentic_barrage_compare.sh` — synthetic agent diagnostics.
+```bash
+BARRAGE_V2_INCLUDE_HOLDOUT=true \
+  bash benchmarks/run_barrage_v2.sh
+```
 
-## External CLI policy
+Use `BARRAGE_V2_REPEATS` and `BARRAGE_V2_QUALITY_REPEATS` only for smoke or diagnostic runs; their actual values are retained in the manifest. The reference agent loop is a V2-owned two-request tool cycle for timing a visible protocol. It is not a substitute for OpenWendy or another production harness.
 
-OpenCode or PI CLI are useful for capturing real transcripts and for spot-checks, but they are not the canonical scoring driver. Capture real transcripts, convert them to replay fixtures, and score models inside the local harness where the environment and schema are controlled.
+## Publishing V2 results
+
+Raw `barrage-v2-results/` artifacts remain local and ignored. Publish a compact, commit-ready summary after inspecting a run:
+
+```bash
+python3 -m benchmarks.barrage_v2.publish \
+  benchmarks/barrage-v2-results/<timestamp> <label>
+python3 benchmarks/generate_results_md.py
+```
+
+This writes `benchmarks/summaries/barrage_v2/<label>/summary.json` and updates the committed benchmark rollup without copying raw prompts, responses, or sandbox transcripts.
+
+## Production profiles
+
+Production runs may use a named model-specific service profile, but they are not comparable with fair results or other production profiles by default.
+
+```bash
+BARRAGE_V2_PROFILE_CLASS=production \
+BARRAGE_V2_PROFILE_ID=openwendy-r1-qwen27 \
+BARRAGE_V2_CONTEXT=131072 \
+BARRAGE_V2_EXTRA_ARGS='-np 1 -b 2048 -ub 1024 -fa on -ctk q8_0 -ctv q8_0 --metrics' \
+BARRAGE_V2_CACHE_PROMPT=true BARRAGE_V2_CACHE_RAM=2048 BARRAGE_V2_CACHE_REUSE=0 BARRAGE_V2_SLOT_PROMPT_SIMILARITY=0.1 \
+BARRAGE_V2_COOLDOWN_SECONDS=30 BARRAGE_V2_MAX_BASELINE_VRAM_MIB=1024 \
+BARRAGE_V2_SUITES=production \
+BARRAGE_V2_PRODUCTION_DRIVER='/path/to/openwendy-barrage-driver' \
+BARRAGE_V2_PRODUCTION_HARNESS='{"id":"openwendy","digest":"immutable-revision-or-config-digest"}' \
+BARRAGE_V2_PRODUCTION_TASKS='[{"id":"representative-task-1"}]' \
+BARRAGE_V2_CANDIDATES='qwen27|qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf|qwen-3.6/Qwen3.6-27B-MTP-mmproj-F16-unsloth.gguf' \
+  bash benchmarks/run_barrage_v2.sh
+```
+
+For an actual external harness, provide a command that reads one JSON request on stdin and writes one JSON result on stdout. Both must include the same `schema_version`, exact `profile` object, and a `harness` object with an `id` and immutable revision/config `digest`. The guard rejects fair requests and profile or harness mismatches:
+
+```bash
+python3 -m benchmarks.barrage_v2.production_driver \
+  --driver '/path/to/openwendy-barrage-driver' \
+  --request production-request.json \
+  --out production-result.json
+```
+
+This lets the production harness be measured as a versioned dependency rather than hidden inside a supposedly model-only score. The driver must return exactly one result for every supplied task id; missing, duplicate, or unrecognized task results are rejected.
+
+`production` is an isolated suite: it does not stop, restart, probe, or replace the managed stack. It invokes only the external driver and records that fact in the manifest. Provide `BARRAGE_V2_PRODUCTION_DRIVER`, `BARRAGE_V2_PRODUCTION_HARNESS` (JSON with `id` and `digest`), and `BARRAGE_V2_PRODUCTION_TASKS` (JSON task list). The returned external result is stored under `run.json.suites.production`.
+
+OpenWendy has a concrete adapter using its local core API. It creates disposable conversations, pins the supplied OpenWendy model profile, records terminal/tool evidence, and deletes each conversation after the task. Generate the immutable harness identity from the active OpenWendy source/configuration before running:
+
+```bash
+HARNESS="$(python3 -m benchmarks.barrage_v2.openwendy_driver --metadata)"
+BARRAGE_V2_PROFILE_CLASS=production \
+BARRAGE_V2_PROFILE_ID=openwendy-core-local \
+BARRAGE_V2_CONTEXT=131072 \
+BARRAGE_V2_EXTRA_ARGS='managed-by-openwendy' \
+BARRAGE_V2_CACHE_PROMPT=true BARRAGE_V2_CACHE_RAM=0 BARRAGE_V2_CACHE_REUSE=0 BARRAGE_V2_SLOT_PROMPT_SIMILARITY=0.1 \
+BARRAGE_V2_COOLDOWN_SECONDS=30 BARRAGE_V2_MAX_BASELINE_VRAM_MIB=1024 \
+BARRAGE_V2_SUITES=production \
+BARRAGE_V2_PRODUCTION_DRIVER='python3 -m benchmarks.barrage_v2.openwendy_driver --model-id local' \
+BARRAGE_V2_PRODUCTION_HARNESS="$HARNESS" \
+BARRAGE_V2_PRODUCTION_TASKS="$(cat benchmarks/barrage_v2/openwendy_tasks.json)" \
+BARRAGE_V2_CANDIDATES='local|qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf' \
+  bash benchmarks/run_barrage_v2.sh
+```
+
+The production candidate alias must name the already configured OpenWendy model profile; the adapter does not launch or reconfigure `llama-server`. Production measurements are therefore never fair-profile comparisons.
+
+## Legacy V1
+
+The prior suite is preserved at `legacy/benchmarks-v1-20260710/`. Its historical summaries remain useful observations, but they are not standardized rankings: profile settings varied between candidates; low-level sweeps were not part of the all-model flow; and keyword-based diagnostics are not capability scores.
+
+Keep `transcript_replay` as an OpenCode compatibility regression and `sim_compare` as a legacy production-fit reference until their workloads are migrated into V2. Do not use `agentic_barrage`, `opencode_compare`, or `coding_compare` for model selection.

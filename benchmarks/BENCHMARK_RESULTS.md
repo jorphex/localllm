@@ -531,6 +531,30 @@ Run: `ornith-q5-agentic-barrage-20260626T035105Z-ornith-q5-agentic_barrage`
 
 Average score: **1.0**
 
+## barrage_v2
+
+Run: `qwen27-unsloth-smoke-20260710T-vram`
+
+| Candidate | Status | Tool core | Sandbox core |
+| --- | --- | --- | --- |
+| qwen27-unsloth-q6 | completed | 2/2 | 3/3 |
+
+## barrage_v2
+
+Run: `qwen27-unsloth-smoke-20260710T-final`
+
+| Candidate | Status | Tool core | Sandbox core |
+| --- | --- | --- | --- |
+| qwen27-unsloth-q6 | completed | 2/2 | 3/3 |
+
+## barrage_v2
+
+Run: `openwendy-production-smoke-20260710T`
+
+| Candidate | Status | Harness | Results |
+| --- | --- | --- | --- |
+| local | completed | openwendy-core-api | 1 |
+
 ## coding_compare
 
 Run: `huihui-qwen-torture-20260626T090539Z-qwen35-huihui-coding_compare`

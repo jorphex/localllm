@@ -1,0 +1,150 @@
+{
+  "name": "retry_triage_real",
+  "defaults": {
+    "temperature": 0.2,
+    "top_p": 0.95,
+    "top_k": 20,
+    "repeat_penalty": 1.05,
+    "chat_template_kwargs": {
+      "enable_thinking": true
+    },
+    "stream": false
+  },
+  "turns": [
+    {
+      "name": "turn1",
+      "messages": [
+        {
+          "role": "user",
+          "content": "\"Open worker/retry.py, identify the bug briefly, and stop.\""
+        }
+      ],
+      "expect": {
+        "finish_reason": "tool_calls",
+        "tool_names": [
+          "read"
+        ]
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "read",
+            "description": "Read a file from the workspace.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "filePath": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "filePath"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "glob",
+            "description": "Find files in the workspace matching a glob pattern.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "pattern": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "pattern"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "edit",
+            "description": "Edit a file in the workspace.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "filePath": {
+                  "type": "string"
+                },
+                "oldString": {
+                  "type": "string"
+                },
+                "newString": {
+                  "type": "string"
+                },
+                "replaceAll": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "filePath"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "bash",
+            "description": "Run a shell command in the workspace.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "command"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "turn2",
+      "messages": [
+        {
+          "role": "user",
+          "content": "\"Open worker/retry.py, identify the bug briefly, and stop.\""
+        },
+        {
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "id": "g5nnXouevY3E0E2C4DDWphVFxezmbPw1",
+              "type": "function",
+              "function": {
+                "name": "read",
+                "arguments": "{\"filePath\":\"/tmp/tmp.6BYyX7hm3S/repo/worker/retry.py\"}"
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "g5nnXouevY3E0E2C4DDWphVFxezmbPw1",
+          "content": "<path>/tmp/tmp.6BYyX7hm3S/repo/worker/retry.py</path>\n<type>file</type>\n<content>1: import time\n2: \n3: \n4: def fetch_with_retry(fetch, retries=3, delay=0.01, sleep=time.sleep):\n5:     last_error = None\n6:     for attempt in range(retries):\n7:         try:\n8:             return fetch()\n9:         except Exception as exc:  # noqa: BLE001\n10:             last_error = exc\n11:             if attempt == retries:\n12:                 raise\n13:             sleep(delay)\n14:             delay *= 2\n15:     return None\n\n(End of file - total 15 lines)\n</content>"
+        },
+        {
+          "role": "user",
+          "content": "Continue the same task. Take the next concrete action only. Use tools if needed and keep scope narrow."
+        }
+      ],
+      "expect": {
+        "finish_reason": "stop"
+      }
+    }
+  ],
+  "source_session_id": "ses_2fc10ceecffeBXXrOCObfyamcq",
+  "source_title": "corpus-probe"
+}

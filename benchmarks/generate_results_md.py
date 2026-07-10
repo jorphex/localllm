@@ -98,6 +98,31 @@ def render_opencode_compare(summary: dict) -> str:
     return "\n".join(lines)
 
 
+def render_barrage_v2(summary: dict) -> str:
+    candidates = summary.get("candidates", [])
+    if candidates and all(candidate.get("profile", {}).get("class") == "production" for candidate in candidates):
+        lines = ["| Candidate | Status | Harness | Results |", "| --- | --- | --- | --- |"]
+        for candidate in candidates:
+            production = candidate.get("production", {})
+            harness = production.get("harness", {}) or {}
+            lines.append(
+                f"| {candidate.get('model')} | {candidate.get('status')} | "
+                f"{harness.get('id', 'unknown')} | {production.get('result_count', 0)} |"
+            )
+        return "\n".join(lines)
+
+    lines = ["| Candidate | Status | Tool core | Sandbox core |", "| --- | --- | --- | --- |"]
+    for candidate in candidates:
+        tool = candidate.get("tool_contract", {}).get("splits", {}).get("core", {})
+        sandbox = candidate.get("sandbox", {}).get("splits", {}).get("core", {})
+        lines.append(
+            f"| {candidate.get('model')} | {candidate.get('status')} | "
+            f"{tool.get('passed', 0)}/{tool.get('total', 0)} | "
+            f"{sandbox.get('passed', 0)}/{sandbox.get('total', 0)} |"
+        )
+    return "\n".join(lines)
+
+
 def render_suite(suite: str, run_dir: Path, summary: dict) -> str:
     renderer = {
         "transcript_replay": render_transcript_replay,
@@ -105,6 +130,7 @@ def render_suite(suite: str, run_dir: Path, summary: dict) -> str:
         "agentic_barrage": render_scalar_score,
         "opencode_compare": render_opencode_compare,
         "coding_compare": render_coding_compare,
+        "barrage_v2": render_barrage_v2,
     }.get(suite, render_scalar_score)
 
     return (

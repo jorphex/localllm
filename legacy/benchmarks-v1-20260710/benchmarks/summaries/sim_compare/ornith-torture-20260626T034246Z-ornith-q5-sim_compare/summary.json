@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "family": "coding_agentic",
+  "suite": "sim_compare",
+  "results_dir": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T034246Z-ornith-torture-20260626T034246Z/ornith-q5/sim_compare",
+  "candidates": [
+    {
+      "candidate": "ornith-q5",
+      "scenarios": [
+        {
+          "scenario": "retry_bugfix",
+          "scenario_family": "coding_core",
+          "pass": true,
+          "scope_clean": true,
+          "scope_score": 1.0,
+          "tool_error_free": true,
+          "efficiency": 1.0,
+          "agent_score": 1.0,
+          "turns": 4,
+          "total_elapsed_seconds": 13.22352785700059
+        },
+        {
+          "scenario": "retry_review_feedback",
+          "scenario_family": "coding_recovery",
+          "pass": true,
+          "scope_clean": true,
+          "scope_score": 1.0,
+          "tool_error_free": true,
+          "efficiency": 1.0,
+          "agent_score": 1.0,
+          "turns": 6,
+          "total_elapsed_seconds": 19.39419491298031
+        },
+        {
+          "scenario": "queue_bugfix",
+          "scenario_family": "coding_core",
+          "pass": true,
+          "scope_clean": true,
+          "scope_score": 1.0,
+          "tool_error_free": true,
+          "efficiency": 1.0,
+          "agent_score": 1.0,
+          "turns": 4,
+          "total_elapsed_seconds": 6.88046093902085
+        },
+        {
+          "scenario": "tool_error_recovery",
+          "scenario_family": "coding_core",
+          "pass": true,
+          "scope_clean": true,
+          "scope_score": 1.0,
+          "tool_error_free": true,
+          "efficiency": 1.0,
+          "agent_score": 1.0,
+          "turns": 5,
+          "total_elapsed_seconds": 16.980456633027643
+        },
+        {
+          "scenario": "command_denial_recovery",
+          "scenario_family": "coding_core",
+          "pass": true,
+          "scope_clean": true,
+          "scope_score": 1.0,
+          "tool_error_free": true,
+          "efficiency": 1.0,
+          "agent_score": 1.0,
+          "turns": 9,
+          "total_elapsed_seconds": 28.12663329298084
+        },
+        {
+          "scenario": "batch_tail_recovery",
+          "scenario_family": "coding_recovery",
+          "pass": true,
+          "scope_clean": true,
+          "scope_score": 1.0,
+          "tool_error_free": true,
+          "efficiency": 1.0,
+          "agent_score": 1.0,
+          "turns": 5,
+          "total_elapsed_seconds": 9.578064877016004
+        },
+        {
+          "scenario": "flush_report_two_file_fix",
+          "scenario_family": "coding_scope",
+          "pass": true,
+          "scope_clean": true,
+          "scope_score": 1.0,
+          "tool_error_free": true,
+          "efficiency": 1.0,
+          "agent_score": 1.0,
+          "turns": 6,
+          "total_elapsed_seconds": 18.067788252985338
+        },
+        {
+          "scenario": "session_store_exploration",
+          "scenario_family": "coding_scope",
+          "pass": false,
+          "scope_clean": false,
+          "scope_score": 0.0,
+          "tool_error_free": true,
+          "efficiency": 0.0,
+          "agent_score": 0.2,
+          "turns": 8,
+          "total_elapsed_seconds": 30.09782361202815
+        }
+      ],
+      "scenario_count": 8,
+      "pass_count": 7,
+      "scope_clean_count": 7,
+      "tool_error_free_count": 8,
+      "scope_score_avg": 0.875,
+      "agent_score_avg": 0.9
+    }
+  ]
+}

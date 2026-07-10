@@ -19,5 +19,8 @@ py-modules = ["llama_runtime"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.ruff]
+extend-exclude = ["legacy"]
+
 [tool.ruff.lint.per-file-ignores]
 "benchmarks/sim_compare/fixture_repo/worker/retry.py" = ["F841"]

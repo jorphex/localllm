@@ -1,0 +1,44 @@
+{
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "environment": {
+        "gpu": {
+          "backend": "rocm",
+          "driver": "============================ ROCm System Management Interface ============================\n============================== Version of System Component ===============================\nDriver version: 6.16.13\n==========================================================================================\n================================== End of ROCm SMI Log ==================================="
+        },
+        "model": {
+          "path": "/home/j/projects/localllm/models/qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf",
+          "sha256": "773f1bf0be0589d056ce05476a8a135b50494a3f2ecc3f8f0c4f2c3594bba02e",
+          "size_bytes": 22884406400
+        },
+        "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+        "runtime_backend": "unknown",
+        "server_version": null
+      },
+      "evaluation": {
+        "include_holdout": false,
+        "performance_repeats": 5,
+        "quality_repeats": 3
+      },
+      "failures": [],
+      "model": "local",
+      "production": {
+        "harness": {
+          "digest": "e10d35648f633d8bb190173eb67d06e97c7447238c87a8b6dfffee26fe81d1b1",
+          "id": "openwendy-core-api"
+        },
+        "result_count": 1,
+        "status": "ok"
+      },
+      "profile": {
+        "class": "production",
+        "id": "openwendy-core-local"
+      },
+      "status": "completed"
+    }
+  ],
+  "digest": "12b2eb029566de8fc07e8fb8896c8440b399aef612672af5b1141b3f89ad9d1c",
+  "label": "openwendy-production-smoke-20260710T",
+  "schema_version": "barrage-v2.0"
+}

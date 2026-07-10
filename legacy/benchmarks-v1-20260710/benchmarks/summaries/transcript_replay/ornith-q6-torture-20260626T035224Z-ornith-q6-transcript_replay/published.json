@@ -1,0 +1,6 @@
+{
+  "suite": "transcript_replay",
+  "label": "ornith-q6-torture-20260626T035224Z-ornith-q6-transcript_replay",
+  "source": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T035224Z-ornith-q6-torture-20260626T035224Z/ornith-q6/transcript_replay",
+  "destination": "/home/j/projects/localllm/benchmarks/summaries/transcript_replay/ornith-q6-torture-20260626T035224Z-ornith-q6-transcript_replay"
+}

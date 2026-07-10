@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "suite": "coding_compare",
+  "family": "coding_agentic",
+  "out_dir": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T090539Z-huihui-qwen-torture-20260626T090539Z/qwen27-huihui/coding_compare",
+  "candidates": {
+    "qwen27-huihui": {
+      "task_runner": {
+        "uncapped": {
+          "score": 0.0,
+          "syntax_ok": false,
+          "has_required_symbol": true,
+          "returncode": null,
+          "stdout": "",
+          "stderr": "timeout"
+        }
+      },
+      "retry_bug": {
+        "uncapped": {
+          "score": 0.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 1,
+          "stdout": "",
+          "stderr": "File \"/tmp/tmpfnjlr3sb.py\", line 1\n    The primary bug is an **off-by-one error** in the retry logic combined with unreachable code. The loop iterates from `0` to `retries - 1`, so the condition `attempt == retries` is never true. Consequently, the exception is never raised after the final failure, and the function returns `None`.\n        ^^^^^^^\nSyntaxError: invalid syntax"
+        }
+      },
+      "simple_edit": {
+        "uncapped": {
+          "score": 1.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 0,
+          "stdout": "OK",
+          "stderr": ""
+        }
+      },
+      "merge_intervals": {
+        "uncapped": {
+          "score": 1.0,
+          "syntax_ok": true,
+          "has_required_symbol": true,
+          "returncode": 0,
+          "stdout": "OK",
+          "stderr": ""
+        }
+      }
+    }
+  },
+  "candidate_count": 1,
+  "average_score": 0.5
+}

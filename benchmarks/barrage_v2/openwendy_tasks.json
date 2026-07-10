@@ -1,0 +1,13 @@
+[
+  {
+    "id": "calculate_core",
+    "text": "Use the calculate tool to compute 17 * 19, then answer with the result.",
+    "expect": {"text": "323", "tool": "calculate"}
+  },
+  {
+    "id": "calculate_holdout",
+    "text": "Use the calculate tool to compute (84 / 7) + 5, then answer with the result.",
+    "expect": {"text": "17", "tool": "calculate"},
+    "split": "holdout"
+  }
+]

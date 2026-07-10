@@ -1,0 +1,6 @@
+{
+  "suite": "transcript_replay",
+  "label": "huihui-qwen-torture-20260626T090539Z-qwen27-huihui-transcript_replay",
+  "source": "/home/j/projects/localllm/benchmarks/model_eval/results/20260626T090539Z-huihui-qwen-torture-20260626T090539Z/qwen27-huihui/transcript_replay",
+  "destination": "/home/j/projects/localllm/benchmarks/summaries/transcript_replay/huihui-qwen-torture-20260626T090539Z-qwen27-huihui-transcript_replay"
+}
