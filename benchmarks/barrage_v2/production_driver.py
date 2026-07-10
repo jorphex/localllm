@@ -53,6 +53,8 @@ def run_driver(command: str, request: dict[str, Any], timeout: int) -> dict[str,
         raise ValueError("production request must contain identified tasks")
     if len(result_ids) != len(results) or sorted(result_ids) != sorted(requested_ids):
         raise ValueError("driver results must cover every requested task exactly once")
+    if any(not isinstance(result.get("passed"), bool) for result in results):
+        raise ValueError("driver results must include a boolean passed field")
     return payload
 
 

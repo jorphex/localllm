@@ -113,6 +113,15 @@ class FailAfterPostsClient(FakeClient):
         return super().post(*args, **kwargs)
 
 
+class EmptyRestraintClient(FakeClient):
+    def post(self, _url: str, *, json: dict, timeout: float):
+        del timeout
+        messages = json["messages"]
+        if json.get("tools") and messages[-1]["role"] == "user" and "Do not use a tool" in messages[-1]["content"]:
+            return FakeResponse(self._timed(""))
+        return super().post(_url, json=json, timeout=1)
+
+
 json_module = json
 
 
@@ -154,8 +163,18 @@ class BarrageV2Tests(unittest.TestCase):
         self.assertTrue(all(("request" in row and "response" in row) or "initial_request" in row for row in performance))
         self.assertTrue(all(row["predicted_per_second"] is None for row in performance if row["workload"].startswith("cold_pp_") or row["workload"] == "warm_append"))
         reference_loop = next(row for row in performance if row["workload"] == "reference_agent_loop")
+        self.assertEqual(reference_loop["initial_request"]["tool_choice"], "required")
         self.assertEqual(reference_loop["followup_request"]["tool_choice"], "none")
         self.assertEqual(reference_loop["agent_request_count"], 2)
+        warm_append = next(row for row in performance if row["workload"] == "warm_append")
+        self.assertIn("prime_request", warm_append)
+        self.assertIn("prime_response", warm_append)
+
+    def test_tool_restraint_requires_a_nonempty_answer(self):
+        result = runner.run_tool_contracts(EmptyRestraintClient(), "http://fake", "fake", 1, [TOOL_CONTRACTS[0]])[0]
+        self.assertTrue(result["tool_ok"])
+        self.assertFalse(result["content_present"])
+        self.assertFalse(result["passed"])
 
     def test_sandbox_task_executes_tools_and_acceptance(self):
         result = run_task(FakeClient(), "http://fake", "fake", TASKS[0], 6, 1, trial=2)
@@ -172,13 +191,59 @@ class BarrageV2Tests(unittest.TestCase):
         self.assertTrue(all(contract["split"] == "core" for contract in selected_items(TOOL_CONTRACTS, False)))
         self.assertTrue(any(contract["split"] == "holdout" for contract in selected_items(TOOL_CONTRACTS, True)))
 
+    def test_production_task_selection_honors_the_holdout_switch(self):
+        tasks = [{"id": "core"}, {"id": "holdout", "split": "holdout"}]
+        self.assertEqual([task["id"] for task in runner.selected_production_tasks(tasks, False)], ["core"])
+        self.assertEqual([task["id"] for task in runner.selected_production_tasks(tasks, True)], ["core", "holdout"])
+
     def test_openwendy_event_evaluation_requires_terminal_text_and_tool(self):
         result = openwendy_driver.evaluate_task(
             {"id": "calculate", "expect": {"text": "323", "tool": "calculate"}},
-            {"terminal_type": "run_completed"},
-            [{"type": "tool_end", "tool_name": "calculate"}, {"type": "answer_delta", "text": "323"}],
+            {"terminal_type": "run_completed", "answer_text": "The result is 323."},
+            [{"type": "user_message", "text": "Use calculate"}, {"type": "tool_end", "tool_name": "calculate", "state": "completed"}],
         )
         self.assertTrue(result["passed"])
+        self.assertEqual(result["completed_tool_names"], ["calculate"])
+        self.assertEqual(result["answer_text"], "The result is 323.")
+
+    def test_openwendy_event_evaluation_rejects_prompt_and_tool_output_false_positives(self):
+        result = openwendy_driver.evaluate_task(
+            {"id": "calculate", "expect": {"text": "323", "tool": "calculate"}},
+            {"terminal_type": "run_completed", "answer_text": ""},
+            [
+                {"type": "user_message", "text": "Use the calculate tool to compute 17 * 19."},
+                {"type": "tool_end", "tool_name": "calculate", "state": "completed", "output": "323"},
+            ],
+        )
+        self.assertFalse(result["passed"])
+        self.assertFalse(result["required_text_found"])
+
+    def test_openwendy_source_digest_changes_for_dirty_and_untracked_source(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            (root / "module.py").write_text("VALUE = 1\n", encoding="utf-8")
+            subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+            subprocess.run(["git", "add", "module.py"], cwd=root, check=True, capture_output=True)
+            subprocess.run(["git", "-c", "user.name=Tests", "-c", "user.email=tests@example.com", "commit", "-m", "initial"], cwd=root, check=True, capture_output=True)
+            clean = openwendy_driver.source_digest(root)
+            (root / "module.py").write_text("VALUE = 2\n", encoding="utf-8")
+            dirty = openwendy_driver.source_digest(root)
+            (root / "new_module.py").write_text("VALUE = 3\n", encoding="utf-8")
+            untracked = openwendy_driver.source_digest(root)
+        self.assertNotEqual(clean, dirty)
+        self.assertNotEqual(dirty, untracked)
+
+    def test_openwendy_rejects_a_candidate_profile_mismatch_before_network_use(self):
+        request = {
+            "schema_version": SCHEMA_VERSION,
+            "profile": {"class": "production", "id": "openwendy"},
+            "harness": {"id": "openwendy-core-api", "digest": "digest"},
+            "candidate": {"model": "other"},
+            "tasks": [{"id": "task"}],
+        }
+        with patch("benchmarks.barrage_v2.openwendy_driver.harness_metadata", return_value=request["harness"]):
+            with self.assertRaises(ValueError):
+                openwendy_driver.run_request(request, base_url="http://fake", model_id="local", timeout=1, root=Path("/tmp"))
 
     def test_publish_creates_compact_summary_without_raw_trials(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -199,6 +264,25 @@ class BarrageV2Tests(unittest.TestCase):
         self.assertEqual(summary["candidates"][0]["tool_contract"]["passed"], 6)
         self.assertNotIn("trials", summary["candidates"][0])
 
+    def test_publish_retains_production_pass_fail_counts(self):
+        summary = publish.candidate_summary(
+            {
+                "manifest": {"model": "candidate"},
+                "suites": {
+                    "production": {
+                        "status": "ok",
+                        "harness": {"id": "harness"},
+                        "results": [{"task_id": "one", "passed": False}],
+                        "passed": 0,
+                        "total": 1,
+                        "splits": {"core": {"passed": 0, "total": 1, "errors": 0}},
+                    }
+                },
+            }
+        )
+        self.assertEqual(summary["production"]["passed"], 0)
+        self.assertEqual(summary["production"]["total"], 1)
+
     def test_production_summary_uses_harness_result_columns(self):
         rendered = generate_results_md.render_barrage_v2(
             {
@@ -207,13 +291,13 @@ class BarrageV2Tests(unittest.TestCase):
                         "model": "local",
                         "status": "completed",
                         "profile": {"class": "production"},
-                        "production": {"harness": {"id": "openwendy-core-api"}, "result_count": 2},
+                        "production": {"harness": {"id": "openwendy-core-api"}, "passed": 1, "total": 2},
                     }
                 ]
             }
         )
-        self.assertIn("| Candidate | Status | Harness | Results |", rendered)
-        self.assertIn("| local | completed | openwendy-core-api | 2 |", rendered)
+        self.assertIn("| Candidate | Status | Harness | Pass |", rendered)
+        self.assertIn("| local | completed | openwendy-core-api | 1/2 |", rendered)
 
     def test_partial_tool_and_sandbox_failures_retain_prior_evidence(self):
         tool = runner.run_tool_contracts(FailAfterPostsClient(1), "http://fake", "fake", 1, [TOOL_CONTRACTS[1]])[0]
@@ -435,7 +519,7 @@ class BarrageV2Tests(unittest.TestCase):
             model_path = Path(tempdir) / "model.gguf"
             model_path.write_bytes(b"x" * 1024)
             evidence = runner.validate_fair_runtime(
-                {"fair_profile": {"context": 131072}, "execution": {"min_model_vram_residency_ratio": 0.6}},
+                {"fair_profile": {"context": 131072}, "execution": {"min_model_vram_residency_ratio": 1.0}},
                 {"default_generation_settings": {"n_ctx": 131072}},
                 [{"n_ctx": 131072}],
                 "",
@@ -445,6 +529,31 @@ class BarrageV2Tests(unittest.TestCase):
             )
         self.assertEqual(evidence["evidence"], "auto_layers_vram_residency")
         self.assertEqual(evidence["delta_mib"], 400)
+        self.assertTrue(evidence["full_model_residency_inferred"])
+
+    def test_fair_runtime_rejects_a_sub_model_size_vram_delta(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            model_path = Path(tempdir) / "model.gguf"
+            with model_path.open("wb") as model_file:
+                model_file.truncate(512 * 1024 * 1024)
+            args = {
+                "cfg": {"fair_profile": {"context": 131072}, "execution": {"min_model_vram_residency_ratio": 1.0}},
+                "props": {"default_generation_settings": {"n_ctx": 131072}},
+                "slots": [{"n_ctx": 131072}],
+                "startup_log": "",
+                "launch_argv": ["llama-server", "--gpu-layers", "auto"],
+                "model_path": model_path,
+            }
+            with self.assertRaises(ValueError):
+                runner.validate_fair_runtime(
+                    **args,
+                    stabilization={"gpu_mem": {"used_mib": 100}, "postload_gpu": {"used_mib": 600}},
+                )
+            evidence = runner.validate_fair_runtime(
+                **args,
+                stabilization={"gpu_mem": {"used_mib": 100}, "postload_gpu": {"used_mib": 700}},
+            )
+        self.assertTrue(evidence["full_model_residency_inferred"])
 
     def test_runner_writes_preflight_failure_artifact(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -475,16 +584,19 @@ class BarrageV2Tests(unittest.TestCase):
                 "--order-seed", "7", "--candidate-order-index", "0", "--candidate-count", "1", "--candidate-order", '["fake"]',
                 "--launch-argv", '["llama-server"]', "--launch-cache-prompt", "true", "--launch-cache-ram", "2048",
                 "--launch-cache-reuse", "0", "--launch-slot-similarity", "0.1", "--server-props", '{}', "--server-slots", '[]', "--server-log-path", "/dev/null", "--stabilization", '{"mode":"external-driver"}',
-                "--schedule", "sequential-shuffled-cooldown", "--cooldown-seconds", "30", "--production-driver", "driver",
-                "--production-harness", '{"id":"openwendy","digest":"abc"}', "--production-tasks", '[{"id":"task-1"}]',
+                "--schedule", "sequential-shuffled-cooldown", "--cooldown-seconds", "30", "--quality-repeats", "2", "--production-driver", "driver",
+                "--production-harness", '{"id":"openwendy","digest":"abc"}', "--production-tasks", '[{"id":"task-1"},{"id":"holdout","split":"holdout"}]',
             ]
             payload = {"schema_version": SCHEMA_VERSION, "profile": {"class": "production", "id": "openwendy-r1"}, "harness": {"id": "openwendy", "digest": "abc"}, "results": [{"task_id": "task-1", "passed": True}]}
             with patch.object(sys, "argv", argv), patch("benchmarks.barrage_v2.runner.httpx.Client", return_value=FakeClient()), patch("benchmarks.barrage_v2.runner.run_driver", return_value=payload):
                 runner.main()
             run = json.loads((out_dir / "run.json").read_text(encoding="utf-8"))
             self.assertEqual(run["suites"]["production"]["harness"]["id"], "openwendy")
-            self.assertTrue((out_dir / "trials" / "production-task-1.json").exists())
+            self.assertTrue((out_dir / "trials" / "production-task-1-1.json").exists())
+            self.assertTrue((out_dir / "trials" / "production-task-1-2.json").exists())
             self.assertEqual(run["manifest"]["production_contract"]["task_ids"], ["task-1"])
+            self.assertEqual(run["suites"]["production"]["passed"], 2)
+            self.assertEqual(run["suites"]["production"]["splits"]["core"]["total"], 2)
 
     def test_runner_retains_suite_failures(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -535,11 +647,27 @@ class BarrageV2Tests(unittest.TestCase):
                 5,
             )
 
+    def test_production_driver_rejects_results_without_a_boolean_passed_field(self):
+        output = json.dumps(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "profile": {"class": "production", "id": "p"},
+                "harness": {"id": "h", "digest": "d"},
+                "results": [{"task_id": "task-1"}],
+            }
+        )
+        with self.assertRaises(ValueError):
+            production_driver.run_driver(
+                f"printf '%s' '{output}'",
+                {"profile": {"class": "production", "id": "p"}, "harness": {"id": "h", "digest": "d"}, "tasks": [{"id": "task-1"}]},
+                5,
+            )
+
     def test_production_driver_accepts_matching_output(self):
         with tempfile.TemporaryDirectory() as tempdir:
             script = Path(tempdir) / "driver.py"
             script.write_text(
-                "import json, sys\nrequest=json.load(sys.stdin)\nprint(json.dumps({'schema_version':'barrage-v2.0','profile':request['profile'],'harness':request['harness'],'results':[{'task_id':'task-1'}]}))\n",
+                "import json, sys\nrequest=json.load(sys.stdin)\nprint(json.dumps({'schema_version':'barrage-v2.0','profile':request['profile'],'harness':request['harness'],'results':[{'task_id':'task-1','passed':True}]}))\n",
                 encoding="utf-8",
             )
             result = production_driver.run_driver(

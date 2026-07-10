@@ -1,25 +1,23 @@
-# Benchmark Barrage V2 Completion Plan
+# Benchmark Barrage V2 Review Remediation
 
-Goal: finish the original standardized-barrage scope without conflating model capability with harness behavior.
+Goal: remove the grading, provenance, and reporting weaknesses found in the post-implementation review without touching `site/` or unrelated live-stack work.
 
 Criteria:
-- Fair results use one locked runtime profile and retain all raw evidence, environment state, failure state, and repeated-trial distributions.
-- Fair capability evaluation has explicit core and holdout splits, repeat counts for every scored suite, and no aggregate cross-family rank.
-- Low-level direct PP/TG, warm-cache, streamed interaction, and a transparent reference agent-loop lane remain separate metrics.
-- Production-harness results run through a versioned driver/task contract and are explicitly incomparable with fair results.
-- Raw V2 outputs remain local/ignored; a deterministic publisher produces commit-ready normalized summaries without touching `site/`.
-- The implementation, V1 backup, test suite, docs, and a real scratch-server smoke run are persisted in Git without including unrelated working-tree changes.
+- OpenWendy grading proves a completed named tool event and final assistant answer, not prompt/tool-output text.
+- OpenWendy harness identity changes for committed, modified, staged, or untracked active source and records the selected model profile without exposing command secrets.
+- Production applies core/holdout selection and quality repeats, retains pass/fail/split counts, and publishes those outcomes visibly.
+- Fair fallback evidence requires a full model-sized GPU residency delta and describes the remaining inference limitation accurately.
+- Warm-cache trials retain both prime and append evidence; restraint requires a non-empty answer.
+- Regression coverage exercises each previous false-positive path, real fair and production smokes complete, all checks pass, and only benchmark-owned changes are committed.
 
 Out of scope:
-- Changing `site/` or its frontend/data implementation.
-- Ranking fair and production profiles together.
-- Treating repository-visible holdouts as secret benchmarks; they are governance splits with independent acceptance checks.
+- Modifying OpenWendy itself, its configuration, or `site/`.
+- Combining fair and production rankings.
 
-- [x] Preserve this baseline plan and inventory the current V2/V1 ownership boundary.
-- [x] Add versioned core/holdout task metadata and repeat controls for tool, sandbox, and reference-agent evaluation.
-- [x] Implement the transparent reference agent-loop timing lane and aggregate its per-turn metrics without blending it into direct PP/TG.
-- [x] Add a concrete production-driver adapter/task contract for the locally available harness, or record the external-harness blocker precisely while keeping the generic protocol usable.
-- [x] Add deterministic V2 summary publishing with result validation and commit-ready artifacts outside `site/`.
-- [x] Expand regression coverage for splits, repeats, agent-loop evidence, publishing, and real-launch lifecycle boundaries.
-- [x] Run a real scratch-server V2 smoke candidate, inspect its artifacts, then update docs/notes and verify all checks.
-- [x] Persist only V2-related sources, backup, tests, docs, and configuration in Git; leave unrelated working-tree changes untouched.
+- [x] Make OpenWendy task evaluation event-type aware and add adversarial evaluator tests.
+- [x] Fingerprint dirty/untracked OpenWendy source, bind the adapter to the requested candidate profile, and record non-secret driver metadata.
+- [x] Apply production core/holdout filtering and quality repeats; preserve/publish pass and split outcomes.
+- [x] Tighten fair GPU residency validation and retain complete warm-cache/contract evidence.
+- [x] Update docs/results rendering and regression coverage for all remediation behavior.
+- [x] Run focused and full verification plus real fair and OpenWendy production smokes; inspect artifacts and restore service health.
+- [x] Commit only the remediation sources, tests, docs, and compact summaries; leave unrelated worktree changes untouched.

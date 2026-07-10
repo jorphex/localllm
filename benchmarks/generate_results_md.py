@@ -101,13 +101,20 @@ def render_opencode_compare(summary: dict) -> str:
 def render_barrage_v2(summary: dict) -> str:
     candidates = summary.get("candidates", [])
     if candidates and all(candidate.get("profile", {}).get("class") == "production" for candidate in candidates):
-        lines = ["| Candidate | Status | Harness | Results |", "| --- | --- | --- | --- |"]
+        lines = ["| Candidate | Status | Harness | Pass |", "| --- | --- | --- | --- |"]
         for candidate in candidates:
             production = candidate.get("production", {})
             harness = production.get("harness", {}) or {}
+            passed = production.get("passed")
+            total = production.get("total")
+            result = (
+                f"{passed}/{total}"
+                if isinstance(passed, int) and isinstance(total, int)
+                else f"ungraded ({production.get('result_count', 0)})"
+            )
             lines.append(
                 f"| {candidate.get('model')} | {candidate.get('status')} | "
-                f"{harness.get('id', 'unknown')} | {production.get('result_count', 0)} |"
+                f"{harness.get('id', 'unknown')} | {result} |"
             )
         return "\n".join(lines)
 

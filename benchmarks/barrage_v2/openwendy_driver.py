@@ -26,36 +26,73 @@ def source_digest(root: Path) -> str:
     config = root / "config.toml"
     config_digest = hashlib.sha256(config.read_bytes()).hexdigest() if config.exists() else "absent"
     driver_digest = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
-    return hashlib.sha256(json.dumps({"commit": commit, "config": config_digest, "driver": driver_digest}, sort_keys=True).encode()).hexdigest()
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "commit": commit,
+                "config": config_digest,
+                "driver": driver_digest,
+                "working_tree": working_tree_digest(root),
+            },
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
 
 
 def harness_metadata(root: Path) -> dict[str, str]:
     return {"id": "openwendy-core-api", "digest": source_digest(root)}
 
 
-def _event_text(value: Any) -> str:
-    if isinstance(value, str):
-        return value
-    if isinstance(value, dict):
-        return " ".join(_event_text(item) for item in value.values())
-    if isinstance(value, list):
-        return " ".join(_event_text(item) for item in value)
-    return ""
+def working_tree_digest(root: Path) -> str:
+    try:
+        diff = subprocess.run(
+            ["git", "-C", str(root), "diff", "--binary", "HEAD"],
+            check=True,
+            capture_output=True,
+        ).stdout
+        untracked = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "--others", "--exclude-standard", "-z"],
+            check=True,
+            capture_output=True,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return "unavailable"
+    digest = hashlib.sha256(diff)
+    for raw_path in sorted(path for path in untracked.split(b"\0") if path):
+        path = root / os.fsdecode(raw_path)
+        if not path.is_file():
+            continue
+        digest.update(raw_path)
+        digest.update(b"\0")
+        digest.update(hashlib.sha256(path.read_bytes()).digest())
+    return digest.hexdigest()
+
+
+def completed_tool_names(events: list[dict[str, Any]]) -> list[str]:
+    return sorted(
+        str(event.get("tool_name") or "").lower()
+        for event in events
+        if str(event.get("type") or "").lower() == "tool_end"
+        and str(event.get("state") or "").lower() == "completed"
+    )
 
 
 def evaluate_task(task: dict[str, Any], snapshot: dict[str, Any], events: list[dict[str, Any]]) -> dict[str, Any]:
     expect = task.get("expect", {})
     terminal_type = snapshot.get("terminal_type")
-    text = _event_text(events).lower()
+    answer_text = str(snapshot.get("answer_text") or "").lower()
     required_text = str(expect.get("text", "")).lower()
     required_tool = str(expect.get("tool", "")).lower()
+    tool_names = completed_tool_names(events)
     return {
         "task_id": task["id"],
-        "passed": terminal_type == "run_completed" and (not required_text or required_text in text) and (not required_tool or required_tool in text),
+        "passed": terminal_type == "run_completed" and (not required_text or required_text in answer_text) and (not required_tool or required_tool in tool_names),
         "terminal_type": terminal_type,
         "event_count": len(events),
-        "required_text_found": not required_text or required_text in text,
-        "required_tool_found": not required_tool or required_tool in text,
+        "answer_text": str(snapshot.get("answer_text") or ""),
+        "required_text_found": not required_text or required_text in answer_text,
+        "required_tool_found": not required_tool or required_tool in tool_names,
+        "completed_tool_names": tool_names,
     }
 
 
@@ -87,7 +124,9 @@ def run_openwendy_task(client: httpx.Client, base_url: str, task: dict[str, Any]
             raise TimeoutError(f"OpenWendy run did not finish within {timeout} seconds")
         events_response = client.get(f"{base_url}/api/runs/{run_id}/events")
         events_response.raise_for_status()
-        result = evaluate_task(task, snapshot, events_response.json().get("events", []))
+        replay = events_response.json()
+        final_snapshot = replay.get("snapshot") if isinstance(replay.get("snapshot"), dict) else snapshot
+        result = evaluate_task(task, final_snapshot, replay.get("events", []))
         result["run_id"] = run_id
         return result
     finally:
@@ -105,10 +144,19 @@ def run_request(request: dict[str, Any], *, base_url: str, model_id: str, timeou
         raise ValueError("incompatible barrage schema")
     if request.get("harness") != harness_metadata(root):
         raise ValueError("OpenWendy harness digest does not match the active source/configuration")
+    candidate = request.get("candidate")
+    if not isinstance(candidate, dict) or candidate.get("model") != model_id:
+        raise ValueError("OpenWendy candidate alias must match the selected model profile")
     with httpx.Client(timeout=timeout) as client:
         client.get(f"{base_url}/api/health/details").raise_for_status()
         results = [run_openwendy_task(client, base_url, task, model_id, timeout) for task in request["tasks"]]
-    return {"schema_version": SCHEMA_VERSION, "profile": request["profile"], "harness": request["harness"], "results": results}
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "profile": request["profile"],
+        "harness": request["harness"],
+        "driver_metadata": {"adapter": "openwendy-core-api", "model_id": model_id},
+        "results": results,
+    }
 
 
 def main() -> None:

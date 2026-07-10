@@ -27,7 +27,7 @@ benchmarks/barrage-v2-results/<timestamp>/<alias>/
   trials/*.json
 ```
 
-The manifest includes the exact profile class/id, resolved process argv, post-load `/props` and `/slots` state, GPU-residency evidence, cache settings, candidate/workload ordering seed, cooldown and baseline-GPU state, config and workload digests, server version, actual GPU probe, and model SHA-256. Fair runs fail when their actual slot context differs from the fixed profile, when a backend reports partial layer offload, or when `--gpu-layers auto` does not produce sufficient post-load model residency in VRAM. Every trial retains its full request and response payload, including any completed turns before a tool or sandbox request fails. A preflight failure writes `trials/preflight-failure.json` plus an `invalid` run summary containing the raw runtime evidence.
+The manifest includes the exact profile class/id, resolved process argv, post-load `/props` and `/slots` state, GPU-residency evidence, cache settings, candidate/workload ordering seed, cooldown and baseline-GPU state, config and workload digests, server version, actual GPU probe, and model SHA-256. Fair runs fail when their actual slot context differs from the fixed profile, when a backend reports partial layer offload, or when `--gpu-layers auto` does not produce at least one full model artifact's worth of post-load GPU residency. When current llama.cpp omits layer-count logs, that is a strong full-residency inference rather than an unverifiable layer-count claim. Every trial retains its full request and response payload, including warm-cache prime and append calls and any completed turns before a tool or sandbox request fails. A preflight failure writes `trials/preflight-failure.json` plus an `invalid` run summary containing the raw runtime evidence.
 
 The runner exits `0` only for a complete candidate, `1` for a completed candidate with workload errors, and `2` for a preflight-invalid candidate. The launcher continues through every candidate, restores the managed stack, then exits nonzero when any candidate was incomplete or invalid.
 
@@ -58,7 +58,7 @@ This writes `benchmarks/summaries/barrage_v2/<label>/summary.json` and updates t
 
 ## Production profiles
 
-Production runs may use a named model-specific service profile, but they are not comparable with fair results or other production profiles by default.
+Production runs may use a named model-specific service profile, but they are not comparable with fair results or other production profiles by default. Production capability tasks use the same core/holdout selection and `quality_repeats` policy as fair quality tasks.
 
 ```bash
 BARRAGE_V2_PROFILE_CLASS=production \
@@ -84,11 +84,11 @@ python3 -m benchmarks.barrage_v2.production_driver \
   --out production-result.json
 ```
 
-This lets the production harness be measured as a versioned dependency rather than hidden inside a supposedly model-only score. The driver must return exactly one result for every supplied task id; missing, duplicate, or unrecognized task results are rejected.
+This lets the production harness be measured as a versioned dependency rather than hidden inside a supposedly model-only score. The driver must return exactly one result with a boolean `passed` state for every supplied task id; missing, duplicate, unrecognized, or ungraded task results are rejected. A completed production run means the harness executed successfully; its published pass count remains the capability result.
 
 `production` is an isolated suite: it does not stop, restart, probe, or replace the managed stack. It invokes only the external driver and records that fact in the manifest. Provide `BARRAGE_V2_PRODUCTION_DRIVER`, `BARRAGE_V2_PRODUCTION_HARNESS` (JSON with `id` and `digest`), and `BARRAGE_V2_PRODUCTION_TASKS` (JSON task list). The returned external result is stored under `run.json.suites.production`.
 
-OpenWendy has a concrete adapter using its local core API. It creates disposable conversations, pins the supplied OpenWendy model profile, records terminal/tool evidence, and deletes each conversation after the task. Generate the immutable harness identity from the active OpenWendy source/configuration before running:
+OpenWendy has a concrete adapter using its local core API. It creates disposable conversations, pins the supplied OpenWendy model profile, requires completed named tool events plus final assistant-answer text, and deletes each conversation after the task. The harness digest includes the active Git revision, tracked modifications, non-ignored untracked source, local config digest, and adapter source digest, so regenerate it before every run:
 
 ```bash
 HARNESS="$(python3 -m benchmarks.barrage_v2.openwendy_driver --metadata)"
@@ -106,7 +106,7 @@ BARRAGE_V2_CANDIDATES='local|qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf' \
   bash benchmarks/run_barrage_v2.sh
 ```
 
-The production candidate alias must name the already configured OpenWendy model profile; the adapter does not launch or reconfigure `llama-server`. Production measurements are therefore never fair-profile comparisons.
+The production candidate alias must exactly match the selected OpenWendy model profile; the adapter rejects a mismatch and records non-secret adapter/profile metadata in the result. It does not launch or reconfigure `llama-server`. Production measurements are therefore never fair-profile comparisons.
 
 ## Legacy V1
 

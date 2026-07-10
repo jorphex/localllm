@@ -37,7 +37,10 @@ def candidate_summary(run: dict[str, Any]) -> dict[str, Any]:
             summary[name] = {
                 "status": suite.get("status", "ok"),
                 "harness": suite.get("harness"),
-                "result_count": len(suite.get("results", [])),
+                "driver_metadata": suite.get("driver_metadata"),
+                "passed": suite.get("passed"),
+                "total": suite.get("total"),
+                "splits": suite.get("splits"),
             }
         else:
             summary[name] = {

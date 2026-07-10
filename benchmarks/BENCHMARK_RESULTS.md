@@ -549,11 +549,27 @@ Run: `qwen27-unsloth-smoke-20260710T-final`
 
 ## barrage_v2
 
+Run: `qwen27-unsloth-remediation-smoke-20260710T`
+
+| Candidate | Status | Tool core | Sandbox core |
+| --- | --- | --- | --- |
+| qwen27-unsloth-q6 | completed | 2/2 | 3/3 |
+
+## barrage_v2
+
 Run: `openwendy-production-smoke-20260710T`
 
-| Candidate | Status | Harness | Results |
+| Candidate | Status | Harness | Pass |
 | --- | --- | --- | --- |
-| local | completed | openwendy-core-api | 1 |
+| local | completed | openwendy-core-api | ungraded (1) |
+
+## barrage_v2
+
+Run: `openwendy-production-remediation-smoke-20260710T`
+
+| Candidate | Status | Harness | Pass |
+| --- | --- | --- | --- |
+| local | completed | openwendy-core-api | 0/1 |
 
 ## coding_compare
 

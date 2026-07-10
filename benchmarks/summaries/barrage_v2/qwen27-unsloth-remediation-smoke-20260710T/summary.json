@@ -1,0 +1,383 @@
+{
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "environment": {
+        "gpu": {
+          "backend": "rocm",
+          "driver": "============================ ROCm System Management Interface ============================\n============================== Version of System Component ===============================\nDriver version: 6.16.13\n==========================================================================================\n================================== End of ROCm SMI Log ==================================="
+        },
+        "model": {
+          "path": "/home/j/projects/localllm/models/qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf",
+          "sha256": "773f1bf0be0589d056ce05476a8a135b50494a3f2ecc3f8f0c4f2c3594bba02e",
+          "size_bytes": 22884406400
+        },
+        "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+        "runtime_backend": "unknown",
+        "server_version": "version: 1306 (db52540f7)\nbuilt with GNU 13.3.0 for Linux x86_64"
+      },
+      "evaluation": {
+        "include_holdout": false,
+        "performance_repeats": 1,
+        "quality_repeats": 1
+      },
+      "failures": [],
+      "model": "qwen27-unsloth-q6",
+      "performance": {
+        "status": "ok",
+        "summary": {
+          "agent_stream": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "median": 0.0,
+              "min": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 3.4886,
+              "median": 3.4886,
+              "min": 3.4886
+            },
+            "predicted_per_second": {
+              "count": 1,
+              "max": 24.8439,
+              "median": 24.8439,
+              "min": 24.8439
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 572.5843,
+              "median": 572.5843,
+              "min": 572.5843
+            },
+            "ttft_seconds": {
+              "count": 1,
+              "max": 1.5157,
+              "median": 1.5157,
+              "min": 1.5157
+            }
+          },
+          "cold_pp_long": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "median": 0.0,
+              "min": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 36.5365,
+              "median": 36.5365,
+              "min": 36.5365
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 711.5616,
+              "median": 711.5616,
+              "min": 711.5616
+            },
+            "ttft_seconds": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            }
+          },
+          "cold_pp_short": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "median": 0.0,
+              "min": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 1.9388,
+              "median": 1.9388,
+              "min": 1.9388
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 771.9124,
+              "median": 771.9124,
+              "min": 771.9124
+            },
+            "ttft_seconds": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            }
+          },
+          "direct_tg": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "median": 0.0,
+              "min": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 6.4433,
+              "median": 6.4433,
+              "min": 6.4433
+            },
+            "predicted_per_second": {
+              "count": 1,
+              "max": 24.5857,
+              "median": 24.5857,
+              "min": 24.5857
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 215.9844,
+              "median": 215.9844,
+              "min": 215.9844
+            },
+            "ttft_seconds": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            }
+          },
+          "reference_agent_loop": {
+            "agent_predicted_n": {
+              "count": 1,
+              "max": 55.0,
+              "median": 55.0,
+              "min": 55.0
+            },
+            "agent_predicted_per_second": {
+              "count": 1,
+              "max": 4.0864,
+              "median": 4.0864,
+              "min": 4.0864
+            },
+            "agent_prompt_n": {
+              "count": 1,
+              "max": 692.0,
+              "median": 692.0,
+              "min": 692.0
+            },
+            "agent_request_count": {
+              "count": 1,
+              "max": 2.0,
+              "median": 2.0,
+              "min": 2.0
+            },
+            "cache_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 13.4593,
+              "median": 13.4593,
+              "min": 13.4593
+            },
+            "predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "prompt_per_second": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "ttft_seconds": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            }
+          },
+          "warm_append": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 5902.0,
+              "median": 5902.0,
+              "min": 5902.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 0.8709,
+              "median": 0.8709,
+              "min": 0.8709
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 632.2102,
+              "median": 632.2102,
+              "min": 632.2102
+            },
+            "ttft_seconds": {
+              "count": 0,
+              "max": null,
+              "median": null,
+              "min": null
+            }
+          }
+        }
+      },
+      "profile": {
+        "class": "fair",
+        "id": "fair-v1-128k-q8"
+      },
+      "sandbox": {
+        "passed": 3,
+        "splits": {
+          "core": {
+            "errors": 0,
+            "passed": 3,
+            "total": 3
+          }
+        },
+        "status": "ok",
+        "total": 3
+      },
+      "status": "completed",
+      "tool_contract": {
+        "passed": 2,
+        "splits": {
+          "core": {
+            "errors": 0,
+            "passed": 2,
+            "total": 2
+          }
+        },
+        "status": "ok",
+        "total": 2
+      }
+    }
+  ],
+  "digest": "f80f2f33ebaf9fcf319ba667c063b175d275cfe3a405134a97137707b20dec11",
+  "label": "qwen27-unsloth-remediation-smoke-20260710T",
+  "schema_version": "barrage-v2.0"
+}

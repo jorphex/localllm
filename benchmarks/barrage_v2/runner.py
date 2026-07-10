@@ -102,9 +102,11 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
                 prefix = repeated_prompt(400)
                 payload = chat_payload(model, prefix, 1, cache_prompt=True)
                 payload["id_slot"] = 0
+                prime_request = payload
                 phase = "prime"
                 response = client.post(f"{base_url}/v1/chat/completions", json=payload, timeout=timeout)
                 response.raise_for_status()
+                prime_response = response.json()
                 payload = chat_payload(model, prefix + "\nAppend-only turn: confirm cache reuse.", 1, cache_prompt=True)
                 payload["id_slot"] = 0
                 phase = "append"
@@ -113,6 +115,8 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
                 elapsed = time.perf_counter() - started
                 response.raise_for_status()
                 record = timing_record("warm_append", trial, payload, response.json(), elapsed, execution_order=execution_order)
+                record["prime_request"] = prime_request
+                record["prime_response"] = prime_response
                 record["predicted_per_second"] = None
                 records.append(record)
                 continue
@@ -140,7 +144,7 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
                     "model": model,
                     "messages": [{"role": "user", "content": "Use release_lookup to find barrage stable release, then state it."}],
                     "tools": [release_tool()],
-                    "tool_choice": {"type": "function", "function": {"name": "release_lookup"}},
+                    "tool_choice": "required",
                     "temperature": 0,
                     "seed": 42,
                     "max_tokens": workload["max_tokens"],
@@ -158,7 +162,11 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
                 calls = first.get("choices", [{}])[0].get("message", {}).get("tool_calls") or []
                 if len(calls) != 1 or calls[0].get("function", {}).get("name") != "release_lookup":
                     raise ValueError("reference agent loop did not produce release_lookup")
-                if calls[0].get("function", {}).get("arguments") != '{"package":"barrage","channel":"stable"}':
+                try:
+                    arguments = json.loads(calls[0].get("function", {}).get("arguments", ""))
+                except json.JSONDecodeError:
+                    arguments = None
+                if arguments != {"package": "barrage", "channel": "stable"}:
                     raise ValueError("reference agent loop produced unexpected release_lookup arguments")
                 followup = {
                     **initial,
@@ -260,7 +268,7 @@ def run_tool_contracts(
             record["tool_ok"] = names == ([contract["expect_tool"]] if contract["expect_tool"] else [])
             if contract["expect_tool"] is None:
                 record["content_present"] = bool(first.get("choices", [{}])[0].get("message", {}).get("content", "").strip())
-                record["passed"] = record["tool_ok"]
+                record["passed"] = record["tool_ok"] and record["content_present"]
                 records.append(record)
                 continue
             calls = first["choices"][0]["message"].get("tool_calls") or []
@@ -319,6 +327,10 @@ def split_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
     return summaries
 
 
+def selected_production_tasks(tasks: list[dict[str, Any]], include_holdout: bool) -> list[dict[str, Any]]:
+    return [task for task in tasks if include_holdout or task.get("split", "core") == "core"]
+
+
 def validate_fair_runtime(
     cfg: dict[str, Any],
     props: dict[str, Any],
@@ -354,7 +366,14 @@ def validate_fair_runtime(
     delta = postload - baseline
     if delta < required_delta:
         raise ValueError(f"fair runtime GPU residency is too small: delta={delta} MiB, required={required_delta} MiB")
-    return {"evidence": "auto_layers_vram_residency", "baseline_mib": baseline, "postload_mib": postload, "delta_mib": delta, "required_delta_mib": required_delta}
+    return {
+        "evidence": "auto_layers_vram_residency",
+        "baseline_mib": baseline,
+        "postload_mib": postload,
+        "delta_mib": delta,
+        "required_delta_mib": required_delta,
+        "full_model_residency_inferred": delta >= int(model_mib),
+    }
 
 
 def parse_suites(raw: str) -> set[str]:
@@ -502,15 +521,23 @@ def main() -> int:
             "workload_digest": stable_digest({"performance": PERFORMANCE_WORKLOADS, "tools": TOOL_CONTRACTS, "tasks": TASKS}),
             "environment": environment_metadata(args.server_bin, args.model_path),
         }
+        production_tasks: list[dict[str, Any]] = []
+        production_harness: dict[str, Any] | None = None
         if "production" in suites:
-            production_tasks = json.loads(args.production_tasks or "")
-            if not isinstance(production_tasks, list):
+            configured_production_tasks = json.loads(args.production_tasks or "")
+            if not isinstance(configured_production_tasks, list) or not all(isinstance(task, dict) for task in configured_production_tasks):
                 raise ValueError("production tasks must be a JSON list")
+            production_tasks = selected_production_tasks(configured_production_tasks, args.include_holdout)
+            if not production_tasks:
+                raise ValueError("production task selection is empty")
+            production_harness = json.loads(args.production_harness or "")
             manifest["production_contract"] = {
-                "harness": json.loads(args.production_harness or ""),
+                "harness": production_harness,
+                "configured_task_count": len(configured_production_tasks),
                 "task_count": len(production_tasks),
-                "task_ids": [task.get("id") if isinstance(task, dict) else None for task in production_tasks],
+                "task_ids": [task.get("id") for task in production_tasks],
                 "tasks_digest": stable_digest(production_tasks),
+                "driver_command_digest": stable_digest(args.production_driver),
             }
     except Exception as exc:  # noqa: BLE001
         write_preflight_failure(out_dir, trials_dir, args, exc)
@@ -606,18 +633,33 @@ def main() -> int:
             def production() -> dict[str, Any]:
                 if args.profile_class != "production" or not args.production_driver or not args.production_harness or args.production_tasks is None:
                     raise ValueError("production suite requires a production profile, driver, harness, and tasks")
-                production_request = {
-                    "schema_version": SCHEMA_VERSION,
-                    "profile": manifest["profile"],
-                    "harness": json.loads(args.production_harness),
-                    "candidate": {"model": args.model, "model_path": str(args.model_path) if args.model_path else None},
-                    "tasks": json.loads(args.production_tasks),
-                    "launch": manifest["launch"],
+                rows: list[dict[str, Any]] = []
+                driver_metadata: dict[str, Any] | None = None
+                for trial in range(1, quality_repeats + 1):
+                    production_request = {
+                        "schema_version": SCHEMA_VERSION,
+                        "profile": manifest["profile"],
+                        "harness": production_harness,
+                        "candidate": {"model": args.model, "model_path": str(args.model_path) if args.model_path else None},
+                        "tasks": production_tasks,
+                        "launch": manifest["launch"],
+                    }
+                    payload = run_driver(args.production_driver, production_request, timeout=int(timeout))
+                    if isinstance(payload.get("driver_metadata"), dict):
+                        driver_metadata = payload["driver_metadata"]
+                    task_splits = {str(task["id"]): str(task.get("split", "core")) for task in production_tasks}
+                    for result in payload["results"]:
+                        row = {**result, "trial": trial, "split": task_splits[result["task_id"]]}
+                        rows.append(row)
+                        write_json(trials_dir / f"production-{result['task_id']}-{trial}.json", row)
+                return {
+                    "harness": production_harness,
+                    "driver_metadata": driver_metadata,
+                    "results": rows,
+                    "passed": sum(bool(row["passed"]) for row in rows),
+                    "total": len(rows),
+                    "splits": split_summary(rows),
                 }
-                payload = run_driver(args.production_driver, production_request, timeout=int(timeout))
-                for result in payload["results"]:
-                    write_json(trials_dir / f"production-{result['task_id']}.json", result)
-                return payload
 
             execute_suite("production", production)
     validate_run(run, suites)
