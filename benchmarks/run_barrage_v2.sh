@@ -12,8 +12,9 @@ BARRAGE_V2_CONTEXT="${BARRAGE_V2_CONTEXT:-}"
 BARRAGE_V2_EXTRA_ARGS="${BARRAGE_V2_EXTRA_ARGS:-}"
 BARRAGE_V2_REPEATS="${BARRAGE_V2_REPEATS:-}"
 BARRAGE_V2_QUALITY_REPEATS="${BARRAGE_V2_QUALITY_REPEATS:-}"
+BARRAGE_V2_RELEASE_RUN="${BARRAGE_V2_RELEASE_RUN:-false}"
 BARRAGE_V2_INCLUDE_HOLDOUT="${BARRAGE_V2_INCLUDE_HOLDOUT:-false}"
-BARRAGE_V2_SUITES="${BARRAGE_V2_SUITES:-performance,tool_contract,sandbox}"
+BARRAGE_V2_SUITES="${BARRAGE_V2_SUITES:-performance,tool_contract,sandbox,concurrency,vision}"
 BARRAGE_V2_ORDER_SEED="${BARRAGE_V2_ORDER_SEED:-$(date -u +%s)}"
 BARRAGE_V2_CACHE_PROMPT="${BARRAGE_V2_CACHE_PROMPT:-}"
 BARRAGE_V2_CACHE_RAM="${BARRAGE_V2_CACHE_RAM:-}"
@@ -42,6 +43,9 @@ fi
 if [[ "${BARRAGE_V2_SUITES}" == *"production"* && "${BARRAGE_V2_SUITES}" != "production" ]]; then
   echo "Production must run as an isolated suite." >&2
   exit 1
+fi
+if truthy "${BARRAGE_V2_RELEASE_RUN}"; then
+  BARRAGE_V2_INCLUDE_HOLDOUT=true
 fi
 
 FAIR_PROFILE_JSON="$(
@@ -87,6 +91,7 @@ fi
 mkdir -p "${BARRAGE_V2_RESULTS_DIR}"
 export PYTHONPATH="${PROJECT_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
 export_llama_runtime_env
+export LOCALLLM_RUNTIME_BACKEND="${LOCALLLM_RUNTIME_BACKEND:-unknown}"
 export BENCH_CACHE_PROMPT="${BARRAGE_V2_CACHE_PROMPT}"
 export BENCH_CACHE_RAM="${BARRAGE_V2_CACHE_RAM}"
 export BENCH_CACHE_REUSE="${BARRAGE_V2_CACHE_REUSE}"
@@ -154,8 +159,9 @@ if truthy "${BARRAGE_V2_DRY_RUN}"; then
     --argjson cooldown_seconds "${BARRAGE_V2_COOLDOWN_SECONDS}" \
     --argjson max_baseline_vram_mib "${BARRAGE_V2_MAX_BASELINE_VRAM_MIB}" \
     --argjson include_holdout "$(truthy "${BARRAGE_V2_INCLUDE_HOLDOUT}" && echo true || echo false)" \
+    --argjson release_run "$(truthy "${BARRAGE_V2_RELEASE_RUN}" && echo true || echo false)" \
     --argjson candidates "${candidate_order_json}" \
-    '{profile:{class:$profile_class,id:$profile_id},context:$context,extra_args:$extra_args,cache:{prompt:$cache_prompt,ram_mib:$cache_ram_mib,reuse:$cache_reuse,slot_prompt_similarity:$slot_prompt_similarity},order_seed:$order_seed,cooldown_seconds:$cooldown_seconds,max_baseline_vram_mib:$max_baseline_vram_mib,include_holdout:$include_holdout,candidates:$candidates}'
+    '{profile:{class:$profile_class,id:$profile_id},context:$context,extra_args:$extra_args,cache:{prompt:$cache_prompt,ram_mib:$cache_ram_mib,reuse:$cache_reuse,slot_prompt_similarity:$slot_prompt_similarity},order_seed:$order_seed,cooldown_seconds:$cooldown_seconds,max_baseline_vram_mib:$max_baseline_vram_mib,include_holdout:$include_holdout,release_run:$release_run,candidates:$candidates}'
   exit 0
 fi
 
@@ -178,6 +184,7 @@ if [[ "${BARRAGE_V2_SUITES}" == "production" ]]; then
     args=(--base-url "${BARRAGE_V2_PRODUCTION_BASE_URL}" --model "${alias}" --out-dir "${candidate_dir}" --profile-class production --profile-id "${BARRAGE_V2_PROFILE_ID}" --model-path "${MODEL_DIR}/${model}" --suites production --order-seed "${BARRAGE_V2_ORDER_SEED}" --candidate-order-index "${index}" --candidate-count "${#candidates[@]}" --candidate-order "${candidate_order_json}" --launch-argv '[]' --launch-cache-prompt "${BARRAGE_V2_CACHE_PROMPT}" --launch-cache-ram "${BARRAGE_V2_CACHE_RAM}" --launch-cache-reuse "${BARRAGE_V2_CACHE_REUSE}" --launch-slot-similarity "${BARRAGE_V2_SLOT_PROMPT_SIMILARITY}" --server-props '{}' --server-slots '[]' --server-log-path /dev/null --stabilization '{"mode":"external-driver","managed_stack_untouched":true}' --schedule external-driver --cooldown-seconds 0 --production-driver "${BARRAGE_V2_PRODUCTION_DRIVER}" --production-harness "${BARRAGE_V2_PRODUCTION_HARNESS}" --production-tasks "${BARRAGE_V2_PRODUCTION_TASKS}")
     [[ -z "${BARRAGE_V2_QUALITY_REPEATS}" ]] || args+=(--quality-repeats "${BARRAGE_V2_QUALITY_REPEATS}")
     truthy "${BARRAGE_V2_INCLUDE_HOLDOUT}" && args+=(--include-holdout)
+    truthy "${BARRAGE_V2_RELEASE_RUN}" && args+=(--release-run)
     if ! python3 -m benchmarks.barrage_v2.runner "${args[@]}"; then
       overall_status=1
     fi
@@ -285,6 +292,7 @@ for index in "${!candidates[@]}"; do
   [[ -z "${BARRAGE_V2_REPEATS}" ]] || args+=(--repeats "${BARRAGE_V2_REPEATS}")
   [[ -z "${BARRAGE_V2_QUALITY_REPEATS}" ]] || args+=(--quality-repeats "${BARRAGE_V2_QUALITY_REPEATS}")
   truthy "${BARRAGE_V2_INCLUDE_HOLDOUT}" && args+=(--include-holdout)
+  truthy "${BARRAGE_V2_RELEASE_RUN}" && args+=(--release-run)
   if ! python3 -m benchmarks.barrage_v2.runner "${args[@]}"; then
     overall_status=1
   fi

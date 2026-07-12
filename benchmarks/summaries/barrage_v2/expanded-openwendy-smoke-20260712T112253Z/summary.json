@@ -1,0 +1,187 @@
+{
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "environment": {
+        "gpu": {
+          "backend": "rocm",
+          "driver": "============================ ROCm System Management Interface ============================\n============================== Version of System Component ===============================\nDriver version: 6.16.13\n==========================================================================================\n================================== End of ROCm SMI Log ==================================="
+        },
+        "model": {
+          "path": "/home/j/projects/localllm/models/qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf",
+          "sha256": "773f1bf0be0589d056ce05476a8a135b50494a3f2ecc3f8f0c4f2c3594bba02e",
+          "size_bytes": 22884406400
+        },
+        "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+        "runtime_backend": "unknown",
+        "server_version": null
+      },
+      "evaluation": {
+        "include_holdout": true,
+        "performance_repeats": 5,
+        "quality_repeats": 1,
+        "release_run": false
+      },
+      "failures": [],
+      "generated_at": "2026-07-12T11:21:53.952405+00:00",
+      "model": "local",
+      "production": {
+        "driver_metadata": {
+          "adapter": "openwendy-core-api",
+          "model_id": "local",
+          "service_identity": {
+            "pid": 3892640,
+            "process_started_at": 1783045347.0,
+            "source_mtime": 1783045262.388
+          }
+        },
+        "harness": {
+          "digest": "077eaef50adab2a11cc51ca8a5bfc3e97610cd6de58bbba46b18de32a5058e3b",
+          "id": "openwendy-core-api"
+        },
+        "passed": 4,
+        "reliability": {
+          "calculate_core": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 0.0,
+            "passed": 0,
+            "total": 1,
+            "wilson_high": 0.7935,
+            "wilson_low": 0.0
+          },
+          "calculate_holdout": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 0.0,
+            "passed": 0,
+            "total": 1,
+            "wilson_high": 0.7935,
+            "wilson_low": 0.0
+          },
+          "cancel_run_core": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "concurrent_calculations_core": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 0.0,
+            "passed": 0,
+            "total": 1,
+            "wilson_high": 0.7935,
+            "wilson_low": 0.0
+          },
+          "tool_restraint_core": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "workspace_roundtrip_holdout": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "workspace_status_core": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          }
+        },
+        "splits": {
+          "core": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 0.6,
+            "passed": 3,
+            "total": 5,
+            "wilson_high": 0.8824,
+            "wilson_low": 0.2307
+          },
+          "holdout": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 0.5,
+            "passed": 1,
+            "total": 2,
+            "wilson_high": 0.9055,
+            "wilson_low": 0.0945
+          }
+        },
+        "status": "ok",
+        "total": 7
+      },
+      "profile": {
+        "class": "production",
+        "id": "openwendy-local-expanded"
+      },
+      "release_gate": {
+        "checks": [
+          {
+            "check": "quality_repeats",
+            "evidence": 1,
+            "passed": false
+          },
+          {
+            "check": "holdout_enabled",
+            "evidence": true,
+            "passed": true
+          },
+          {
+            "check": "suite_production_completed",
+            "evidence": "ok",
+            "passed": true
+          },
+          {
+            "check": "suite_production_all_passed",
+            "evidence": {
+              "passed": 4,
+              "total": 7
+            },
+            "passed": false
+          },
+          {
+            "check": "suite_production_holdout",
+            "evidence": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 0.5,
+              "passed": 1,
+              "total": 2,
+              "wilson_high": 0.9055,
+              "wilson_low": 0.0945
+            },
+            "passed": false
+          }
+        ],
+        "eligible": false,
+        "passed": null,
+        "requested": false,
+        "required_suites": [
+          "production"
+        ]
+      },
+      "status": "completed"
+    }
+  ],
+  "digest": "081f8ada985520c4107eed813982ff58264d8ed965880497a921683af396c3a4",
+  "label": "expanded-openwendy-smoke-20260712T112253Z",
+  "schema_version": "barrage-v2.1"
+}

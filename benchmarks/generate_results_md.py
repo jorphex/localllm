@@ -99,33 +99,47 @@ def render_opencode_compare(summary: dict) -> str:
 
 
 def render_barrage_v2(summary: dict) -> str:
+    def ratio(section: dict, split: str | None = None) -> str:
+        data = section.get("splits", {}).get(split, {}) if split else section
+        passed = data.get("passed")
+        total = data.get("total")
+        return f"{passed}/{total}" if isinstance(passed, int) and isinstance(total, int) else "-"
+
+    def release(candidate: dict) -> str:
+        gate = candidate.get("release_gate") or {}
+        if not gate.get("requested"):
+            return "smoke/standard"
+        return "pass" if gate.get("passed") else "fail"
+
     candidates = summary.get("candidates", [])
     if candidates and all(candidate.get("profile", {}).get("class") == "production" for candidate in candidates):
-        lines = ["| Candidate | Status | Harness | Pass |", "| --- | --- | --- | --- |"]
+        lines = [
+            "| Candidate | Status | Release | Harness | Core | Holdout |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
         for candidate in candidates:
             production = candidate.get("production", {})
             harness = production.get("harness", {}) or {}
-            passed = production.get("passed")
-            total = production.get("total")
-            result = (
-                f"{passed}/{total}"
-                if isinstance(passed, int) and isinstance(total, int)
-                else f"ungraded ({production.get('result_count', 0)})"
-            )
             lines.append(
-                f"| {candidate.get('model')} | {candidate.get('status')} | "
-                f"{harness.get('id', 'unknown')} | {result} |"
+                f"| {candidate.get('model')} | {candidate.get('status')} | {release(candidate)} | "
+                f"{harness.get('id', 'unknown')} | {ratio(production, 'core')} | "
+                f"{ratio(production, 'holdout')} |"
             )
         return "\n".join(lines)
 
-    lines = ["| Candidate | Status | Tool core | Sandbox core |", "| --- | --- | --- | --- |"]
+    lines = [
+        "| Candidate | Status | Release | Tool core | Tool holdout | Sandbox core | Sandbox holdout | Concurrency | Vision |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
     for candidate in candidates:
-        tool = candidate.get("tool_contract", {}).get("splits", {}).get("core", {})
-        sandbox = candidate.get("sandbox", {}).get("splits", {}).get("core", {})
+        tool = candidate.get("tool_contract", {})
+        sandbox = candidate.get("sandbox", {})
+        vision = candidate.get("vision", {})
+        vision_result = "n/a" if vision and not vision.get("applicable", True) else ratio(vision)
         lines.append(
-            f"| {candidate.get('model')} | {candidate.get('status')} | "
-            f"{tool.get('passed', 0)}/{tool.get('total', 0)} | "
-            f"{sandbox.get('passed', 0)}/{sandbox.get('total', 0)} |"
+            f"| {candidate.get('model')} | {candidate.get('status')} | {release(candidate)} | "
+            f"{ratio(tool, 'core')} | {ratio(tool, 'holdout')} | {ratio(sandbox, 'core')} | "
+            f"{ratio(sandbox, 'holdout')} | {ratio(candidate.get('concurrency', {}))} | {vision_result} |"
         )
     return "\n".join(lines)
 

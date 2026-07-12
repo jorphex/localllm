@@ -1,10 +1,12 @@
 # Benchmark Barrage V2
 
-V2 is the default evaluation system. It measures four separate things and never combines them into one model score:
+V2 is the default evaluation system. It measures six separate things and never combines them into one model score:
 
-- `performance`: repeated cold short/long PP, fixed-workload TG, streamed agent-shaped TTFT/TG, warm append-only cache reuse, and a transparent two-request reference agent loop.
-- `tool_contract`: executable tool restraint and tool-followthrough checks, including exact JSON arguments.
-- `sandbox`: independent disposable coding tasks with public tests and separate acceptance checks. Completion is primary; tool errors, turns, and file scope are diagnostics.
+- `performance`: repeated cold PP, deterministic recall at approximately 8k/32k/64k/120k prompt sizes, fixed-workload TG, streamed agent-shaped TTFT/TG, 8k/32k warm append reuse, and a transparent two-request reference agent loop.
+- `tool_contract`: executable restraint, exact arguments, dependent sequences, parallel calls, tool-error recovery, duplicate-call avoidance, and final evidence use.
+- `sandbox`: disposable coding tasks ranging from small fixes to repository discovery, multi-file changes, and injected test-runner failure. Acceptance, exact file scope, required test execution, and required recovery all determine pass/fail.
+- `concurrency`: two simultaneous generation requests and mixed prefill/generation contention, reported independently from single-request throughput.
+- `vision`: a deterministic 1024x1024 quadrant task that exercises image ingestion and multimodal decoding; non-vision servers are reported as not applicable.
 - `production`: an external-driver protocol for the real OpenWendy or multillm harness. This is deliberately a separate profile class.
 
 ## Fair runs
@@ -27,22 +29,32 @@ benchmarks/barrage-v2-results/<timestamp>/<alias>/
   trials/*.json
 ```
 
-The manifest includes the exact profile class/id, resolved process argv, post-load `/props` and `/slots` state, GPU-residency evidence, cache settings, candidate/workload ordering seed, cooldown and baseline-GPU state, config and workload digests, server version, actual GPU probe, and model SHA-256. Fair runs force verbose llama.cpp logging and require every logged tensor layer to be assigned to a non-CPU device, reject any partial aggregate offload report, require `--gpu-layers auto`, and retain a full-model-sized post-load VRAM delta as supporting evidence. Missing verbose layer-placement records invalidate a fair run. Every trial retains its full request and response payload, including warm-cache prime and append calls and any completed turns before a tool or sandbox request fails. A preflight failure writes `trials/preflight-failure.json` plus an `invalid` run summary containing the raw runtime evidence.
+The manifest includes the exact profile class/id, resolved process argv, post-load `/props` and `/slots` state, GPU-residency evidence, cache settings, candidate/workload ordering seed, cooldown and baseline-GPU state, config and workload digests, server version, actual GPU probe, and model SHA-256. Fair runs force verbose llama.cpp logging and require every logged tensor layer to be assigned to a non-CPU device, reject any partial aggregate offload report, require `--gpu-layers auto`, and retain a full-model-sized post-load VRAM delta as supporting evidence. Missing verbose layer-placement records invalidate a fair run. Every trial retains its full request and response payload, including warm-cache prime and append calls and any completed turns before a tool or sandbox request fails. Long-context labels are approximate targets; the actual tokenizer-reported `prompt_n` is authoritative. A preflight failure writes `trials/preflight-failure.json` plus an `invalid` run summary containing the raw runtime evidence.
 
 The runner exits `0` only for a complete candidate, `1` for a completed candidate with workload errors, and `2` for a preflight-invalid candidate. The launcher continues through every candidate, restores the managed stack, then exits nonzero when any candidate was incomplete or invalid.
 
-## Core and holdout evaluation
+## Smoke, standard, and release runs
 
-Performance trials use the configured repeat count. Tool contracts and coding-agent sandbox tasks use `quality_repeats` (currently three) with a trial-specific seed. Every capability task is labeled `core` or `holdout`; core is the default tuning/comparison set, while holdout is a separately reported release-validation set with independent acceptance checks. This is a governance split, not a secret benchmark: the task definitions remain visible and no core/holdout score is blended into one model rank.
+Performance and concurrency trials use `performance_repeats` (normally five). Tool, sandbox, and vision tasks use `quality_repeats` (normally three) with a trial-specific seed. Summaries report median, mean, p95, population standard deviation, pass/error rates, and a 95% Wilson interval where applicable.
 
-Run the holdout set explicitly:
+A quick implementation smoke deliberately does not qualify as release evidence:
 
 ```bash
-BARRAGE_V2_INCLUDE_HOLDOUT=true \
+BARRAGE_V2_REPEATS=1 BARRAGE_V2_QUALITY_REPEATS=1 \
+BARRAGE_V2_CANDIDATES='qwen27|qwen-3.6/model.gguf|qwen-3.6/mmproj.gguf' \
   bash benchmarks/run_barrage_v2.sh
 ```
 
-Use `BARRAGE_V2_REPEATS` and `BARRAGE_V2_QUALITY_REPEATS` only for smoke or diagnostic runs; their actual values are retained in the manifest. The reference agent loop is a V2-owned two-request tool cycle for timing a visible protocol. It is not a substitute for OpenWendy or another production harness.
+A standard core run uses the configured five/three repeats by default. Every capability task is labeled `core` or `holdout`; core is the tuning/comparison set, while holdout is separately reported release validation. This is a governance split, not a secret benchmark: definitions remain visible and no core/holdout score is blended into one rank.
+
+Release mode forces holdouts and fails its explicit gate when repeats are below the configured minimum, a required suite is missing, any required trial fails, or a holdout split is absent:
+
+```bash
+BARRAGE_V2_RELEASE_RUN=true \
+  bash benchmarks/run_barrage_v2.sh
+```
+
+Use `BARRAGE_V2_REPEATS` and `BARRAGE_V2_QUALITY_REPEATS` only for smoke or diagnostic runs; their values and release eligibility are retained. The default fair suites are `performance,tool_contract,sandbox,concurrency,vision`. Vision runs only when `/props` reports `vision=true`, which requires a candidate mmproj. The reference agent loop remains a transparent V2-owned timing protocol, not a substitute for OpenWendy.
 
 ## Publishing V2 results
 
@@ -54,7 +66,7 @@ python3 -m benchmarks.barrage_v2.publish \
 python3 benchmarks/generate_results_md.py
 ```
 
-This writes `benchmarks/summaries/barrage_v2/<label>/summary.json` and updates the committed benchmark rollup without copying raw prompts, responses, or sandbox transcripts.
+This writes `benchmarks/summaries/barrage_v2/<label>/summary.json` and updates the committed benchmark rollup without copying raw prompts, responses, generated image data, or sandbox transcripts. Compact summaries retain per-suite reliability, core/holdout counts, applicability, and release-gate evidence for later site ingestion.
 
 ## Production profiles
 
@@ -88,7 +100,7 @@ This lets the production harness be measured as a versioned dependency rather th
 
 `production` is an isolated suite: it does not stop, restart, probe, or replace the managed stack. It invokes only the external driver and records that fact in the manifest. Provide `BARRAGE_V2_PRODUCTION_DRIVER`, `BARRAGE_V2_PRODUCTION_HARNESS` (JSON with `id` and `digest`), and `BARRAGE_V2_PRODUCTION_TASKS` (JSON task list). The returned external result is stored under `run.json.suites.production`.
 
-OpenWendy has a concrete adapter using its local core API. It creates disposable conversations, pins the supplied OpenWendy model profile, requires a completed named tool event with expected typed arguments and exact tool output plus final assistant-answer text, and deletes each conversation after the task. The harness digest includes the active Git revision, tracked modifications, non-ignored untracked source, local config digest, and adapter source digest, so regenerate it before every run. Before sending work, the adapter identifies the process listening on the configured port, verifies its working directory is the active OpenWendy root, and rejects it when active source files are newer than that process. Restart OpenWendy after source changes before running this profile:
+OpenWendy has a concrete adapter using its local core API. It creates disposable conversations, pins the supplied OpenWendy model profile, grades ordered or unordered completed tool events with typed argument/output expectations plus final assistant text, and deletes each conversation after the task. The production corpus covers calculation, tool restraint, workspace status, two concurrent conversations, cancellation, and a holdout workspace write/read roundtrip inside a driver-owned temporary directory under `~/.openwendy/benchmark-workspaces`. The harness digest includes the active Git revision, tracked modifications, non-ignored untracked source, local config digest, and adapter source digest, so regenerate it before every run. Before sending work, the adapter identifies the process listening on the configured port, verifies its working directory is the active OpenWendy root, and rejects it when active source files are newer than that process. Restart OpenWendy after source changes before running this profile:
 
 ```bash
 HARNESS="$(python3 -m benchmarks.barrage_v2.openwendy_driver --metadata)"
@@ -105,6 +117,8 @@ BARRAGE_V2_PRODUCTION_TASKS="$(cat benchmarks/barrage_v2/openwendy_tasks.json)" 
 BARRAGE_V2_CANDIDATES='local|qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf' \
   bash benchmarks/run_barrage_v2.sh
 ```
+
+Add `BARRAGE_V2_RELEASE_RUN=true` to the production command for three-repeat core plus holdout release validation. Production concurrency and cancellation are OpenWendy/harness outcomes; fair concurrency remains a raw model/runtime outcome. They are never compared as the same measurement.
 
 The production candidate alias must exactly match the selected OpenWendy model profile; the adapter rejects a mismatch and records non-secret adapter/profile metadata in the result. It does not launch or reconfigure `llama-server`. Production measurements are therefore never fair-profile comparisons.
 

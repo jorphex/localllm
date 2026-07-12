@@ -1,21 +1,45 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import random
 import re
+import struct
 import time
+import zlib
+from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 from pathlib import Path
+from threading import Barrier
 from typing import Any
 
 import httpx
 
 from benchmarks.barrage_v2 import SCHEMA_VERSION
-from benchmarks.barrage_v2.artifacts import aggregate_trials, environment_metadata, stable_digest, write_json
+from benchmarks.barrage_v2.artifacts import (
+    aggregate_trials,
+    binary_summary,
+    environment_metadata,
+    grouped_binary_summary,
+    stable_digest,
+    write_json,
+)
 from benchmarks.barrage_v2.config import load_config
 from benchmarks.barrage_v2.production_driver import run_driver
 from benchmarks.barrage_v2.sandbox import TASKS, run_task, selected_tasks
-from benchmarks.barrage_v2.workloads import PERFORMANCE_WORKLOADS, TOOL_CONTRACTS, agent_messages, release_tool, repeated_prompt, selected_items
+from benchmarks.barrage_v2.workloads import (
+    CONCURRENCY_WORKLOADS,
+    PERFORMANCE_WORKLOADS,
+    TOOL_CONTRACTS,
+    VISION_WORKLOAD,
+    agent_messages,
+    benchmark_tools,
+    context_recall_prompt,
+    release_tool,
+    repeated_prompt,
+    selected_items,
+)
 
 
 def timing_record(
@@ -32,6 +56,7 @@ def timing_record(
     return {
         "workload": workload,
         "trial": trial,
+        "passed": True,
         "execution_order": execution_order,
         "request_digest": stable_digest(request),
         "response_digest": stable_digest(response),
@@ -88,10 +113,16 @@ def streamed_chat(client: httpx.Client, base_url: str, payload: dict[str, Any], 
     return {"final": final, "timing": timing_event, "events": events}, elapsed, (first_event or time.perf_counter()) - started
 
 
+def streamed_content(events: list[dict[str, Any]]) -> str:
+    return "".join(
+        str(event.get("choices", [{}])[0].get("delta", {}).get("content") or "")
+        for event in events
+    )
+
+
 def run_performance(client: httpx.Client, base_url: str, model: str, repeats: int, timeout: float, order_seed: int) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
-    workloads = [*PERFORMANCE_WORKLOADS, {"id": "warm_append", "kind": "warm"}]
-    jobs = [(workload, trial) for workload in workloads for trial in range(1, repeats + 1)]
+    jobs = [(workload, trial) for workload in PERFORMANCE_WORKLOADS for trial in range(1, repeats + 1)]
     random.Random(order_seed).shuffle(jobs)
     for execution_order, (workload, trial) in enumerate(jobs, start=1):
         payload: dict[str, Any] | None = None
@@ -99,7 +130,7 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
         phase = "request"
         try:
             if workload["kind"] == "warm":
-                prefix = repeated_prompt(400)
+                prefix = repeated_prompt(workload["repeat"])
                 payload = chat_payload(model, prefix, 1, cache_prompt=True)
                 payload["id_slot"] = 0
                 prime_request = payload
@@ -107,16 +138,41 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
                 response = client.post(f"{base_url}/v1/chat/completions", json=payload, timeout=timeout)
                 response.raise_for_status()
                 prime_response = response.json()
-                payload = chat_payload(model, prefix + "\nAppend-only turn: confirm cache reuse.", 1, cache_prompt=True)
+                payload = chat_payload(
+                    model,
+                    prefix + "\nAppend-only turn: return CACHE_OK.",
+                    workload["max_tokens"],
+                    cache_prompt=True,
+                )
                 payload["id_slot"] = 0
                 phase = "append"
                 started = time.perf_counter()
                 response = client.post(f"{base_url}/v1/chat/completions", json=payload, timeout=timeout)
                 elapsed = time.perf_counter() - started
                 response.raise_for_status()
-                record = timing_record("warm_append", trial, payload, response.json(), elapsed, execution_order=execution_order)
+                record = timing_record(workload["id"], trial, payload, response.json(), elapsed, execution_order=execution_order)
                 record["prime_request"] = prime_request
                 record["prime_response"] = prime_response
+                record["predicted_per_second"] = None
+                record["cache_hit"] = bool(record.get("cache_n"))
+                record["passed"] = record["cache_hit"]
+                records.append(record)
+                continue
+            if workload["kind"] == "context_recall":
+                prompt, markers = context_recall_prompt(workload["repeat"])
+                payload = chat_payload(model, prompt, workload["max_tokens"], cache_prompt=False)
+                phase = "stream"
+                stream_data, elapsed, ttft = streamed_chat(client, base_url, payload, timeout)
+                timing = stream_data["timing"] or stream_data["final"]
+                record = timing_record(workload["id"], trial, payload, timing, elapsed, execution_order=execution_order, ttft=ttft)
+                content = streamed_content(stream_data["events"])
+                record["stream_final_event"] = stream_data["final"]
+                record["stream_timing_event"] = stream_data["timing"]
+                record["stream_events"] = stream_data["events"]
+                record["answer_text"] = content
+                record["expected_markers"] = list(markers)
+                record["recall_passed"] = all(marker in content for marker in markers)
+                record["passed"] = record["recall_passed"]
                 record["predicted_per_second"] = None
                 records.append(record)
                 continue
@@ -195,6 +251,7 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
                     {
                         "workload": workload["id"],
                         "trial": trial,
+                        "passed": True,
                         "execution_order": execution_order,
                         "elapsed_seconds": round(elapsed, 4),
                         "agent_request_count": 2,
@@ -229,6 +286,7 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
                 "trial": trial,
                 "execution_order": execution_order,
                 "status": "error",
+                "passed": False,
                 "phase": phase,
                 "error_type": type(exc).__name__,
                 "error_message": str(exc),
@@ -240,8 +298,27 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
     return records
 
 
-def _tool_names(response: dict[str, Any]) -> list[str]:
-    return [call.get("function", {}).get("name", "") for call in response.get("choices", [{}])[0].get("message", {}).get("tool_calls", []) or []]
+def _tool_calls(response: dict[str, Any]) -> list[dict[str, Any]]:
+    calls: list[dict[str, Any]] = []
+    for call in response.get("choices", [{}])[0].get("message", {}).get("tool_calls", []) or []:
+        function = call.get("function", {})
+        try:
+            arguments = json.loads(function.get("arguments", ""))
+        except (TypeError, json.JSONDecodeError):
+            arguments = None
+        calls.append({"id": call.get("id"), "name": function.get("name"), "arguments": arguments})
+    return calls
+
+
+def _calls_match(actual: list[dict[str, Any]], expected: list[dict[str, Any]], order: str) -> bool:
+    actual_contract = [{"name": call.get("name"), "arguments": call.get("arguments")} for call in actual]
+    expected_contract = [{"name": call.get("name"), "arguments": call.get("arguments")} for call in expected]
+    if order == "any":
+        def sort_key(value: dict[str, Any]) -> str:
+            return json.dumps(value, sort_keys=True)
+
+        return sorted(actual_contract, key=sort_key) == sorted(expected_contract, key=sort_key)
+    return actual_contract == expected_contract
 
 
 def run_tool_contracts(
@@ -257,55 +334,267 @@ def run_tool_contracts(
     for contract in contracts or TOOL_CONTRACTS:
         record: dict[str, Any] = {"contract": contract["id"], "split": contract.get("split", "core"), "trial": trial}
         try:
-            payload = {"model": model, "messages": contract["messages"], "tools": [release_tool()], "tool_choice": "auto", "temperature": 0, "seed": 42, "stream": False, "chat_template_kwargs": {"enable_thinking": False}}
-            record["initial_request"] = payload
-            response = client.post(f"{base_url}/v1/chat/completions", json=payload, timeout=timeout)
-            response.raise_for_status()
-            first = response.json()
-            record["initial_response"] = first
-            names = _tool_names(first)
-            record["tool_names"] = names
-            record["tool_ok"] = names == ([contract["expect_tool"]] if contract["expect_tool"] else [])
-            if contract["expect_tool"] is None:
-                record["content_present"] = bool(first.get("choices", [{}])[0].get("message", {}).get("content", "").strip())
-                record["passed"] = record["tool_ok"] and record["content_present"]
-                records.append(record)
-                continue
-            calls = first["choices"][0]["message"].get("tool_calls") or []
-            try:
-                arguments = json.loads(calls[0]["function"]["arguments"])
-            except (IndexError, KeyError, TypeError, json.JSONDecodeError):
-                arguments = None
-            record["arguments"] = arguments
-            record["arguments_ok"] = arguments == contract["expect_args"]
-            if not calls:
-                record["final_ok"] = False
-                record["passed"] = False
-                records.append(record)
-                continue
-            followup = {
+            messages = list(contract["messages"])
+            turns: list[dict[str, Any]] = []
+            step_results: list[dict[str, Any]] = []
+            for step_index, step in enumerate(contract.get("steps", []), start=1):
+                payload = {
+                    "model": model,
+                    "messages": messages,
+                    "tools": benchmark_tools(),
+                    "tool_choice": "auto",
+                    "temperature": 0,
+                    "seed": 42 + trial,
+                    "stream": False,
+                    "chat_template_kwargs": {"enable_thinking": False},
+                }
+                if "initial_request" not in record:
+                    record["initial_request"] = payload
+                else:
+                    record["followup_request"] = payload
+                response = client.post(f"{base_url}/v1/chat/completions", json=payload, timeout=timeout)
+                response.raise_for_status()
+                body = response.json()
+                if "initial_response" not in record:
+                    record["initial_response"] = body
+                else:
+                    record["followup_response"] = body
+                message = body.get("choices", [{}])[0].get("message", {})
+                actual_calls = _tool_calls(body)
+                expected_calls = step["calls"]
+                matched = _calls_match(actual_calls, expected_calls, str(step.get("order", "exact")))
+                turns.append({"step": step_index, "request": payload, "response": body, "calls": actual_calls})
+                step_results.append({"step": step_index, "matched": matched, "actual": actual_calls, "expected": expected_calls})
+                if not matched:
+                    break
+                messages.append(message)
+                result_calls = expected_calls
+                if step.get("order") == "any":
+                    result_calls = [
+                        next(
+                            expected
+                            for expected in expected_calls
+                            if expected["name"] == actual["name"] and expected["arguments"] == actual["arguments"]
+                        )
+                        for actual in actual_calls
+                    ]
+                for actual, expected in zip(actual_calls, result_calls, strict=True):
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": actual.get("id") or f"step-{step_index}",
+                            "content": expected["result"],
+                        }
+                    )
+            steps_ok = len(step_results) == len(contract.get("steps", [])) and all(step["matched"] for step in step_results)
+            final_payload = {
                 "model": model,
-                "messages": [*contract["messages"], first["choices"][0]["message"], {"role": "tool", "tool_call_id": calls[0]["id"], "content": contract["tool_result"]}],
-                "tools": [release_tool()],
+                "messages": messages,
+                "tools": benchmark_tools(),
+                "tool_choice": "auto",
                 "temperature": 0,
-                "seed": 42,
+                "seed": 42 + trial,
                 "stream": False,
                 "chat_template_kwargs": {"enable_thinking": False},
             }
-            record["followup_request"] = followup
-            response = client.post(f"{base_url}/v1/chat/completions", json=followup, timeout=timeout)
-            response.raise_for_status()
-            followup_response = response.json()
-            record["followup_response"] = followup_response
-            content = followup_response.get("choices", [{}])[0].get("message", {}).get("content", "").lower()
-            record["final_ok"] = contract["expect_final"] in content
-            record["passed"] = record["tool_ok"] and record["arguments_ok"] and record["final_ok"]
+            record["followup_request"] = final_payload
+            final_response = client.post(f"{base_url}/v1/chat/completions", json=final_payload, timeout=timeout)
+            final_response.raise_for_status()
+            final_body = final_response.json()
+            record["followup_response"] = final_body
+            final_message = final_body.get("choices", [{}])[0].get("message", {})
+            final_content = str(final_message.get("content") or "")
+            final_calls = _tool_calls(final_body)
+            final_contains = [str(value).lower() for value in contract.get("final_contains", [])]
+            final_ok = (
+                not final_calls
+                and all(value in final_content.lower() for value in final_contains)
+                and (not contract.get("final_nonempty") or bool(final_content.strip()))
+            )
+            turns.append({"step": "final", "request": final_payload, "response": final_body, "calls": final_calls})
+            record.update(
+                {
+                    "turns": turns,
+                    "step_results": step_results,
+                    "steps_ok": steps_ok,
+                    "final_content": final_content,
+                    "final_calls": final_calls,
+                    "final_ok": final_ok,
+                    "tool_ok": steps_ok and not final_calls,
+                    "content_present": bool(final_content.strip()),
+                    "passed": steps_ok and final_ok,
+                }
+            )
+            if turns:
+                record["initial_request"] = turns[0]["request"]
+                record["initial_response"] = turns[0]["response"]
+            if len(turns) > 1:
+                record["followup_request"] = turns[1]["request"]
+                record["followup_response"] = turns[1]["response"]
         except Exception as exc:  # noqa: BLE001
             record["status"] = "error"
+            record["passed"] = False
             record["error_type"] = type(exc).__name__
             record["error_message"] = str(exc)
         records.append(record)
     return records
+
+
+def run_concurrency(
+    client: httpx.Client,
+    base_url: str,
+    model: str,
+    repeats: int,
+    timeout: float,
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for workload in CONCURRENCY_WORKLOADS:
+        for trial in range(1, repeats + 1):
+            payloads = [
+                chat_payload(
+                    model,
+                    repeated_prompt(job["repeat"]),
+                    job["max_tokens"],
+                    cache_prompt=False,
+                    ignore_eos=job["max_tokens"] > 1,
+                )
+                for job in workload["jobs"]
+            ]
+            start_barrier = Barrier(len(payloads))
+            started = time.perf_counter()
+
+            def execute(payload: dict[str, Any]) -> dict[str, Any]:
+                start_barrier.wait(timeout=timeout)
+                request_started = time.perf_counter()
+                try:
+                    response = client.post(f"{base_url}/v1/chat/completions", json=payload, timeout=timeout)
+                    response.raise_for_status()
+                    return {
+                        "passed": True,
+                        "elapsed_seconds": round(time.perf_counter() - request_started, 4),
+                        "request": payload,
+                        "response": response.json(),
+                    }
+                except Exception as exc:  # noqa: BLE001
+                    return {
+                        "passed": False,
+                        "status": "error",
+                        "elapsed_seconds": round(time.perf_counter() - request_started, 4),
+                        "request": payload,
+                        "error_type": type(exc).__name__,
+                        "error_message": str(exc),
+                    }
+
+            with ThreadPoolExecutor(max_workers=len(payloads)) as executor:
+                requests = list(executor.map(execute, payloads))
+            wall = time.perf_counter() - started
+            predicted = sum(
+                int(request.get("response", {}).get("timings", {}).get("predicted_n") or 0)
+                for request in requests
+            )
+            records.append(
+                {
+                    "workload": workload["id"],
+                    "trial": trial,
+                    "passed": all(request["passed"] for request in requests),
+                    "request_count": len(requests),
+                    "successful_requests": sum(request["passed"] for request in requests),
+                    "wall_seconds": round(wall, 4),
+                    "aggregate_predicted_n": predicted,
+                    "aggregate_predicted_per_second": round(predicted / wall, 4) if wall else None,
+                    "requests": requests,
+                }
+            )
+    return records
+
+
+def _png_chunk(kind: bytes, payload: bytes) -> bytes:
+    checksum = zlib.crc32(kind + payload) & 0xFFFFFFFF
+    return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", checksum)
+
+
+def quadrant_image_data_url(size: int = 1024) -> str:
+    colors = ((220, 30, 30), (30, 180, 60), (30, 80, 220), (240, 210, 30))
+    rows = bytearray()
+    for y in range(size):
+        rows.append(0)
+        for x in range(size):
+            index = (2 if y >= size // 2 else 0) + (1 if x >= size // 2 else 0)
+            rows.extend(colors[index])
+    header = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)
+    png = b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", header) + _png_chunk(b"IDAT", zlib.compress(bytes(rows), 9)) + _png_chunk(b"IEND", b"")
+    return "data:image/png;base64," + base64.b64encode(png).decode("ascii")
+
+
+def run_vision(
+    client: httpx.Client,
+    base_url: str,
+    model: str,
+    repeats: int,
+    timeout: float,
+    props: dict[str, Any],
+) -> dict[str, Any]:
+    if not bool(props.get("modalities", {}).get("vision")):
+        return {"applicable": False, "reason": "server reports vision=false", "trials": [], **binary_summary([])}
+    image_url = quadrant_image_data_url(int(VISION_WORKLOAD["width"]))
+    rows: list[dict[str, Any]] = []
+    for trial in range(1, repeats + 1):
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Name the colors in the top-left and bottom-right quadrants. Answer only: TOP_LEFT=<color> BOTTOM_RIGHT=<color>."},
+                        {"type": "image_url", "image_url": {"url": image_url}},
+                    ],
+                }
+            ],
+            "temperature": 0,
+            "seed": 42 + trial,
+            "max_tokens": 32,
+            "cache_prompt": False,
+            "stream": False,
+            "chat_template_kwargs": {"enable_thinking": False},
+        }
+        started = time.perf_counter()
+        try:
+            response = client.post(f"{base_url}/v1/chat/completions", json=payload, timeout=timeout)
+            response.raise_for_status()
+            body = response.json()
+            content = str(body.get("choices", [{}])[0].get("message", {}).get("content") or "")
+            expected = VISION_WORKLOAD["expected"]
+            passed = all(str(color).lower() in content.lower() for color in expected.values())
+            rows.append(
+                {
+                    "trial": trial,
+                    "passed": passed,
+                    "elapsed_seconds": round(time.perf_counter() - started, 4),
+                    "request": payload,
+                    "request_digest": stable_digest(payload),
+                    "response": body,
+                    "answer_text": content,
+                    "expected": expected,
+                    "image": {
+                        "format": "png",
+                        "width": VISION_WORKLOAD["width"],
+                        "height": VISION_WORKLOAD["height"],
+                        "digest": stable_digest(image_url),
+                    },
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            rows.append(
+                {
+                    "trial": trial,
+                    "passed": False,
+                    "status": "error",
+                    "elapsed_seconds": round(time.perf_counter() - started, 4),
+                    "error_type": type(exc).__name__,
+                    "error_message": str(exc),
+                }
+            )
+    return {"applicable": True, "trials": rows, **binary_summary(rows)}
 
 
 def validate_run(run: dict[str, Any], suites: set[str]) -> None:
@@ -316,19 +605,97 @@ def validate_run(run: dict[str, Any], suites: set[str]) -> None:
             raise ValueError(f"missing suite output: {suite}")
 
 
-def split_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
-    summaries: dict[str, dict[str, int]] = {}
-    for row in rows:
-        split = str(row.get("split", "core"))
-        summary = summaries.setdefault(split, {"passed": 0, "total": 0, "errors": 0})
-        summary["total"] += 1
-        summary["passed"] += int(bool(row.get("passed")))
-        summary["errors"] += int(row.get("status") == "error")
-    return summaries
+def split_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, float | int]]:
+    return {
+        split: binary_summary([row for row in rows if str(row.get("split", "core")) == split])
+        for split in sorted({str(row.get("split", "core")) for row in rows})
+    }
 
 
 def selected_production_tasks(tasks: list[dict[str, Any]], include_holdout: bool) -> list[dict[str, Any]]:
     return [task for task in tasks if include_holdout or task.get("split", "core") == "core"]
+
+
+def build_release_gate(
+    run: dict[str, Any],
+    manifest: dict[str, Any],
+    cfg: dict[str, Any],
+    requested: bool,
+) -> dict[str, Any]:
+    release_cfg = cfg["release"]
+    profile_class = manifest["profile"]["class"]
+    required_suites = list(
+        release_cfg["production_required_suites"]
+        if profile_class == "production"
+        else release_cfg["fair_required_suites"]
+    )
+    vision = run.get("suites", {}).get("vision", {})
+    if profile_class == "fair" and vision.get("applicable"):
+        required_suites.append("vision")
+    checks: list[dict[str, Any]] = []
+
+    def add(check: str, passed: bool, evidence: Any) -> None:
+        checks.append({"check": check, "passed": passed, "evidence": evidence})
+
+    evaluation = manifest["evaluation"]
+    if profile_class == "fair":
+        add(
+            "performance_repeats",
+            int(evaluation["performance_repeats"]) >= int(release_cfg["minimum_performance_repeats"]),
+            evaluation["performance_repeats"],
+        )
+    add(
+        "quality_repeats",
+        int(evaluation["quality_repeats"]) >= int(release_cfg["minimum_quality_repeats"]),
+        evaluation["quality_repeats"],
+    )
+    if release_cfg.get("require_holdout"):
+        add("holdout_enabled", bool(evaluation["include_holdout"]), evaluation["include_holdout"])
+    for suite_name in required_suites:
+        suite = run.get("suites", {}).get(suite_name)
+        add(
+            f"suite_{suite_name}_completed",
+            isinstance(suite, dict) and suite.get("status") == "ok",
+            suite.get("status") if isinstance(suite, dict) else "missing",
+        )
+        if not isinstance(suite, dict):
+            continue
+        if suite_name == "performance":
+            reliability = {
+                workload: metrics.get("reliability", {})
+                for workload, metrics in suite.get("summary", {}).items()
+            }
+            add(
+                "performance_reliability",
+                bool(reliability)
+                and all(item.get("passed") == item.get("total") and item.get("errors") == 0 for item in reliability.values()),
+                reliability,
+            )
+        elif isinstance(suite.get("passed"), int) and isinstance(suite.get("total"), int):
+            add(
+                f"suite_{suite_name}_all_passed",
+                suite["total"] > 0 and suite["passed"] == suite["total"],
+                {"passed": suite["passed"], "total": suite["total"]},
+            )
+    if evaluation["include_holdout"]:
+        for suite_name in ("tool_contract", "sandbox", "production"):
+            suite = run.get("suites", {}).get(suite_name)
+            if not isinstance(suite, dict):
+                continue
+            holdout = suite.get("splits", {}).get("holdout", {})
+            add(
+                f"suite_{suite_name}_holdout",
+                int(holdout.get("total", 0)) > 0 and holdout.get("passed") == holdout.get("total"),
+                holdout,
+            )
+    eligible = all(check["passed"] for check in checks)
+    return {
+        "requested": requested,
+        "eligible": eligible,
+        "passed": eligible if requested else None,
+        "required_suites": required_suites,
+        "checks": checks,
+    }
 
 
 def validate_fair_runtime(
@@ -394,7 +761,7 @@ def validate_fair_runtime(
 
 def parse_suites(raw: str) -> set[str]:
     suites = {item.strip() for item in raw.split(",") if item.strip()}
-    allowed = {"performance", "tool_contract", "sandbox", "production"}
+    allowed = {"performance", "tool_contract", "sandbox", "concurrency", "vision", "production"}
     if not suites:
         raise ValueError("at least one suite is required")
     if not suites <= allowed:
@@ -416,7 +783,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repeats", type=int)
     parser.add_argument("--quality-repeats", type=int)
     parser.add_argument("--include-holdout", action="store_true")
-    parser.add_argument("--suites", default="performance,tool_contract,sandbox")
+    parser.add_argument("--release-run", action="store_true")
+    parser.add_argument("--suites", default="performance,tool_contract,sandbox,concurrency,vision")
     parser.add_argument("--order-seed", type=int, required=True)
     parser.add_argument("--candidate-order-index", type=int, required=True)
     parser.add_argument("--candidate-count", type=int, required=True)
@@ -467,6 +835,7 @@ def write_preflight_failure(out_dir: Path, trials_dir: Path, args: argparse.Name
     evidence = preflight_evidence(args)
     manifest = {
         "schema_version": SCHEMA_VERSION,
+        "generated_at": datetime.now(UTC).isoformat(),
         "status": "invalid",
         "model": args.model,
         "profile": evidence["profile"],
@@ -525,16 +894,30 @@ def main() -> int:
             raise ValueError("quality repeats must be positive")
         manifest = {
             "schema_version": SCHEMA_VERSION,
+            "generated_at": datetime.now(UTC).isoformat(),
             "model": args.model,
             "base_url": args.base_url,
             "profile": {"class": args.profile_class, "id": args.profile_id},
             "execution_order": {"seed": args.order_seed, "candidate_index": args.candidate_order_index, "candidate_count": args.candidate_count, "candidate_order": json.loads(args.candidate_order)},
             "schedule": {"kind": args.schedule, "cooldown_seconds": args.cooldown_seconds, "stabilization": stabilization},
             "launch": {"argv": json.loads(args.launch_argv), "cache_prompt": args.launch_cache_prompt.lower() in {"1", "true", "yes", "on"}, "cache_ram_mib": int(args.launch_cache_ram), "cache_reuse": int(args.launch_cache_reuse), "slot_prompt_similarity": float(args.launch_slot_similarity)},
-            "evaluation": {"performance_repeats": repeats, "quality_repeats": quality_repeats, "include_holdout": args.include_holdout},
+            "evaluation": {
+                "performance_repeats": repeats,
+                "quality_repeats": quality_repeats,
+                "include_holdout": args.include_holdout,
+                "release_run": args.release_run,
+            },
             "server_runtime": {"props": props, "slots": slots, "offload": offload},
             "config_digest": stable_digest(cfg),
-            "workload_digest": stable_digest({"performance": PERFORMANCE_WORKLOADS, "tools": TOOL_CONTRACTS, "tasks": TASKS}),
+            "workload_digest": stable_digest(
+                {
+                    "performance": PERFORMANCE_WORKLOADS,
+                    "concurrency": CONCURRENCY_WORKLOADS,
+                    "vision": VISION_WORKLOAD,
+                    "tools": TOOL_CONTRACTS,
+                    "tasks": TASKS,
+                }
+            ),
             "environment": environment_metadata(args.server_bin, args.model_path),
         }
         production_tasks: list[dict[str, Any]] = []
@@ -612,6 +995,7 @@ def main() -> int:
                     "passed": sum(bool(row.get("passed")) for row in rows),
                     "total": len(rows),
                     "splits": split_summary(rows),
+                    "reliability": grouped_binary_summary(rows, "contract"),
                     "error_count": sum(row.get("status") == "error" for row in rows),
                 }
 
@@ -622,7 +1006,18 @@ def main() -> int:
                 for task in selected_tasks(args.include_holdout):
                     for trial in range(1, quality_repeats + 1):
                         try:
-                            rows.append(run_task(client, args.base_url, args.model, task, int(cfg["execution"]["sandbox_max_turns"]), timeout, trial=trial))
+                            rows.append(
+                                run_task(
+                                    client,
+                                    args.base_url,
+                                    args.model,
+                                    task,
+                                    int(cfg["execution"]["sandbox_max_turns"]),
+                                    timeout,
+                                    trial=trial,
+                                    max_tokens=int(cfg["execution"]["sandbox_max_tokens"]),
+                                )
+                            )
                         except Exception as exc:  # noqa: BLE001
                             rows.append(
                                 {
@@ -641,10 +1036,33 @@ def main() -> int:
                     "passed": sum(bool(row.get("passed")) for row in rows),
                     "total": len(rows),
                     "splits": split_summary(rows),
+                    "reliability": grouped_binary_summary(rows, "task"),
                     "error_count": sum(row.get("status") == "error" for row in rows),
                 }
 
             execute_suite("sandbox", sandbox)
+        if "concurrency" in suites:
+            def concurrency() -> dict[str, Any]:
+                rows = run_concurrency(client, args.base_url, args.model, repeats, timeout)
+                for row in rows:
+                    write_json(trials_dir / f"concurrency-{row['workload']}-{row['trial']}.json", row)
+                return {
+                    "trials": rows,
+                    **binary_summary(rows),
+                    "reliability": grouped_binary_summary(rows, "workload"),
+                    "error_count": sum(row.get("status") == "error" for row in rows),
+                }
+
+            execute_suite("concurrency", concurrency)
+        if "vision" in suites:
+            def vision() -> dict[str, Any]:
+                result = run_vision(client, args.base_url, args.model, quality_repeats, timeout, props)
+                for row in result["trials"]:
+                    write_json(trials_dir / f"vision-quadrants-{row['trial']}.json", row)
+                result["error_count"] = sum(row.get("status") == "error" for row in result["trials"])
+                return result
+
+            execute_suite("vision", vision)
         if "production" in suites:
             def production() -> dict[str, Any]:
                 if args.profile_class != "production" or not args.production_driver or not args.production_harness or args.production_tasks is None:
@@ -675,10 +1093,22 @@ def main() -> int:
                     "passed": sum(bool(row["passed"]) for row in rows),
                     "total": len(rows),
                     "splits": split_summary(rows),
+                    "reliability": grouped_binary_summary(rows, "task_id"),
                 }
 
             execute_suite("production", production)
     validate_run(run, suites)
+    release_gate = build_release_gate(run, manifest, cfg, args.release_run)
+    run["release_gate"] = release_gate
+    if args.release_run and not release_gate["passed"]:
+        failures.append(
+            {
+                "suite": "release_gate",
+                "status": "error",
+                "error_type": "ReleaseGateFailure",
+                "error_message": "one or more release requirements failed",
+            }
+        )
     run["status"] = "completed_with_errors" if failures else "completed"
     run["failures"] = failures
     write_json(out_dir / "run.json", run)

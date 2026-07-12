@@ -533,59 +533,75 @@ Average score: **1.0**
 
 ## barrage_v2
 
+Run: `expanded-openwendy-smoke-20260712T112253Z`
+
+| Candidate | Status | Release | Harness | Core | Holdout |
+| --- | --- | --- | --- | --- | --- |
+| local | completed | smoke/standard | openwendy-core-api | 3/5 | 1/2 |
+
+## barrage_v2
+
+Run: `expanded-fair-smoke-20260712T112253Z`
+
+| Candidate | Status | Release | Tool core | Tool holdout | Sandbox core | Sandbox holdout | Concurrency | Vision |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| qwen27-unsloth-q6 | completed | smoke/standard | 5/5 | 2/2 | 3/5 | 2/3 | 2/2 | 1/1 |
+
+## barrage_v2
+
 Run: `qwen27-unsloth-smoke-20260710T-vram`
 
-| Candidate | Status | Tool core | Sandbox core |
-| --- | --- | --- | --- |
-| qwen27-unsloth-q6 | completed | 2/2 | 3/3 |
+| Candidate | Status | Release | Tool core | Tool holdout | Sandbox core | Sandbox holdout | Concurrency | Vision |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| qwen27-unsloth-q6 | completed | smoke/standard | 2/2 | - | 3/3 | - | - | - |
 
 ## barrage_v2
 
 Run: `qwen27-unsloth-smoke-20260710T-final`
 
-| Candidate | Status | Tool core | Sandbox core |
-| --- | --- | --- | --- |
-| qwen27-unsloth-q6 | completed | 2/2 | 3/3 |
+| Candidate | Status | Release | Tool core | Tool holdout | Sandbox core | Sandbox holdout | Concurrency | Vision |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| qwen27-unsloth-q6 | completed | smoke/standard | 2/2 | - | 3/3 | - | - | - |
 
 ## barrage_v2
 
 Run: `qwen27-unsloth-remediation-smoke-20260710T`
 
-| Candidate | Status | Tool core | Sandbox core |
-| --- | --- | --- | --- |
-| qwen27-unsloth-q6 | completed | 2/2 | 3/3 |
+| Candidate | Status | Release | Tool core | Tool holdout | Sandbox core | Sandbox holdout | Concurrency | Vision |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| qwen27-unsloth-q6 | completed | smoke/standard | 2/2 | - | 3/3 | - | - | - |
 
 ## barrage_v2
 
 Run: `qwen27-unsloth-evidence-smoke-20260710T`
 
-| Candidate | Status | Tool core | Sandbox core |
-| --- | --- | --- | --- |
-| qwen27-unsloth-q6 | completed | 2/2 | 3/3 |
+| Candidate | Status | Release | Tool core | Tool holdout | Sandbox core | Sandbox holdout | Concurrency | Vision |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| qwen27-unsloth-q6 | completed | smoke/standard | 2/2 | - | 3/3 | - | - | - |
 
 ## barrage_v2
 
 Run: `openwendy-production-smoke-20260710T`
 
-| Candidate | Status | Harness | Pass |
-| --- | --- | --- | --- |
-| local | completed | openwendy-core-api | ungraded (1) |
+| Candidate | Status | Release | Harness | Core | Holdout |
+| --- | --- | --- | --- | --- | --- |
+| local | completed | smoke/standard | openwendy-core-api | - | - |
 
 ## barrage_v2
 
 Run: `openwendy-production-remediation-smoke-20260710T`
 
-| Candidate | Status | Harness | Pass |
-| --- | --- | --- | --- |
-| local | completed | openwendy-core-api | 0/1 |
+| Candidate | Status | Release | Harness | Core | Holdout |
+| --- | --- | --- | --- | --- | --- |
+| local | completed | smoke/standard | openwendy-core-api | 0/1 | - |
 
 ## barrage_v2
 
 Run: `openwendy-evidence-live-20260710T`
 
-| Candidate | Status | Harness | Pass |
-| --- | --- | --- | --- |
-| local | completed | openwendy-core-api | 0/1 |
+| Candidate | Status | Release | Harness | Core | Holdout |
+| --- | --- | --- | --- | --- | --- |
+| local | completed | smoke/standard | openwendy-core-api | 0/1 | - |
 
 ## coding_compare
 

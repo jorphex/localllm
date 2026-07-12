@@ -4,23 +4,93 @@
     "text": "Use the calculate tool to compute 17 * 19, then answer with the result.",
     "expect": {
       "text": "323",
-      "tool": {
-        "name": "calculate",
-        "arguments": {"operation": "evaluate_expression"},
-        "output": "Exact result: 323"
-      }
+      "tools": [
+        {
+          "name": "calculate",
+          "arguments": {"operation": "evaluate_expression"},
+          "output": "Exact result: 323"
+        }
+      ]
     }
+  },
+  {
+    "id": "tool_restraint_core",
+    "text": "Answer exactly RESTRAINT_OK. Do not use any tool.",
+    "expect": {
+      "text": "RESTRAINT_OK",
+      "no_tools": true
+    }
+  },
+  {
+    "id": "workspace_status_core",
+    "text": "Use workspace_session with the status operation, then answer exactly WORKSPACE_STATUS_OK.",
+    "expect": {
+      "text": "WORKSPACE_STATUS_OK",
+      "tools": [
+        {
+          "name": "workspace_session",
+          "arguments": {"operation": "status"},
+          "output_contains": "Workspace session status"
+        }
+      ]
+    }
+  },
+  {
+    "id": "concurrent_calculations_core",
+    "kind": "concurrent_conversations",
+    "cases": [
+      {
+        "id": "concurrent_case_323",
+        "text": "Use calculate to compute 17 * 19, then answer with the result.",
+        "expect": {
+          "text": "323",
+          "tools": [
+            {
+              "name": "calculate",
+              "arguments": {"operation": "evaluate_expression"},
+              "output": "Exact result: 323"
+            }
+          ]
+        }
+      },
+      {
+        "id": "concurrent_case_144",
+        "text": "Use calculate to compute 12 * 12, then answer with the result.",
+        "expect": {
+          "text": "144",
+          "tools": [
+            {
+              "name": "calculate",
+              "arguments": {"operation": "evaluate_expression"},
+              "output": "Exact result: 144"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "cancel_run_core",
+    "kind": "cancel_run",
+    "text": "Use terminal to run sleep 10, then tell me when it is complete."
+  },
+  {
+    "id": "workspace_roundtrip_holdout",
+    "kind": "workspace_roundtrip",
+    "split": "holdout"
   },
   {
     "id": "calculate_holdout",
     "text": "Use the calculate tool to compute (84 / 7) + 5, then answer with the result.",
     "expect": {
       "text": "17",
-      "tool": {
-        "name": "calculate",
-        "arguments": {"operation": "evaluate_expression"},
-        "output": "Exact result: 17"
-      }
+      "tools": [
+        {
+          "name": "calculate",
+          "arguments": {"operation": "evaluate_expression"},
+          "output": "Exact result: 17"
+        }
+      ]
     },
     "split": "holdout"
   }

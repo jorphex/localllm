@@ -1,5 +1,5 @@
 {
-  "schema_version": "barrage-v2.0",
+  "schema_version": "barrage-v2.1",
   "fair_profile": {
     "id": "fair-v1-128k-q8",
     "context": 131072,
@@ -16,9 +16,17 @@
     "quality_repeats": 3,
     "request_timeout_seconds": 600,
     "sandbox_max_turns": 12,
+    "sandbox_max_tokens": 2048,
     "tg_max_tokens": 128,
     "cooldown_seconds": 30,
     "max_baseline_vram_mib": 1024,
     "min_model_vram_residency_ratio": 1.0
+  },
+  "release": {
+    "minimum_performance_repeats": 5,
+    "minimum_quality_repeats": 3,
+    "require_holdout": true,
+    "fair_required_suites": ["performance", "tool_contract", "sandbox", "concurrency"],
+    "production_required_suites": ["production"]
   }
 }

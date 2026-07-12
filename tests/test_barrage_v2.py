@@ -45,7 +45,8 @@ class FakeStream:
 
     def iter_lines(self):
         yield 'data: {"choices":[{"delta":{"role":"assistant"}}]}'
-        yield 'data: {"choices":[{"delta":{"content":"O"}}]}'
+        content = self.body.get("choices", [{}])[0].get("message", {}).get("content", "")
+        yield f'data: {json.dumps({"choices": [{"delta": {"content": content}}]})}'
         yield f"data: {json.dumps(self.body)}"
         yield "data: [DONE]"
 
@@ -68,31 +69,142 @@ class FakeClient:
         tools = json.get("tools", [])
         messages = json["messages"]
         if tools and tools[0]["function"]["name"] == "release_lookup":
-            if messages[-1]["role"] == "tool":
-                return FakeResponse(self._timed("The stable release is 2.4.1."))
-            user = messages[-1]["content"]
+            user = messages[0]["content"]
             if "Do not use a tool" in user:
                 return FakeResponse(self._timed("hello"))
-            return FakeResponse({"choices": [{"finish_reason": "tool_calls", "message": {"tool_calls": [{"id": "release", "function": {"name": "release_lookup", "arguments": '{"package":"barrage","channel":"stable"}'}}]}}], "timings": {}})
+            tool_outputs = [message["content"] for message in messages if message.get("role") == "tool"]
+            if "plugin_core" in user and tool_outputs:
+                if any("supports" in output for output in tool_outputs):
+                    return FakeResponse(self._timed("Version 2.4.1 is supported."))
+                return FakeResponse(
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "tool_calls": [
+                                        {
+                                            "id": "compatibility",
+                                            "function": {
+                                                "name": "compatibility_lookup",
+                                                "arguments": '{"component":"plugin_core","version":"2.4.1"}',
+                                            },
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                )
+            if "preview" in user and tool_outputs:
+                if any("2.5.0-rc1" in output for output in tool_outputs):
+                    return FakeResponse(self._timed("The preview release is 2.5.0-rc1."))
+                return FakeResponse(
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "tool_calls": [
+                                        {
+                                            "id": "mirror",
+                                            "function": {
+                                                "name": "mirror_lookup",
+                                                "arguments": '{"package":"barrage","channel":"preview"}',
+                                            },
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                )
+            if tool_outputs:
+                versions = " ".join(tool_outputs)
+                return FakeResponse(self._timed(versions))
+            if "both independent" in user:
+                return FakeResponse(
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "tool_calls": [
+                                        {
+                                            "id": "release-barrage",
+                                            "function": {
+                                                "name": "release_lookup",
+                                                "arguments": '{"package":"barrage","channel":"stable"}',
+                                            },
+                                        },
+                                        {
+                                            "id": "release-agentkit",
+                                            "function": {
+                                                "name": "release_lookup",
+                                                "arguments": '{"package":"agentkit","channel":"stable"}',
+                                            },
+                                        },
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                )
+            package = "agentkit" if "agentkit" in user else "barrage"
+            channel = "preview" if "preview" in user else "stable"
+            return FakeResponse(
+                {
+                    "choices": [
+                        {
+                            "finish_reason": "tool_calls",
+                            "message": {
+                                "tool_calls": [
+                                    {
+                                        "id": "release",
+                                        "function": {
+                                            "name": "release_lookup",
+                                            "arguments": json_module.dumps({"package": package, "channel": channel}),
+                                        },
+                                    }
+                                ]
+                            },
+                        }
+                    ],
+                    "timings": {},
+                }
+            )
         if tools:
             if messages[-1]["role"] == "tool":
                 output = messages[-1]["content"]
-                if "wrote solution.py" in output:
+                if "TransientRunnerError" in output:
+                    return FakeResponse({"choices": [{"message": {"tool_calls": [{"id": "retry-test", "function": {"name": "run_tests", "arguments": '{"command":"python3 tests.py"}'}}]}}]})
+                if "wrote discounts.py" in output:
+                    code = "from discounts import normalize_discount\n\ndef final_price(price, discount):\n    return round(price * (1 - normalize_discount(discount)), 2)\n"
+                    return FakeResponse({"choices": [{"message": {"tool_calls": [{"id": "write-pricing", "function": {"name": "write_file", "arguments": json_module.dumps({"path": "pricing.py", "content": code})}}]}}]})
+                if output.startswith("wrote "):
                     return FakeResponse({"choices": [{"message": {"tool_calls": [{"id": "test", "function": {"name": "run_tests", "arguments": '{"command":"python3 tests.py"}'}}]}}]})
                 return FakeResponse(self._timed("done"))
             prompt = messages[1]["content"]
+            path = "solution.py"
             if "normalize_tags" in prompt:
                 code = "def normalize_tags(tags):\n    return [tag.strip().lower() for tag in tags if tag.strip()]\n"
             elif "merge_intervals" in prompt:
                 code = "def merge_intervals(intervals):\n    result = []\n    for start, end in sorted(intervals):\n        if result and start <= result[-1][1]:\n            result[-1][1] = max(result[-1][1], end)\n        else:\n            result.append([start, end])\n    return result\n"
+            elif "discount normalization" in prompt:
+                code = "def normalize_discount(value):\n    return min(1, max(0, value))\n"
+                path = "discounts.py"
+            elif "boolean parser" in prompt:
+                code = "def parse_bool(value):\n    if isinstance(value, str):\n        normalized = value.strip().lower()\n        if normalized in {'true', 'false'}:\n            return normalized == 'true'\n    if isinstance(value, bool):\n        return value\n    raise ValueError(f'invalid boolean: {value!r}')\n"
+                path = "parser.py"
             else:
                 code = "def call_with_retry(fn, retries=2):\n    for attempt in range(retries + 1):\n        try:\n            return fn()\n        except Exception:\n            if attempt == retries:\n                raise\n"
-            return FakeResponse({"choices": [{"message": {"tool_calls": [{"id": "write", "function": {"name": "write_file", "arguments": json_module.dumps({"path": "solution.py", "content": code})}}]}}]})
+                path = "solution.py"
+            return FakeResponse({"choices": [{"message": {"tool_calls": [{"id": "write", "function": {"name": "write_file", "arguments": json_module.dumps({"path": path, "content": code})}}]}}]})
+        if "Final checkpoint code" in messages[-1]["content"]:
+            return FakeResponse(self._timed("EMBER-417 HARBOR-263 LANTERN-905"))
         return FakeResponse(self._timed())
 
     def stream(self, _method: str, _url: str, *, json: dict, timeout: float):
-        del json, timeout
-        return FakeStream(self._timed())
+        del timeout
+        content = "EMBER-417 HARBOR-263 LANTERN-905" if "Final checkpoint code" in json["messages"][-1]["content"] else "OK"
+        return FakeStream(self._timed(content))
 
 
 class FailingClient(FakeClient):
@@ -122,10 +234,53 @@ class EmptyRestraintClient(FakeClient):
         return super().post(_url, json=json, timeout=1)
 
 
+class VisionFakeClient(FakeClient):
+    def post(self, _url: str, *, json: dict, timeout: float):
+        if isinstance(json["messages"][-1]["content"], list):
+            return FakeResponse(self._timed("TOP_LEFT=red BOTTOM_RIGHT=yellow"))
+        return super().post(_url, json=json, timeout=timeout)
+
+
+class CancelFakeClient:
+    def post(self, url: str, *, json: dict | None = None):
+        del json
+        if url.endswith("/api/conversations"):
+            return FakeResponse({"conversation": {"conversation_id": "conversation"}})
+        if url.endswith("/messages"):
+            return FakeResponse({"run_id": "run"})
+        if url.endswith("/run/cancel"):
+            return FakeResponse({"status": "cancel_requested"})
+        raise AssertionError(url)
+
+    def patch(self, _url: str, *, json: dict):
+        del json
+        return FakeResponse({})
+
+    def get(self, url: str):
+        if url.endswith("/snapshot"):
+            return FakeResponse(
+                {
+                    "snapshot": {
+                        "terminal": True,
+                        "terminal_type": "run_cancelled",
+                        "status": "cancelled",
+                    }
+                }
+            )
+        raise AssertionError(url)
+
+    def delete(self, _url: str):
+        return FakeResponse({})
+
+
 json_module = json
 
 
 class BarrageV2Tests(unittest.TestCase):
+    def test_config_schema_matches_runner_schema(self):
+        config_path = Path(__file__).parents[1] / "benchmarks" / "barrage_v2" / "config.json"
+        self.assertEqual(json.loads(config_path.read_text(encoding="utf-8"))["schema_version"], SCHEMA_VERSION)
+
     def test_aggregate_trials_reports_distribution(self):
         summary = artifacts.aggregate_trials(
             [
@@ -135,7 +290,23 @@ class BarrageV2Tests(unittest.TestCase):
             ]
         )
         self.assertEqual(summary["pp"]["prompt_per_second"]["median"], 3.0)
+        self.assertEqual(summary["pp"]["prompt_per_second"]["mean"], 3.0)
+        self.assertEqual(summary["pp"]["prompt_per_second"]["p95"], 4.0)
+        self.assertEqual(summary["pp"]["reliability"]["pass_rate"], 0.0)
         self.assertEqual(summary["tg"]["prompt_per_second"]["count"], 0)
+
+    def test_binary_summary_reports_wilson_interval_and_errors(self):
+        summary = artifacts.binary_summary(
+            [
+                {"passed": True},
+                {"passed": False},
+                {"passed": False, "status": "error"},
+            ]
+        )
+        self.assertEqual(summary["pass_rate"], 0.3333)
+        self.assertEqual(summary["error_rate"], 0.3333)
+        self.assertLess(summary["wilson_low"], summary["pass_rate"])
+        self.assertGreater(summary["wilson_high"], summary["pass_rate"])
 
     def test_gpu_metadata_falls_back_when_nvidia_command_fails(self):
         with patch("benchmarks.barrage_v2.artifacts.command_output", side_effect=[None, "Driver version: 6.16"]):
@@ -158,23 +329,58 @@ class BarrageV2Tests(unittest.TestCase):
         client = FakeClient()
         performance = runner.run_performance(client, "http://fake", "fake", 1, 1, 7)
         tools = runner.run_tool_contracts(client, "http://fake", "fake", 1)
-        self.assertEqual({row["workload"] for row in performance}, {"cold_pp_short", "cold_pp_long", "direct_tg", "agent_stream", "reference_agent_loop", "warm_append"})
+        self.assertEqual({row["workload"] for row in performance}, {workload["id"] for workload in runner.PERFORMANCE_WORKLOADS})
+        self.assertTrue(all(row["passed"] for row in performance))
         self.assertTrue(all(row["passed"] for row in tools))
         self.assertTrue(all(("request" in row and "response" in row) or "initial_request" in row for row in performance))
-        self.assertTrue(all(row["predicted_per_second"] is None for row in performance if row["workload"].startswith("cold_pp_") or row["workload"] == "warm_append"))
+        self.assertTrue(
+            all(
+                row["predicted_per_second"] is None
+                for row in performance
+                if row["workload"].startswith(("cold_pp_", "context_recall_", "warm_append_"))
+            )
+        )
         reference_loop = next(row for row in performance if row["workload"] == "reference_agent_loop")
         self.assertEqual(reference_loop["initial_request"]["tool_choice"], "required")
         self.assertEqual(reference_loop["followup_request"]["tool_choice"], "none")
         self.assertEqual(reference_loop["agent_request_count"], 2)
-        warm_append = next(row for row in performance if row["workload"] == "warm_append")
+        warm_append = next(row for row in performance if row["workload"] == "warm_append_8k")
         self.assertIn("prime_request", warm_append)
         self.assertIn("prime_response", warm_append)
+        context = next(row for row in performance if row["workload"] == "context_recall_120k")
+        self.assertIsNotNone(context["ttft_seconds"])
+        self.assertIn("EMBER-417", context["answer_text"])
+
+    def test_warm_append_requires_a_reported_cache_hit(self):
+        class NoCacheClient(FakeClient):
+            def _timed(self, content: str = "OK") -> dict:
+                body = super()._timed(content)
+                body["timings"]["cache_n"] = 0
+                return body
+
+        workload = ({"id": "warm_append_test", "kind": "warm", "repeat": 1, "max_tokens": 1},)
+        with patch.object(runner, "PERFORMANCE_WORKLOADS", workload):
+            result = runner.run_performance(NoCacheClient(), "http://fake", "fake", 1, 1, 7)[0]
+        self.assertFalse(result["cache_hit"])
+        self.assertFalse(result["passed"])
 
     def test_tool_restraint_requires_a_nonempty_answer(self):
         result = runner.run_tool_contracts(EmptyRestraintClient(), "http://fake", "fake", 1, [TOOL_CONTRACTS[0]])[0]
         self.assertTrue(result["tool_ok"])
         self.assertFalse(result["content_present"])
         self.assertFalse(result["passed"])
+
+    def test_tool_contracts_cover_parallel_dependent_and_error_recovery(self):
+        selected = [
+            contract
+            for contract in TOOL_CONTRACTS
+            if contract["id"] in {"dependent_tool_sequence", "parallel_tool_calls", "tool_error_recovery"}
+        ]
+        results = runner.run_tool_contracts(FakeClient(), "http://fake", "fake", 1, selected)
+        self.assertTrue(all(result["passed"] for result in results), results)
+        self.assertEqual([len(result["step_results"]) for result in results], [2, 1, 2])
+        parallel = next(result for result in results if result["contract"] == "parallel_tool_calls")
+        self.assertEqual(len(parallel["step_results"][0]["actual"]), 2)
 
     def test_sandbox_task_executes_tools_and_acceptance(self):
         result = run_task(FakeClient(), "http://fake", "fake", TASKS[0], 6, 1, trial=2)
@@ -184,6 +390,29 @@ class BarrageV2Tests(unittest.TestCase):
         self.assertTrue(result["scope_clean"])
         self.assertEqual(result["changed_files"], ["solution.py"])
         self.assertGreater(result["agent_metrics"]["request_count"], 0)
+        self.assertEqual(result["transcript"][0]["request"]["max_tokens"], 2048)
+
+    def test_sandbox_requires_scope_verification_and_transient_failure_recovery(self):
+        task = next(task for task in TASKS if task["id"] == "transient_test_recovery")
+        result = run_task(FakeClient(), "http://fake", "fake", task, 8, 1)
+        self.assertTrue(result["passed"], result)
+        self.assertEqual(result["test_attempts"], 2)
+        self.assertEqual(result["tool_error_count"], 1)
+        self.assertTrue(result["verification_passed"])
+        self.assertTrue(result["recovery_completed"])
+
+    def test_concurrency_and_vision_suites_grade_independently(self):
+        concurrency = runner.run_concurrency(FakeClient(), "http://fake", "fake", 1, 1)
+        self.assertEqual({row["workload"] for row in concurrency}, {"dual_generation", "mixed_prefill_generation"})
+        self.assertTrue(all(row["passed"] and row["successful_requests"] == 2 for row in concurrency))
+        unsupported = runner.run_vision(FakeClient(), "http://fake", "fake", 1, 1, {"modalities": {"vision": False}})
+        self.assertFalse(unsupported["applicable"])
+        supported = runner.run_vision(VisionFakeClient(), "http://fake", "fake", 1, 1, {"modalities": {"vision": True}})
+        self.assertTrue(supported["applicable"])
+        self.assertEqual(supported["passed"], 1)
+        self.assertIn("request", supported["trials"][0])
+        self.assertIn("digest", supported["trials"][0]["image"])
+        self.assertTrue(runner.quadrant_image_data_url(8).startswith("data:image/png;base64,"))
 
     def test_core_and_holdout_splits_are_explicit(self):
         self.assertTrue(all(task["split"] == "core" for task in selected_tasks(False)))
@@ -262,6 +491,84 @@ class BarrageV2Tests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertFalse(result["required_text_found"])
 
+    def test_openwendy_event_evaluation_grades_sequences_restraint_and_extra_tools(self):
+        events = [
+            {
+                "type": "tool_end",
+                "tool_name": "workspace_session",
+                "state": "completed",
+                "arguments": {"operation": "status"},
+                "output": "Workspace session status: ready",
+            }
+        ]
+        task = {
+            "id": "workspace",
+            "expect": {
+                "text": "WORKSPACE_STATUS_OK",
+                "tools": [
+                    {
+                        "name": "workspace_session",
+                        "arguments": {"operation": "status"},
+                        "output_contains": "session status",
+                    }
+                ],
+            },
+        }
+        result = openwendy_driver.evaluate_task(
+            task,
+            {"terminal_type": "run_completed", "answer_text": "WORKSPACE_STATUS_OK"},
+            events,
+        )
+        self.assertTrue(result["passed"])
+        extra = openwendy_driver.evaluate_task(
+            task,
+            {"terminal_type": "run_completed", "answer_text": "WORKSPACE_STATUS_OK"},
+            [*events, {**events[0], "tool_name": "terminal"}],
+        )
+        self.assertFalse(extra["passed"])
+        restraint = openwendy_driver.evaluate_task(
+            {"id": "restraint", "expect": {"text": "OK", "no_tools": True}},
+            {"terminal_type": "run_completed", "answer_text": "OK"},
+            [],
+        )
+        self.assertTrue(restraint["passed"])
+
+    def test_openwendy_concurrent_cancel_and_workspace_task_types(self):
+        task = {
+            "id": "concurrent",
+            "cases": [{"id": "one"}, {"id": "two"}],
+        }
+        with patch(
+            "benchmarks.barrage_v2.openwendy_driver.run_openwendy_task",
+            side_effect=lambda _client, _url, case, _model, _timeout: {"task_id": case["id"], "passed": True},
+        ):
+            result = openwendy_driver.run_concurrent_openwendy_task(object(), "http://fake", task, "local", 1)
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["case_count"], 2)
+        cancelled = openwendy_driver.run_cancel_openwendy_task(
+            CancelFakeClient(),
+            "http://fake",
+            {"id": "cancel", "text": "wait"},
+            "local",
+            1,
+        )
+        self.assertTrue(cancelled["passed"])
+        with tempfile.TemporaryDirectory() as tempdir:
+            def fake_workspace_run(_client, _url, generated_task, _model, _timeout):
+                tools = generated_task["expect"]["tools"]
+                workspace = Path(tools[0]["arguments"]["path"])
+                (workspace / "probe.txt").write_text(tools[1]["arguments"]["content"], encoding="utf-8")
+                return {"task_id": generated_task["id"], "passed": True}
+
+            with patch("benchmarks.barrage_v2.openwendy_driver.Path.home", return_value=Path(tempdir)), patch(
+                "benchmarks.barrage_v2.openwendy_driver.run_openwendy_task",
+                side_effect=fake_workspace_run,
+            ):
+                workspace = openwendy_driver.run_workspace_roundtrip_task(
+                    object(), "http://fake", {"id": "workspace"}, "local", 1
+                )
+        self.assertTrue(workspace["passed"])
+
     def test_openwendy_source_digest_changes_for_dirty_and_untracked_source(self):
         with tempfile.TemporaryDirectory() as tempdir:
             root = Path(tempdir)
@@ -321,8 +628,24 @@ class BarrageV2Tests(unittest.TestCase):
             run = {
                 "schema_version": SCHEMA_VERSION,
                 "status": "completed",
-                "manifest": {"model": "candidate", "profile": {"class": "fair"}, "evaluation": {"quality_repeats": 3}},
-                "suites": {"tool_contract": {"status": "ok", "passed": 6, "total": 6, "splits": {"core": {"passed": 6, "total": 6}}}},
+                "manifest": {
+                    "model": "candidate",
+                    "generated_at": "2026-07-12T12:00:00+00:00",
+                    "profile": {"class": "fair"},
+                    "evaluation": {"quality_repeats": 3},
+                },
+                "suites": {
+                    "tool_contract": {
+                        "status": "ok",
+                        "passed": 6,
+                        "total": 6,
+                        "splits": {"core": {"passed": 6, "total": 6}},
+                        "contracts": [{"raw": "secret"}],
+                    },
+                    "concurrency": {"status": "ok", "passed": 2, "total": 2, "trials": [{"raw": "secret"}]},
+                    "vision": {"status": "ok", "applicable": False, "reason": "vision=false", "trials": []},
+                },
+                "release_gate": {"requested": False, "passed": False},
                 "failures": [],
             }
             (candidate_dir / "run.json").write_text(json.dumps(run), encoding="utf-8")
@@ -330,7 +653,12 @@ class BarrageV2Tests(unittest.TestCase):
             summary = json.loads((root / "summaries" / "smoke" / "summary.json").read_text(encoding="utf-8"))
         self.assertEqual(published["summary"]["candidate_count"], 1)
         self.assertEqual(summary["candidates"][0]["tool_contract"]["passed"], 6)
+        self.assertEqual(summary["candidates"][0]["concurrency"]["passed"], 2)
+        self.assertEqual(summary["candidates"][0]["generated_at"], "2026-07-12T12:00:00+00:00")
+        self.assertFalse(summary["candidates"][0]["vision"]["applicable"])
+        self.assertFalse(summary["candidates"][0]["release_gate"]["requested"])
         self.assertNotIn("trials", summary["candidates"][0])
+        self.assertNotIn("contracts", summary["candidates"][0]["tool_contract"])
 
     def test_publish_retains_production_pass_fail_counts(self):
         summary = publish.candidate_summary(
@@ -364,8 +692,8 @@ class BarrageV2Tests(unittest.TestCase):
                 ]
             }
         )
-        self.assertIn("| Candidate | Status | Harness | Pass |", rendered)
-        self.assertIn("| local | completed | openwendy-core-api | 1/2 |", rendered)
+        self.assertIn("| Candidate | Status | Release | Harness | Core | Holdout |", rendered)
+        self.assertIn("| local | completed | smoke/standard | openwendy-core-api | - | - |", rendered)
 
     def test_partial_tool_and_sandbox_failures_retain_prior_evidence(self):
         tool = runner.run_tool_contracts(FailAfterPostsClient(1), "http://fake", "fake", 1, [TOOL_CONTRACTS[1]])[0]
@@ -384,6 +712,62 @@ class BarrageV2Tests(unittest.TestCase):
     def test_validate_run_requires_requested_suites(self):
         with self.assertRaises(ValueError):
             runner.validate_run({"schema_version": SCHEMA_VERSION, "suites": {}}, {"sandbox"})
+
+    def test_release_gate_requires_full_repeats_holdouts_and_all_suite_passes(self):
+        cfg = {
+            "release": {
+                "minimum_performance_repeats": 5,
+                "minimum_quality_repeats": 3,
+                "require_holdout": True,
+                "fair_required_suites": ["performance", "tool_contract", "sandbox", "concurrency"],
+                "production_required_suites": ["production"],
+            }
+        }
+        manifest = {
+            "profile": {"class": "fair"},
+            "evaluation": {
+                "performance_repeats": 5,
+                "quality_repeats": 3,
+                "include_holdout": True,
+            },
+        }
+        split = {
+            "core": {"passed": 1, "total": 1},
+            "holdout": {"passed": 1, "total": 1},
+        }
+        run = {
+            "suites": {
+                "performance": {
+                    "status": "ok",
+                    "summary": {"direct": {"reliability": {"passed": 5, "total": 5, "errors": 0}}},
+                },
+                "tool_contract": {"status": "ok", "passed": 2, "total": 2, "splits": split},
+                "sandbox": {"status": "ok", "passed": 2, "total": 2, "splits": split},
+                "concurrency": {"status": "ok", "passed": 2, "total": 2},
+                "vision": {"status": "ok", "applicable": False},
+            }
+        }
+        gate = runner.build_release_gate(run, manifest, cfg, True)
+        self.assertTrue(gate["passed"], gate)
+        manifest["evaluation"]["quality_repeats"] = 1
+        failed = runner.build_release_gate(run, manifest, cfg, True)
+        self.assertFalse(failed["passed"])
+        smoke = runner.build_release_gate(run, manifest, cfg, False)
+        self.assertIsNone(smoke["passed"])
+        self.assertFalse(smoke["eligible"])
+
+        production_manifest = {
+            "profile": {"class": "production"},
+            "evaluation": {"performance_repeats": 1, "quality_repeats": 3, "include_holdout": True},
+        }
+        production_run = {
+            "suites": {
+                "production": {"status": "ok", "passed": 2, "total": 2, "splits": split},
+            }
+        }
+        production_gate = runner.build_release_gate(production_run, production_manifest, cfg, True)
+        self.assertTrue(production_gate["passed"], production_gate)
+        self.assertNotIn("performance_repeats", {check["check"] for check in production_gate["checks"]})
 
     def test_runner_writes_complete_normalized_artifacts(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -443,17 +827,35 @@ class BarrageV2Tests(unittest.TestCase):
                 runner.main()
             run = json.loads((out_dir / "run.json").read_text(encoding="utf-8"))
             self.assertEqual(run["schema_version"], SCHEMA_VERSION)
-            self.assertEqual(run["suites"]["sandbox"]["passed"], 9)
+            self.assertRegex(run["manifest"]["generated_at"], r"^\d{4}-\d{2}-\d{2}T")
+            expected_sandbox_trials = len(selected_tasks(False)) * 3
+            self.assertEqual(run["suites"]["sandbox"]["passed"], expected_sandbox_trials)
             self.assertTrue(list((out_dir / "trials").glob("performance-*.json")))
             self.assertTrue(run["manifest"]["launch"]["cache_prompt"])
             self.assertEqual(run["manifest"]["execution_order"]["candidate_order"], ["fake"])
             self.assertEqual(run["manifest"]["server_runtime"]["slots"][0]["n_ctx"], 131072)
             self.assertEqual(run["manifest"]["server_runtime"]["offload"]["evidence"], "verbose_layer_assignment")
-            self.assertEqual(run["manifest"]["evaluation"], {"performance_repeats": 1, "quality_repeats": 3, "include_holdout": False})
-            self.assertEqual(run["suites"]["sandbox"]["splits"]["core"]["total"], 9)
+            self.assertEqual(
+                run["manifest"]["evaluation"],
+                {
+                    "performance_repeats": 1,
+                    "quality_repeats": 3,
+                    "include_holdout": False,
+                    "release_run": False,
+                },
+            )
+            self.assertEqual(run["suites"]["sandbox"]["splits"]["core"]["total"], expected_sandbox_trials)
             self.assertEqual(
                 run["manifest"]["workload_digest"],
-                artifacts.stable_digest({"performance": runner.PERFORMANCE_WORKLOADS, "tools": TOOL_CONTRACTS, "tasks": TASKS}),
+                artifacts.stable_digest(
+                    {
+                        "performance": runner.PERFORMANCE_WORKLOADS,
+                        "concurrency": runner.CONCURRENCY_WORKLOADS,
+                        "vision": runner.VISION_WORKLOAD,
+                        "tools": TOOL_CONTRACTS,
+                        "tasks": TASKS,
+                    }
+                ),
             )
 
     def test_launcher_dry_run_locks_fair_cache_profile(self):
@@ -474,6 +876,27 @@ class BarrageV2Tests(unittest.TestCase):
         self.assertEqual(payload["cooldown_seconds"], 30)
         self.assertEqual(payload["max_baseline_vram_mib"], 1024)
         self.assertFalse(payload["include_holdout"])
+        self.assertFalse(payload["release_run"])
+
+    def test_launcher_release_mode_forces_holdouts(self):
+        root = Path(__file__).resolve().parents[1]
+        result = subprocess.run(
+            ["bash", "benchmarks/run_barrage_v2.sh"],
+            cwd=root,
+            env={
+                **os.environ,
+                "BARRAGE_V2_DRY_RUN": "true",
+                "BARRAGE_V2_RELEASE_RUN": "true",
+                "BARRAGE_V2_ORDER_SEED": "7",
+                "BARRAGE_V2_CANDIDATES": "alpha|alpha.gguf",
+            },
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["release_run"])
+        self.assertTrue(payload["include_holdout"])
 
     def test_launcher_runs_production_through_external_driver_only(self):
         root = Path(__file__).resolve().parents[1]
@@ -762,7 +1185,7 @@ class BarrageV2Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             script = Path(tempdir) / "driver.py"
             script.write_text(
-                "import json, sys\nrequest=json.load(sys.stdin)\nprint(json.dumps({'schema_version':'barrage-v2.0','profile':request['profile'],'harness':request['harness'],'results':[{'task_id':'task-1','passed':True}]}))\n",
+                f"import json, sys\nrequest=json.load(sys.stdin)\nprint(json.dumps({{'schema_version':'{SCHEMA_VERSION}','profile':request['profile'],'harness':request['harness'],'results':[{{'task_id':'task-1','passed':True}}]}}))\n",
                 encoding="utf-8",
             )
             result = production_driver.run_driver(

@@ -1,0 +1,1390 @@
+{
+  "candidate_count": 1,
+  "candidates": [
+    {
+      "concurrency": {
+        "applicable": true,
+        "error_rate": 0.0,
+        "pass_rate": 1.0,
+        "passed": 2,
+        "reason": null,
+        "reliability": {
+          "dual_generation": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "mixed_prefill_generation": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          }
+        },
+        "status": "ok",
+        "total": 2
+      },
+      "environment": {
+        "gpu": {
+          "backend": "rocm",
+          "driver": "============================ ROCm System Management Interface ============================\n============================== Version of System Component ===============================\nDriver version: 6.16.13\n==========================================================================================\n================================== End of ROCm SMI Log ==================================="
+        },
+        "model": {
+          "path": "/home/j/projects/localllm/models/qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf",
+          "sha256": "773f1bf0be0589d056ce05476a8a135b50494a3f2ecc3f8f0c4f2c3594bba02e",
+          "size_bytes": 22884406400
+        },
+        "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+        "runtime_backend": "unknown",
+        "server_version": "version: 1306 (db52540f7)\nbuilt with GNU 13.3.0 for Linux x86_64"
+      },
+      "evaluation": {
+        "include_holdout": true,
+        "performance_repeats": 1,
+        "quality_repeats": 1,
+        "release_run": false
+      },
+      "failures": [],
+      "generated_at": "2026-07-12T11:17:57.350244+00:00",
+      "model": "qwen27-unsloth-q6",
+      "performance": {
+        "status": "ok",
+        "summary": {
+          "agent_stream": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "p95": 0.0,
+              "stdev": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 3.4611,
+              "mean": 3.4611,
+              "median": 3.4611,
+              "min": 3.4611,
+              "p95": 3.4611,
+              "stdev": 0.0
+            },
+            "predicted_per_second": {
+              "count": 1,
+              "max": 24.87,
+              "mean": 24.87,
+              "median": 24.87,
+              "min": 24.87,
+              "p95": 24.87,
+              "stdev": 0.0
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 580.7068,
+              "mean": 580.7068,
+              "median": 580.7068,
+              "min": 580.7068,
+              "p95": 580.7068,
+              "stdev": 0.0
+            },
+            "reliability": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 1,
+              "total": 1,
+              "wilson_high": 1.0,
+              "wilson_low": 0.2065
+            },
+            "ttft_seconds": {
+              "count": 1,
+              "max": 1.6106,
+              "mean": 1.6106,
+              "median": 1.6106,
+              "min": 1.6106,
+              "p95": 1.6106,
+              "stdev": 0.0
+            }
+          },
+          "cold_pp_short": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "p95": 0.0,
+              "stdev": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 1.8866,
+              "mean": 1.8866,
+              "median": 1.8866,
+              "min": 1.8866,
+              "p95": 1.8866,
+              "stdev": 0.0
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 781.544,
+              "mean": 781.544,
+              "median": 781.544,
+              "min": 781.544,
+              "p95": 781.544,
+              "stdev": 0.0
+            },
+            "reliability": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 1,
+              "total": 1,
+              "wilson_high": 1.0,
+              "wilson_low": 0.2065
+            },
+            "ttft_seconds": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            }
+          },
+          "context_recall_120k": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "p95": 0.0,
+              "stdev": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 291.4635,
+              "mean": 291.4635,
+              "median": 291.4635,
+              "min": 291.4635,
+              "p95": 291.4635,
+              "stdev": 0.0
+            },
+            "predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 410.342,
+              "mean": 410.342,
+              "median": 410.342,
+              "min": 410.342,
+              "p95": 410.342,
+              "stdev": 0.0
+            },
+            "reliability": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 1,
+              "total": 1,
+              "wilson_high": 1.0,
+              "wilson_low": 0.2065
+            },
+            "ttft_seconds": {
+              "count": 1,
+              "max": 290.4044,
+              "mean": 290.4044,
+              "median": 290.4044,
+              "min": 290.4044,
+              "p95": 290.4044,
+              "stdev": 0.0
+            }
+          },
+          "context_recall_32k": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "p95": 0.0,
+              "stdev": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 58.0797,
+              "mean": 58.0797,
+              "median": 58.0797,
+              "min": 58.0797,
+              "p95": 58.0797,
+              "stdev": 0.0
+            },
+            "predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 662.128,
+              "mean": 662.128,
+              "median": 662.128,
+              "min": 662.128,
+              "p95": 662.128,
+              "stdev": 0.0
+            },
+            "reliability": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 1,
+              "total": 1,
+              "wilson_high": 1.0,
+              "wilson_low": 0.2065
+            },
+            "ttft_seconds": {
+              "count": 1,
+              "max": 57.1566,
+              "mean": 57.1566,
+              "median": 57.1566,
+              "min": 57.1566,
+              "p95": 57.1566,
+              "stdev": 0.0
+            }
+          },
+          "context_recall_64k": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "p95": 0.0,
+              "stdev": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 138.6823,
+              "mean": 138.6823,
+              "median": 138.6823,
+              "min": 138.6823,
+              "p95": 138.6823,
+              "stdev": 0.0
+            },
+            "predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 525.7802,
+              "mean": 525.7802,
+              "median": 525.7802,
+              "min": 525.7802,
+              "p95": 525.7802,
+              "stdev": 0.0
+            },
+            "reliability": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 1,
+              "total": 1,
+              "wilson_high": 1.0,
+              "wilson_low": 0.2065
+            },
+            "ttft_seconds": {
+              "count": 1,
+              "max": 137.6884,
+              "mean": 137.6884,
+              "median": 137.6884,
+              "min": 137.6884,
+              "p95": 137.6884,
+              "stdev": 0.0
+            }
+          },
+          "context_recall_8k": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "p95": 0.0,
+              "stdev": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 13.1034,
+              "mean": 13.1034,
+              "median": 13.1034,
+              "min": 13.1034,
+              "p95": 13.1034,
+              "stdev": 0.0
+            },
+            "predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 806.4344,
+              "mean": 806.4344,
+              "median": 806.4344,
+              "min": 806.4344,
+              "p95": 806.4344,
+              "stdev": 0.0
+            },
+            "reliability": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 1,
+              "total": 1,
+              "wilson_high": 1.0,
+              "wilson_low": 0.2065
+            },
+            "ttft_seconds": {
+              "count": 1,
+              "max": 12.2257,
+              "mean": 12.2257,
+              "median": 12.2257,
+              "min": 12.2257,
+              "p95": 12.2257,
+              "stdev": 0.0
+            }
+          },
+          "direct_tg": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "p95": 0.0,
+              "stdev": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 16.0703,
+              "mean": 16.0703,
+              "median": 16.0703,
+              "min": 16.0703,
+              "p95": 16.0703,
+              "stdev": 0.0
+            },
+            "predicted_per_second": {
+              "count": 1,
+              "max": 24.6153,
+              "mean": 24.6153,
+              "median": 24.6153,
+              "min": 24.6153,
+              "p95": 24.6153,
+              "stdev": 0.0
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 7.5842,
+              "mean": 7.5842,
+              "median": 7.5842,
+              "min": 7.5842,
+              "p95": 7.5842,
+              "stdev": 0.0
+            },
+            "reliability": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 1,
+              "total": 1,
+              "wilson_high": 1.0,
+              "wilson_low": 0.2065
+            },
+            "ttft_seconds": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            }
+          },
+          "reference_agent_loop": {
+            "agent_predicted_n": {
+              "count": 1,
+              "max": 55.0,
+              "mean": 55.0,
+              "median": 55.0,
+              "min": 55.0,
+              "p95": 55.0,
+              "stdev": 0.0
+            },
+            "agent_predicted_per_second": {
+              "count": 1,
+              "max": 14.1857,
+              "mean": 14.1857,
+              "median": 14.1857,
+              "min": 14.1857,
+              "p95": 14.1857,
+              "stdev": 0.0
+            },
+            "agent_prompt_n": {
+              "count": 1,
+              "max": 694.0,
+              "mean": 694.0,
+              "median": 694.0,
+              "min": 694.0,
+              "p95": 694.0,
+              "stdev": 0.0
+            },
+            "agent_request_count": {
+              "count": 1,
+              "max": 2.0,
+              "mean": 2.0,
+              "median": 2.0,
+              "min": 2.0,
+              "p95": 2.0,
+              "stdev": 0.0
+            },
+            "cache_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 3.8771,
+              "mean": 3.8771,
+              "median": 3.8771,
+              "min": 3.8771,
+              "p95": 3.8771,
+              "stdev": 0.0
+            },
+            "predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "prompt_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "reliability": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 1,
+              "total": 1,
+              "wilson_high": 1.0,
+              "wilson_low": 0.2065
+            },
+            "ttft_seconds": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            }
+          },
+          "warm_append_32k": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 31502.0,
+              "mean": 31502.0,
+              "median": 31502.0,
+              "min": 31502.0,
+              "p95": 31502.0,
+              "stdev": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 1.354,
+              "mean": 1.354,
+              "median": 1.354,
+              "min": 1.354,
+              "p95": 1.354,
+              "stdev": 0.0
+            },
+            "predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 458.5021,
+              "mean": 458.5021,
+              "median": 458.5021,
+              "min": 458.5021,
+              "p95": 458.5021,
+              "stdev": 0.0
+            },
+            "reliability": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 1,
+              "total": 1,
+              "wilson_high": 1.0,
+              "wilson_low": 0.2065
+            },
+            "ttft_seconds": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            }
+          },
+          "warm_append_8k": {
+            "agent_predicted_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_prompt_n": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "agent_request_count": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "cache_n": {
+              "count": 1,
+              "max": 7502.0,
+              "mean": 7502.0,
+              "median": 7502.0,
+              "min": 7502.0,
+              "p95": 7502.0,
+              "stdev": 0.0
+            },
+            "elapsed_seconds": {
+              "count": 1,
+              "max": 1.0102,
+              "mean": 1.0102,
+              "median": 1.0102,
+              "min": 1.0102,
+              "p95": 1.0102,
+              "stdev": 0.0
+            },
+            "predicted_per_second": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            },
+            "prompt_per_second": {
+              "count": 1,
+              "max": 599.0887,
+              "mean": 599.0887,
+              "median": 599.0887,
+              "min": 599.0887,
+              "p95": 599.0887,
+              "stdev": 0.0
+            },
+            "reliability": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 1,
+              "total": 1,
+              "wilson_high": 1.0,
+              "wilson_low": 0.2065
+            },
+            "ttft_seconds": {
+              "count": 0,
+              "max": null,
+              "mean": null,
+              "median": null,
+              "min": null,
+              "p95": null,
+              "stdev": null
+            }
+          }
+        }
+      },
+      "profile": {
+        "class": "fair",
+        "id": "fair-v1-128k-q8"
+      },
+      "release_gate": {
+        "checks": [
+          {
+            "check": "performance_repeats",
+            "evidence": 1,
+            "passed": false
+          },
+          {
+            "check": "quality_repeats",
+            "evidence": 1,
+            "passed": false
+          },
+          {
+            "check": "holdout_enabled",
+            "evidence": true,
+            "passed": true
+          },
+          {
+            "check": "suite_performance_completed",
+            "evidence": "ok",
+            "passed": true
+          },
+          {
+            "check": "performance_reliability",
+            "evidence": {
+              "agent_stream": {
+                "error_rate": 0.0,
+                "errors": 0,
+                "pass_rate": 1.0,
+                "passed": 1,
+                "total": 1,
+                "wilson_high": 1.0,
+                "wilson_low": 0.2065
+              },
+              "cold_pp_short": {
+                "error_rate": 0.0,
+                "errors": 0,
+                "pass_rate": 1.0,
+                "passed": 1,
+                "total": 1,
+                "wilson_high": 1.0,
+                "wilson_low": 0.2065
+              },
+              "context_recall_120k": {
+                "error_rate": 0.0,
+                "errors": 0,
+                "pass_rate": 1.0,
+                "passed": 1,
+                "total": 1,
+                "wilson_high": 1.0,
+                "wilson_low": 0.2065
+              },
+              "context_recall_32k": {
+                "error_rate": 0.0,
+                "errors": 0,
+                "pass_rate": 1.0,
+                "passed": 1,
+                "total": 1,
+                "wilson_high": 1.0,
+                "wilson_low": 0.2065
+              },
+              "context_recall_64k": {
+                "error_rate": 0.0,
+                "errors": 0,
+                "pass_rate": 1.0,
+                "passed": 1,
+                "total": 1,
+                "wilson_high": 1.0,
+                "wilson_low": 0.2065
+              },
+              "context_recall_8k": {
+                "error_rate": 0.0,
+                "errors": 0,
+                "pass_rate": 1.0,
+                "passed": 1,
+                "total": 1,
+                "wilson_high": 1.0,
+                "wilson_low": 0.2065
+              },
+              "direct_tg": {
+                "error_rate": 0.0,
+                "errors": 0,
+                "pass_rate": 1.0,
+                "passed": 1,
+                "total": 1,
+                "wilson_high": 1.0,
+                "wilson_low": 0.2065
+              },
+              "reference_agent_loop": {
+                "error_rate": 0.0,
+                "errors": 0,
+                "pass_rate": 1.0,
+                "passed": 1,
+                "total": 1,
+                "wilson_high": 1.0,
+                "wilson_low": 0.2065
+              },
+              "warm_append_32k": {
+                "error_rate": 0.0,
+                "errors": 0,
+                "pass_rate": 1.0,
+                "passed": 1,
+                "total": 1,
+                "wilson_high": 1.0,
+                "wilson_low": 0.2065
+              },
+              "warm_append_8k": {
+                "error_rate": 0.0,
+                "errors": 0,
+                "pass_rate": 1.0,
+                "passed": 1,
+                "total": 1,
+                "wilson_high": 1.0,
+                "wilson_low": 0.2065
+              }
+            },
+            "passed": true
+          },
+          {
+            "check": "suite_tool_contract_completed",
+            "evidence": "ok",
+            "passed": true
+          },
+          {
+            "check": "suite_tool_contract_all_passed",
+            "evidence": {
+              "passed": 7,
+              "total": 7
+            },
+            "passed": true
+          },
+          {
+            "check": "suite_sandbox_completed",
+            "evidence": "ok",
+            "passed": true
+          },
+          {
+            "check": "suite_sandbox_all_passed",
+            "evidence": {
+              "passed": 5,
+              "total": 8
+            },
+            "passed": false
+          },
+          {
+            "check": "suite_concurrency_completed",
+            "evidence": "ok",
+            "passed": true
+          },
+          {
+            "check": "suite_concurrency_all_passed",
+            "evidence": {
+              "passed": 2,
+              "total": 2
+            },
+            "passed": true
+          },
+          {
+            "check": "suite_vision_completed",
+            "evidence": "ok",
+            "passed": true
+          },
+          {
+            "check": "suite_vision_all_passed",
+            "evidence": {
+              "passed": 1,
+              "total": 1
+            },
+            "passed": true
+          },
+          {
+            "check": "suite_tool_contract_holdout",
+            "evidence": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 1.0,
+              "passed": 2,
+              "total": 2,
+              "wilson_high": 1.0,
+              "wilson_low": 0.3424
+            },
+            "passed": true
+          },
+          {
+            "check": "suite_sandbox_holdout",
+            "evidence": {
+              "error_rate": 0.0,
+              "errors": 0,
+              "pass_rate": 0.6667,
+              "passed": 2,
+              "total": 3,
+              "wilson_high": 0.9385,
+              "wilson_low": 0.2077
+            },
+            "passed": false
+          }
+        ],
+        "eligible": false,
+        "passed": null,
+        "requested": false,
+        "required_suites": [
+          "performance",
+          "tool_contract",
+          "sandbox",
+          "concurrency",
+          "vision"
+        ]
+      },
+      "sandbox": {
+        "passed": 5,
+        "reliability": {
+          "config_overlay": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "duration_format": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "merge_intervals": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "normalize_tags": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "package_summary": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 0.0,
+            "passed": 0,
+            "total": 1,
+            "wilson_high": 0.7935,
+            "wilson_low": 0.0
+          },
+          "pricing_repository": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 0.0,
+            "passed": 0,
+            "total": 1,
+            "wilson_high": 0.7935,
+            "wilson_low": 0.0
+          },
+          "retry_limit": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "transient_test_recovery": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 0.0,
+            "passed": 0,
+            "total": 1,
+            "wilson_high": 0.7935,
+            "wilson_low": 0.0
+          }
+        },
+        "splits": {
+          "core": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 0.6,
+            "passed": 3,
+            "total": 5,
+            "wilson_high": 0.8824,
+            "wilson_low": 0.2307
+          },
+          "holdout": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 0.6667,
+            "passed": 2,
+            "total": 3,
+            "wilson_high": 0.9385,
+            "wilson_low": 0.2077
+          }
+        },
+        "status": "ok",
+        "total": 8
+      },
+      "status": "completed",
+      "tool_contract": {
+        "passed": 7,
+        "reliability": {
+          "dependent_tool_sequence": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "duplicate_call_avoidance": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "parallel_tool_calls": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "tool_error_recovery": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "tool_followthrough": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "tool_restraint": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          },
+          "tool_restraint_holdout": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 1,
+            "total": 1,
+            "wilson_high": 1.0,
+            "wilson_low": 0.2065
+          }
+        },
+        "splits": {
+          "core": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 5,
+            "total": 5,
+            "wilson_high": 1.0,
+            "wilson_low": 0.5655
+          },
+          "holdout": {
+            "error_rate": 0.0,
+            "errors": 0,
+            "pass_rate": 1.0,
+            "passed": 2,
+            "total": 2,
+            "wilson_high": 1.0,
+            "wilson_low": 0.3424
+          }
+        },
+        "status": "ok",
+        "total": 7
+      },
+      "vision": {
+        "applicable": true,
+        "error_rate": 0.0,
+        "pass_rate": 1.0,
+        "passed": 1,
+        "reason": null,
+        "reliability": null,
+        "status": "ok",
+        "total": 1
+      }
+    }
+  ],
+  "digest": "ffcb8e8cfc0a628cc004f1809b77d711fa4b8601dfa0b9348f39b748664f7b35",
+  "label": "expanded-fair-smoke-20260712T112253Z",
+  "schema_version": "barrage-v2.1"
+}

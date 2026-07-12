@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,13 +19,15 @@ def candidate_summary(run: dict[str, Any]) -> dict[str, Any]:
     suites = run.get("suites", {})
     summary: dict[str, Any] = {
         "model": manifest.get("model"),
+        "generated_at": manifest.get("generated_at"),
         "status": run.get("status"),
         "profile": manifest.get("profile"),
         "evaluation": manifest.get("evaluation"),
         "environment": manifest.get("environment"),
         "failures": run.get("failures", []),
+        "release_gate": run.get("release_gate"),
     }
-    for name in ("performance", "tool_contract", "sandbox", "production"):
+    for name in ("performance", "tool_contract", "sandbox", "concurrency", "vision", "production"):
         suite = suites.get(name)
         if not suite:
             continue
@@ -41,6 +44,18 @@ def candidate_summary(run: dict[str, Any]) -> dict[str, Any]:
                 "passed": suite.get("passed"),
                 "total": suite.get("total"),
                 "splits": suite.get("splits"),
+                "reliability": suite.get("reliability"),
+            }
+        elif name in {"concurrency", "vision"}:
+            summary[name] = {
+                "status": suite.get("status"),
+                "applicable": suite.get("applicable", True),
+                "reason": suite.get("reason"),
+                "passed": suite.get("passed"),
+                "total": suite.get("total"),
+                "pass_rate": suite.get("pass_rate"),
+                "error_rate": suite.get("error_rate"),
+                "reliability": suite.get("reliability"),
             }
         else:
             summary[name] = {
@@ -48,6 +63,7 @@ def candidate_summary(run: dict[str, Any]) -> dict[str, Any]:
                 "passed": suite.get("passed"),
                 "total": suite.get("total"),
                 "splits": suite.get("splits"),
+                "reliability": suite.get("reliability"),
             }
     return summary
 
@@ -61,7 +77,10 @@ def publish(results_dir: Path, label: str, out_dir: Path) -> dict[str, Any]:
         run = json.loads(run_path.read_text(encoding="utf-8"))
         if run.get("schema_version") != SCHEMA_VERSION:
             raise ValueError(f"incompatible schema: {run_path}")
-        candidates.append(candidate_summary(run))
+        candidate = candidate_summary(run)
+        if candidate["generated_at"] is None:
+            candidate["generated_at"] = datetime.fromtimestamp(run_path.stat().st_mtime, UTC).isoformat()
+        candidates.append(candidate)
     payload = {
         "schema_version": SCHEMA_VERSION,
         "label": label,

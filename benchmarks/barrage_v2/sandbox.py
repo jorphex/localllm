@@ -36,6 +36,32 @@ TASKS = (
         "acceptance": "from solution import call_with_retry\ncount = {'value': 0}\ndef flaky():\n    count['value'] += 1\n    if count['value'] < 3:\n        raise ValueError('no')\n    return 9\nassert call_with_retry(flaky, retries=2) == 9\nassert count['value'] == 3\ntry:\n    call_with_retry(lambda: (_ for _ in ()).throw(RuntimeError('x')), retries=1)\nexcept RuntimeError:\n    pass\nelse:\n    raise AssertionError('missing final exception')\nprint('OK')\n",
     },
     {
+        "id": "pricing_repository",
+        "split": "core",
+        "prompt": "Inspect the repository and fix its discount normalization and final-price calculation. Do not change tests.py.",
+        "files": {
+            "discounts.py": "def normalize_discount(value):\n    return value\n",
+            "pricing.py": "from discounts import normalize_discount\n\ndef final_price(price, discount):\n    return price - normalize_discount(discount)\n",
+        },
+        "public_test": "from pricing import final_price\nassert final_price(100, 0.2) == 80.0\nprint('OK')\n",
+        "acceptance": "from discounts import normalize_discount\nfrom pricing import final_price\nassert normalize_discount(-1) == 0\nassert normalize_discount(2) == 1\nassert final_price(19.99, 0) == 19.99\nassert final_price(19.99, 1) == 0.0\nassert final_price(25, 0.15) == 21.25\nprint('OK')\n",
+        "expected_changed_files": ["discounts.py", "pricing.py"],
+    },
+    {
+        "id": "transient_test_recovery",
+        "split": "core",
+        "prompt": "Find and fix the boolean parser. The test runner may fail transiently once; recover and rerun it before stopping.",
+        "files": {
+            "parser.py": "def parse_bool(value):\n    return bool(value)\n",
+            "README.txt": "parse_bool accepts booleans and case-insensitive true/false strings. Invalid values raise ValueError.\n",
+        },
+        "public_test": "from parser import parse_bool\nassert parse_bool(True) is True\nassert parse_bool('false') is False\nprint('OK')\n",
+        "acceptance": "from parser import parse_bool\nassert parse_bool(' TRUE ') is True\nassert parse_bool('False') is False\nfor value in ('yes', 1, None):\n    try:\n        parse_bool(value)\n    except ValueError:\n        pass\n    else:\n        raise AssertionError(f'accepted {value!r}')\nprint('OK')\n",
+        "expected_changed_files": ["parser.py"],
+        "inject_first_test_failure": True,
+        "required_test_attempts": 2,
+    },
+    {
         "id": "duration_format",
         "split": "holdout",
         "prompt": "Fix solution.py so format_duration renders non-negative seconds as compact h/m/s text without zero-valued leading units.",
@@ -53,6 +79,19 @@ TASKS = (
         },
         "public_test": "from solution import resolve_timeout\nassert resolve_timeout({'timeout': 15}) == 15\nassert resolve_timeout({}) == 30\nprint('OK')\n",
         "acceptance": "from solution import resolve_timeout\nassert resolve_timeout({'timeout': 0}) == 30\nassert resolve_timeout({'timeout': -1}) == 30\nassert resolve_timeout({'timeout': 90}) == 90\nprint('OK')\n",
+    },
+    {
+        "id": "package_summary",
+        "split": "holdout",
+        "prompt": "Inspect the package and fix summarize_user without changing its public API or unrelated files.",
+        "files": {
+            "account/__init__.py": "from .summary import summarize_user\n",
+            "account/formatting.py": "def display_name(name):\n    return name.strip().title()\n",
+            "account/summary.py": "from .formatting import display_name\n\ndef summarize_user(record):\n    return record['name']\n",
+        },
+        "public_test": "from account import summarize_user\nassert summarize_user({'name': ' ada ', 'active': True}) == 'Ada (active)'\nprint('OK')\n",
+        "acceptance": "from account import summarize_user\nassert summarize_user({'name': 'grace hopper', 'active': False}) == 'Grace Hopper (inactive)'\nassert summarize_user({'name': ' LINUS ', 'active': True}) == 'Linus (active)'\nprint('OK')\n",
+        "expected_changed_files": ["account/summary.py"],
     },
 )
 
@@ -131,6 +170,7 @@ def run_task(
     timeout: float,
     *,
     trial: int = 1,
+    max_tokens: int = 2048,
 ) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="localllm-barrage-") as tempdir:
         root = Path(tempdir)
@@ -151,6 +191,7 @@ def run_task(
         ]
         transcript: list[dict[str, Any]] = []
         tool_errors = 0
+        test_attempts = 0
         verification_attempted = False
         verification_passed = False
         started = time.perf_counter()
@@ -166,6 +207,7 @@ def run_task(
                 "top_p": 0.95,
                 "top_k": 20,
                 "repeat_penalty": 1.05,
+                "max_tokens": max_tokens,
                 "stream": False,
                 "chat_template_kwargs": {"enable_thinking": True},
             }
@@ -191,7 +233,13 @@ def run_task(
             for call in calls:
                 try:
                     arguments = json.loads(call["function"]["arguments"])
-                    output = execute_tool(root, call["function"]["name"], arguments)
+                    tool_name = call["function"]["name"]
+                    if tool_name == "run_tests":
+                        test_attempts += 1
+                    if tool_name == "run_tests" and task.get("inject_first_test_failure") and test_attempts == 1:
+                        output = "ERROR: TransientRunnerError: test worker unavailable; retry the exact command"
+                    else:
+                        output = execute_tool(root, tool_name, arguments)
                 except (KeyError, TypeError, json.JSONDecodeError) as exc:
                     output = f"ERROR: {exc.__class__.__name__}: {exc}"
                 if output.startswith("ERROR:"):
@@ -230,18 +278,25 @@ def run_task(
             and (relative not in initial_files or path.read_text(encoding="utf-8") != initial_files[relative])
         )
         expected_changed_files = sorted(task.get("expected_changed_files", ["solution.py"]))
+        scope_clean = changed_files == expected_changed_files
+        required_test_attempts = int(task.get("required_test_attempts", 1))
+        recovery_completed = test_attempts >= required_test_attempts
         timing_rows = [entry["response"].get("timings", {}) for entry in transcript]
         result = {
             "task": task["id"],
             "split": task.get("split", "core"),
             "trial": trial,
-            "passed": acceptance_passed,
+            "passed": acceptance_passed and scope_clean and verification_passed and recovery_completed,
             "turns": len(transcript),
             "tool_error_count": tool_errors,
             "verification_attempted": verification_attempted,
             "verification_passed": verification_passed,
+            "test_attempts": test_attempts,
+            "required_test_attempts": required_test_attempts,
+            "recovery_completed": recovery_completed,
             "changed_files": changed_files,
-            "scope_clean": changed_files == expected_changed_files,
+            "expected_changed_files": expected_changed_files,
+            "scope_clean": scope_clean,
             "turn_budget_fraction": round(len(transcript) / max_turns, 4),
             "elapsed_seconds": round(time.perf_counter() - started, 4),
             "acceptance_stdout": acceptance_stdout,

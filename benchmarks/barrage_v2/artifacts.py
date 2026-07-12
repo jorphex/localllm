@@ -5,8 +5,9 @@ import json
 import os
 import platform
 import subprocess
+import math
 from pathlib import Path
-from statistics import median
+from statistics import fmean, median, pstdev
 from typing import Any
 
 
@@ -65,17 +66,58 @@ def environment_metadata(server_bin: Path | None, model_path: Path | None) -> di
 
 def distribution(values: list[float]) -> dict[str, float | int | None]:
     if not values:
-        return {"count": 0, "median": None, "min": None, "max": None}
+        return {"count": 0, "median": None, "mean": None, "min": None, "max": None, "p95": None, "stdev": None}
     ordered = sorted(values)
+    p95_index = max(0, math.ceil(len(ordered) * 0.95) - 1)
     return {
         "count": len(values),
         "median": round(float(median(values)), 4),
+        "mean": round(float(fmean(values)), 4),
         "min": round(ordered[0], 4),
         "max": round(ordered[-1], 4),
+        "p95": round(ordered[p95_index], 4),
+        "stdev": round(float(pstdev(values)), 4),
     }
 
 
-def aggregate_trials(records: list[dict[str, Any]]) -> dict[str, dict[str, float | int | None]]:
+def binary_summary(rows: list[dict[str, Any]], *, field: str = "passed") -> dict[str, float | int]:
+    total = len(rows)
+    passed = sum(value is True for value in (row.get(field) for row in rows))
+    errors = sum(row.get("status") == "error" for row in rows)
+    if total == 0:
+        return {
+            "passed": 0,
+            "total": 0,
+            "errors": 0,
+            "pass_rate": 0.0,
+            "error_rate": 0.0,
+            "wilson_low": 0.0,
+            "wilson_high": 0.0,
+        }
+    rate = passed / total
+    z = 1.959963984540054
+    denominator = 1 + z * z / total
+    center = (rate + z * z / (2 * total)) / denominator
+    margin = z * math.sqrt(rate * (1 - rate) / total + z * z / (4 * total * total)) / denominator
+    return {
+        "passed": passed,
+        "total": total,
+        "errors": errors,
+        "pass_rate": round(rate, 4),
+        "error_rate": round(errors / total, 4),
+        "wilson_low": round(max(0.0, center - margin), 4),
+        "wilson_high": round(min(1.0, center + margin), 4),
+    }
+
+
+def grouped_binary_summary(rows: list[dict[str, Any]], key: str) -> dict[str, dict[str, float | int]]:
+    return {
+        value: binary_summary([row for row in rows if str(row.get(key)) == value])
+        for value in sorted({str(row.get(key)) for row in rows})
+    }
+
+
+def aggregate_trials(records: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     metric_names = (
         "prompt_per_second",
         "predicted_per_second",
@@ -95,6 +137,7 @@ def aggregate_trials(records: list[dict[str, Any]]) -> dict[str, dict[str, float
             )
             for metric in metric_names
         }
+        | {"reliability": binary_summary([row for row in records if row["workload"] == workload])}
         for workload in workloads
     }
 

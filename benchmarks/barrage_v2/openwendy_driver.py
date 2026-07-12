@@ -6,7 +6,9 @@ import json
 import os
 import re
 import subprocess
+import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -83,6 +85,20 @@ def completed_tool_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+def _tool_event_matches(event: dict[str, Any], expected: dict[str, Any]) -> bool:
+    expected_arguments = expected.get("arguments", {})
+    if not isinstance(expected_arguments, dict):
+        raise ValueError("task tool arguments expectation must be an object")
+    expected_output = expected.get("output")
+    expected_output_contains = expected.get("output_contains")
+    return (
+        event["tool_name"] == str(expected.get("name") or "").lower()
+        and all(event["arguments"].get(key) == value for key, value in expected_arguments.items())
+        and (expected_output is None or event["output"] == expected_output)
+        and (expected_output_contains is None or str(expected_output_contains).lower() in event["output"].lower())
+    )
+
+
 def listener_pid(base_url: str) -> int:
     port = urlparse(base_url).port
     if port is None:
@@ -157,32 +173,56 @@ def evaluate_task(task: dict[str, Any], snapshot: dict[str, Any], events: list[d
     expect = task.get("expect", {})
     terminal_type = snapshot.get("terminal_type")
     answer_text = str(snapshot.get("answer_text") or "").lower()
-    required_text = str(expect.get("text", "")).lower()
-    tool_expect = expect.get("tool", {})
-    tool_expect = {"name": tool_expect} if isinstance(tool_expect, str) else tool_expect
-    if not isinstance(tool_expect, dict):
-        raise ValueError("task tool expectation must be a string or object")
-    required_tool = str(tool_expect.get("name") or "").lower()
-    expected_arguments = tool_expect.get("arguments", {})
-    if not isinstance(expected_arguments, dict):
-        raise ValueError("task tool arguments expectation must be an object")
-    expected_output = tool_expect.get("output")
+    required_texts = expect.get("texts", [expect.get("text")] if expect.get("text") is not None else [])
+    if not isinstance(required_texts, list):
+        raise ValueError("task text expectation must be a string or list")
+    required_texts = [str(value).lower() for value in required_texts]
+    tool_expectations = expect.get("tools")
+    if tool_expectations is None and "tool" in expect:
+        tool_expect = expect["tool"]
+        tool_expectations = [{"name": tool_expect}] if isinstance(tool_expect, str) else [tool_expect]
+    if tool_expectations is not None and (
+        not isinstance(tool_expectations, list) or not all(isinstance(item, dict) for item in tool_expectations)
+    ):
+        raise ValueError("task tools expectation must be a list of objects")
     tool_events = completed_tool_events(events)
-    matching_events = [
-        event
-        for event in tool_events
-        if event["tool_name"] == required_tool
-        and all(event["arguments"].get(key) == value for key, value in expected_arguments.items())
-        and (expected_output is None or event["output"] == expected_output)
-    ]
+    matching_events: list[dict[str, Any]] = []
+    tools_ok = True
+    if tool_expectations is not None:
+        if str(expect.get("tool_order", "exact")) == "any":
+            remaining = list(tool_events)
+            for expected in tool_expectations:
+                match = next((event for event in remaining if _tool_event_matches(event, expected)), None)
+                if match is None:
+                    tools_ok = False
+                    break
+                matching_events.append(match)
+                remaining.remove(match)
+            tools_ok = tools_ok and (bool(expect.get("allow_extra_tools")) or not remaining)
+        else:
+            tools_ok = len(tool_events) == len(tool_expectations)
+            if tools_ok:
+                matching_events = [
+                    event
+                    for event, expected in zip(tool_events, tool_expectations, strict=True)
+                    if _tool_event_matches(event, expected)
+                ]
+                tools_ok = len(matching_events) == len(tool_expectations)
+    if expect.get("no_tools"):
+        tools_ok = not tool_events
+    forbidden_tools = {str(name).lower() for name in expect.get("forbid_tools", [])}
+    forbidden_tool_found = any(event["tool_name"] in forbidden_tools for event in tool_events)
+    text_ok = all(value in answer_text for value in required_texts)
+    nonempty_ok = not expect.get("nonempty_answer") or bool(answer_text.strip())
     return {
         "task_id": task["id"],
-        "passed": terminal_type == "run_completed" and (not required_text or required_text in answer_text) and (not required_tool or bool(matching_events)),
+        "passed": terminal_type == "run_completed" and text_ok and nonempty_ok and tools_ok and not forbidden_tool_found,
         "terminal_type": terminal_type,
         "event_count": len(events),
         "answer_text": str(snapshot.get("answer_text") or ""),
-        "required_text_found": not required_text or required_text in answer_text,
-        "required_tool_found": not required_tool or bool(matching_events),
+        "required_text_found": text_ok,
+        "required_tool_found": tools_ok,
+        "forbidden_tool_found": forbidden_tool_found,
         "completed_tool_events": tool_events,
         "matching_tool_events": matching_events,
     }
@@ -231,6 +271,118 @@ def run_openwendy_task(client: httpx.Client, base_url: str, task: dict[str, Any]
                 pass
 
 
+def run_concurrent_openwendy_task(
+    client: httpx.Client,
+    base_url: str,
+    task: dict[str, Any],
+    model_id: str,
+    timeout: float,
+) -> dict[str, Any]:
+    cases = task.get("cases")
+    if not isinstance(cases, list) or len(cases) < 2 or not all(isinstance(case, dict) for case in cases):
+        raise ValueError("concurrent OpenWendy task requires at least two cases")
+    started = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=len(cases)) as executor:
+        results = list(
+            executor.map(
+                lambda case: run_openwendy_task(client, base_url, case, model_id, timeout),
+                cases,
+            )
+        )
+    return {
+        "task_id": task["id"],
+        "passed": all(result["passed"] for result in results),
+        "elapsed_seconds": round(time.perf_counter() - started, 4),
+        "case_count": len(results),
+        "cases": results,
+    }
+
+
+def run_cancel_openwendy_task(
+    client: httpx.Client,
+    base_url: str,
+    task: dict[str, Any],
+    model_id: str,
+    timeout: float,
+) -> dict[str, Any]:
+    conversation_id: str | None = None
+    run_id: str | None = None
+    try:
+        created = client.post(
+            f"{base_url}/api/conversations",
+            json={"title": f"barrage-v2-{task['id']}", "source": "benchmark"},
+        )
+        created.raise_for_status()
+        conversation_id = str(created.json()["conversation"]["conversation_id"])
+        client.patch(f"{base_url}/api/conversations/{conversation_id}/model", json={"model_id": model_id}).raise_for_status()
+        started = client.post(
+            f"{base_url}/api/conversations/{conversation_id}/messages",
+            json={"text": task["text"], "client_message_id": f"barrage-v2-{task['id']}"},
+        )
+        started.raise_for_status()
+        run_id = str(started.json()["run_id"])
+        cancel = client.post(f"{base_url}/api/conversations/{conversation_id}/run/cancel")
+        cancel.raise_for_status()
+        deadline = time.monotonic() + timeout
+        snapshot: dict[str, Any] = {}
+        while time.monotonic() < deadline:
+            response = client.get(f"{base_url}/api/runs/{run_id}/snapshot")
+            response.raise_for_status()
+            snapshot = response.json()["snapshot"]
+            if snapshot.get("terminal"):
+                break
+            time.sleep(0.2)
+        return {
+            "task_id": task["id"],
+            "passed": snapshot.get("terminal_type") == "run_cancelled" and snapshot.get("status") == "cancelled",
+            "run_id": run_id,
+            "cancel_status": cancel.json().get("status"),
+            "terminal_type": snapshot.get("terminal_type"),
+            "status": snapshot.get("status"),
+        }
+    finally:
+        if conversation_id:
+            try:
+                client.delete(f"{base_url}/api/conversations/{conversation_id}").raise_for_status()
+            except httpx.HTTPError:
+                pass
+
+
+def run_workspace_roundtrip_task(
+    client: httpx.Client,
+    base_url: str,
+    task: dict[str, Any],
+    model_id: str,
+    timeout: float,
+) -> dict[str, Any]:
+    benchmark_root = Path.home() / ".openwendy" / "benchmark-workspaces"
+    benchmark_root.mkdir(parents=True, exist_ok=True)
+    content = "barrage-v2 workspace roundtrip"
+    with tempfile.TemporaryDirectory(prefix="roundtrip-", dir=benchmark_root) as tempdir:
+        workspace = Path(tempdir)
+        probe = workspace / "probe.txt"
+        conversation_task = {
+            "id": task["id"],
+            "text": (
+                f"Use workspace_session to bind this conversation to {workspace}. Then use write to create probe.txt "
+                f"with exact content '{content}', use read to verify it, and answer exactly WORKSPACE_ROUNDTRIP_OK."
+            ),
+            "expect": {
+                "text": "WORKSPACE_ROUNDTRIP_OK",
+                "tools": [
+                    {"name": "workspace_session", "arguments": {"operation": "bind_project", "path": str(workspace)}},
+                    {"name": "write", "arguments": {"path": "probe.txt", "content": content}},
+                    {"name": "read", "arguments": {"path": "probe.txt"}, "output_contains": content},
+                ],
+            },
+        }
+        result = run_openwendy_task(client, base_url, conversation_task, model_id, timeout)
+        filesystem_ok = probe.is_file() and probe.read_text(encoding="utf-8") == content
+        result["workspace_filesystem_ok"] = filesystem_ok
+        result["passed"] = result["passed"] and filesystem_ok
+        return result
+
+
 def run_request(request: dict[str, Any], *, base_url: str, model_id: str, timeout: float, root: Path) -> dict[str, Any]:
     if request.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("incompatible barrage schema")
@@ -242,7 +394,20 @@ def run_request(request: dict[str, Any], *, base_url: str, model_id: str, timeou
     service_identity = live_service_identity(base_url, root)
     with httpx.Client(timeout=timeout) as client:
         client.get(f"{base_url}/api/health/details").raise_for_status()
-        results = [run_openwendy_task(client, base_url, task, model_id, timeout) for task in request["tasks"]]
+        results = []
+        for task in request["tasks"]:
+            kind = str(task.get("kind", "conversation"))
+            if kind == "conversation":
+                result = run_openwendy_task(client, base_url, task, model_id, timeout)
+            elif kind == "concurrent_conversations":
+                result = run_concurrent_openwendy_task(client, base_url, task, model_id, timeout)
+            elif kind == "cancel_run":
+                result = run_cancel_openwendy_task(client, base_url, task, model_id, timeout)
+            elif kind == "workspace_roundtrip":
+                result = run_workspace_roundtrip_task(client, base_url, task, model_id, timeout)
+            else:
+                raise ValueError(f"unknown OpenWendy task kind: {kind}")
+            results.append(result)
     return {
         "schema_version": SCHEMA_VERSION,
         "profile": request["profile"],
