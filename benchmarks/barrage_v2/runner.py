@@ -130,7 +130,7 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
         phase = "request"
         try:
             if workload["kind"] == "warm":
-                prefix = repeated_prompt(workload["repeat"])
+                prefix = f"Cache lane {workload['id']} trial {trial}.\n" + repeated_prompt(workload["repeat"])
                 payload = chat_payload(model, prefix, 1, cache_prompt=True)
                 payload["id_slot"] = 0
                 prime_request = payload
@@ -155,7 +155,8 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
                 record["prime_response"] = prime_response
                 record["predicted_per_second"] = None
                 record["cache_hit"] = bool(record.get("cache_n"))
-                record["passed"] = record["cache_hit"]
+                record["cache_ratio"] = round(float(record.get("cache_n") or 0) / max(1, int(prime_response.get("timings", {}).get("prompt_n") or 0)), 4)
+                record["passed"] = record["cache_ratio"] >= 0.8
                 records.append(record)
                 continue
             if workload["kind"] == "context_recall":

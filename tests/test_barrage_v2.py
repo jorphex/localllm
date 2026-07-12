@@ -347,6 +347,7 @@ class BarrageV2Tests(unittest.TestCase):
         warm_append = next(row for row in performance if row["workload"] == "warm_append_8k")
         self.assertIn("prime_request", warm_append)
         self.assertIn("prime_response", warm_append)
+        self.assertGreaterEqual(warm_append["cache_ratio"], 0.8)
         context = next(row for row in performance if row["workload"] == "context_recall_120k")
         self.assertIsNotNone(context["ttft_seconds"])
         self.assertIn("EMBER-417", context["answer_text"])

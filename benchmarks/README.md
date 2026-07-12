@@ -37,6 +37,8 @@ The runner exits `0` only for a complete candidate, `1` for a completed candidat
 
 Performance and concurrency trials use `performance_repeats` (normally five). Tool, sandbox, and vision tasks use `quality_repeats` (normally three) with a trial-specific seed. Summaries report median, mean, p95, population standard deviation, pass/error rates, and a 95% Wilson interval where applicable.
 
+Warm append trials use workload- and trial-specific prefix namespaces so unrelated prompt-cache entries cannot masquerade as same-session reuse. A warm trial passes only when at least 80% of the prime prompt is reported through `cache_n`; the exact `cache_ratio` remains in raw evidence.
+
 A quick implementation smoke deliberately does not qualify as release evidence:
 
 ```bash

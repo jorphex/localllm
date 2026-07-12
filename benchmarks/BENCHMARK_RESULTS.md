@@ -533,6 +533,17 @@ Average score: **1.0**
 
 ## barrage_v2
 
+Run: `qwen36-four-model-release-20260712T185403Z`
+
+| Candidate | Status | Release | Tool core | Tool holdout | Sandbox core | Sandbox holdout | Concurrency | Vision |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| qwen27-huihui | completed_with_errors | fail | 15/15 | 6/6 | 9/15 | 5/9 | 10/10 | 3/3 |
+| qwen27-unsloth | completed_with_errors | fail | 15/15 | 6/6 | 10/15 | 5/9 | 10/10 | 3/3 |
+| qwen35-huihui | completed_with_errors | fail | 15/15 | 6/6 | 9/15 | 2/9 | 10/10 | 3/3 |
+| qwen35-unsloth | completed_with_errors | fail | 15/15 | 6/6 | 9/15 | 3/9 | 10/10 | 3/3 |
+
+## barrage_v2
+
 Run: `expanded-openwendy-smoke-20260712T112253Z`
 
 | Candidate | Status | Release | Harness | Core | Holdout |
