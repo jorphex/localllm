@@ -1,903 +1,324 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Local LLM research, benchmark evidence, and testing notes.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="localllm — local model evaluation and benchmark results">
-  <meta property="og:title" content="localllm">
-  <meta property="og:description" content="local model evaluation and benchmark results">
-  <meta name="theme-color" content="#0a0a0f">
-  <title>localllm</title>
+  <title>localllm — benchmark evidence</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Geologica:CRSV,SHRP,slnt,wght@0..1,0..100,-12..0,300..700&display=swap');
     :root {
-      --bg: #0a0a0f;
-      --bg-elevated: #101018;
-      --text: #e8e4de;
-      --text-muted: #8a8476;
-      --text-dim: #4f4a3d;
-      --accent: #e8943a;
-      --accent-dim: #e8943a33;
-      --border: #2a2820;
-      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', 'Roboto Mono', monospace;
-      --sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      --canvas: #e9eced;
+      --surface: #f7f8f7;
+      --surface-2: #dde2e3;
+      --ink: #172027;
+      --ink-2: #46545d;
+      --ink-3: #66747c;
+      --rule: #b8c0c3;
+      --strong-rule: #7d898f;
+      --accent: #e34b24;
+      --accent-soft: #f7d8d0;
+      --pass: #167257;
+      --pass-soft: #d5e9e2;
+      --warn: #a43c24;
+      --blue: #245bb8;
+      --blue-soft: #dce5f5;
+      --focus: #005fcc;
+      --header-h: 54px;
+      --ease: cubic-bezier(.22,1,.36,1);
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    .mono { font-family: var(--mono); }
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 15px;
-      line-height: 1.65;
-      min-height: 100vh;
-      overflow-x: hidden;
+      margin: 0;
+      min-width: 320px;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: Geologica, "Arial Narrow", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      font-variation-settings: "SHRP" 35;
     }
+    button { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
     .topbar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: #0a0a0fcc; backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem; height: 3rem;
-      display: flex; align-items: center; justify-content: space-between;
+      height: var(--header-h);
+      border-bottom: 1px solid var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 0 24px;
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 30;
     }
-    .topbar-title { font-family: var(--sans); font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.02em; }
-    .topbar-nav { display: flex; gap: 0.25rem; }
-    .topbar-nav button {
-      background: none; border: none; color: var(--text-muted);
-      font-family: var(--sans); font-size: 13px; padding: 0.4rem 0.75rem;
-      cursor: pointer; border-radius: 4px; transition: color 0.2s, background 0.2s;
+    .brand { font-size: 18px; font-weight: 650; letter-spacing: -.03em; white-space: nowrap; }
+    .brand span { color: var(--accent); }
+    .top-meta { display: flex; gap: 18px; color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .top-meta b { color: var(--ink); font-weight: 520; }
+    .shell { max-width: 1500px; margin: 0 auto; padding: 26px 28px 72px; }
+    .run-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(330px, .65fr);
+      gap: 36px;
+      align-items: end;
+      padding: 8px 0 26px;
+      border-bottom: 1px solid var(--ink);
     }
-    .topbar-nav button:hover { color: var(--text); background: #ffffff08; }
-    .topbar-nav button.active { color: var(--accent); background: var(--accent-dim); }
-    .main { max-width: 1100px; margin: 0 auto; padding: 4rem 2rem 4rem; }
-    .header { margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
-    .header h1 { font-family: var(--sans); font-size: 30px; font-weight: 800; color: var(--text); letter-spacing: -0.01em; margin-bottom: 0.5rem; text-wrap: balance; }
-    .header h1 span { color: var(--accent); }
-    .header p { color: var(--text-muted); font-size: 15px; line-height: 1.7; max-width: 720px; }
-    .header .updated { margin-top: 0.75rem; font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
-    .tab-panel { display: none; padding-top: 3rem; animation: tabFadeIn 0.3s ease; }
-    .tab-panel.active { display: block; }
-    @keyframes tabFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .section-label {
-      font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--accent);
-      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1.25rem;
+    .run-head h1 { margin: 5px 0 8px; font-size: 36px; line-height: 1.02; letter-spacing: -.035em; text-wrap: balance; }
+    .run-head p { max-width: 68ch; margin: 0; color: var(--ink-2); text-wrap: pretty; }
+    .overline { color: var(--ink-3); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+    .gate-note { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+    .gate-mark { width: 34px; height: 34px; display: grid; place-items: center; background: var(--accent); color: #fff; font-size: 18px; font-weight: 650; }
+    .gate-note b { display: block; margin-bottom: 3px; font-size: 15px; }
+    .gate-note p { font-size: 12px; color: var(--ink-2); }
+    .selector-label { margin: 24px 0 8px; display: flex; justify-content: space-between; color: var(--ink-3); font-size: 11px; }
+    .model-selector { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--ink); background: var(--ink); gap: 1px; }
+    .model-button {
+      border: 0;
+      background: var(--surface);
+      color: var(--ink);
+      text-align: left;
+      padding: 13px 14px 12px;
+      cursor: pointer;
+      min-width: 0;
+      transition: background 180ms var(--ease), color 180ms var(--ease);
     }
-    .section-label + .section-label { margin-top: 2.5rem; }
-    .stack-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 2rem;
+    .model-button:hover { background: #fff; }
+    .model-button.active { background: var(--ink); color: #fff; }
+    .model-button .build { color: var(--accent); font-size: 11px; font-weight: 650; }
+    .model-button .name { display: block; margin: 2px 0 7px; font-size: 15px; font-weight: 580; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .model-button .model-foot { display: flex; justify-content: space-between; gap: 6px; font-size: 10px; color: var(--ink-3); }
+    .model-button.active .model-foot { color: #aeb9bf; }
+    .suite-nav {
+      display: flex;
+      gap: 2px;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--ink);
+      margin-top: 28px;
+      scrollbar-width: none;
     }
-    .stack-item { background: var(--bg); padding: 1.25rem 1.5rem; }
-    .stack-item .label { font-family: var(--sans); font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
-    .stack-item .name { font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 0.35rem; word-break: break-word; }
-    .stack-item .meta { font-family: var(--mono); font-size: 12px; color: var(--text-muted); line-height: 1.5; }
-    .data-table { width: 100%; border-collapse: collapse; margin-bottom: 2.5rem; font-size: 14px; font-variant-numeric: tabular-nums; }
-    .data-table th {
-      text-align: left; padding: 0.7rem 1rem; font-size: 11px; font-weight: 600;
-      font-family: var(--sans); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap;
+    .suite-nav::-webkit-scrollbar { display: none; }
+    .suite-tab { border: 0; background: transparent; padding: 10px 13px; color: var(--ink-3); white-space: nowrap; cursor: pointer; border-bottom: 3px solid transparent; }
+    .suite-tab:hover { color: var(--ink); }
+    .suite-tab.active { color: var(--ink); border-bottom-color: var(--accent); font-weight: 580; }
+    .view { display: none; padding-top: 26px; }
+    .view.active { display: block; animation: view-in 180ms var(--ease); }
+    @keyframes view-in { from { opacity: .4; transform: translateY(4px); } }
+    .section-intro { display: flex; justify-content: space-between; align-items: end; gap: 36px; margin-bottom: 18px; }
+    .section-intro h2 { margin: 0 0 4px; font-size: 22px; letter-spacing: -.025em; }
+    .section-intro p { color: var(--ink-2); margin: 0; max-width: 66ch; font-size: 12px; }
+    .section-intro .reading { max-width: 360px; text-align: right; color: var(--ink-3); }
+    .matrix-scroll { overflow-x: auto; border-top: 1px solid var(--ink); }
+    .matrix { width: 100%; border-collapse: collapse; min-width: 860px; font-variant-numeric: tabular-nums; }
+    .matrix th { padding: 9px 10px; border-bottom: 1px solid var(--strong-rule); text-align: left; font-size: 10px; color: var(--ink-3); font-weight: 580; text-transform: uppercase; letter-spacing: .055em; }
+    .matrix td { padding: 11px 10px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+    .matrix tr[data-model] { cursor: pointer; }
+    .matrix tr[data-model]:hover td { background: rgba(255,255,255,.44); }
+    .matrix tr.selected td { background: var(--surface); }
+    .matrix tr.selected td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+    .model-cell b { display: block; font-weight: 580; }
+    .model-cell small { color: var(--ink-3); }
+    .ratio { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+    .ratio b { font-weight: 600; }
+    .mini-track { width: 54px; height: 6px; background: var(--surface-2); }
+    .mini-track i { display: block; height: 100%; background: var(--pass); }
+    .mini-track i.partial { background: var(--accent); }
+    .status-word { color: var(--pass); font-size: 11px; font-weight: 600; }
+    .status-word.fail { color: var(--warn); }
+    .finding {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: 155px minmax(0, 1fr);
+      gap: 24px;
+      border-top: 1px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+      padding: 16px 0;
     }
-    .data-table th:hover { color: var(--text); }
-    .data-table th .sort-arrow { margin-left: 0.35rem; opacity: 0.4; font-size: 10px; }
-    .data-table th.sorted { color: var(--accent); }
-    .data-table th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
-    .data-table td { padding: 0.7rem 1rem; border-bottom: 1px solid #171710; color: var(--text); white-space: nowrap; }
-    .data-table tbody tr { transition: background 0.15s ease; }
-    .data-table tbody tr:hover td { background: #ffffff06; }
-    .data-table td:first-child { font-family: var(--mono); }
-    .data-table tr.archived td { color: var(--text-muted); }
-    .data-table tr.archived td:first-child::after { content: ' †'; color: var(--text-dim); font-size: 10px; margin-left: 0.25rem; }
-    .badge { display: inline-block; padding: 0.15rem 0.5rem; font-size: 10px; font-weight: 600; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
-    .badge.active { color: var(--accent); background: var(--accent-dim); }
-    .badge.archived { color: var(--text-dim); background: #2a2820; }
-    .prose { color: var(--text-muted); font-size: 15px; line-height: 1.75; margin-bottom: 1.5rem; max-width: 720px; }
-    .prose code { font-family: var(--mono); background: #1a1810; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 13px; color: var(--text); }
-    .prose ul { margin: 0.5rem 0 1rem 1.25rem; }
-    .prose li { margin-bottom: 0.35rem; }
-    .prose p { margin-bottom: 1rem; }
-    .callout { border-left: 2px solid var(--accent); padding: 1rem 1.5rem; margin-bottom: 2rem; background: #e8943a08; }
-    .callout p { font-family: var(--sans); color: var(--text); font-size: 15px; line-height: 1.7; margin: 0; }
-    .callout strong { color: var(--accent); font-weight: 600; }
-    .chart-container { margin-bottom: 2.5rem; position: relative; }
-    .chart-title { font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
-    .chart-svg { width: 100%; height: auto; }
-    .chart-svg text { font-family: var(--mono); }
-    .chart-tooltip {
-      position: absolute; background: var(--bg-elevated); border: 1px solid var(--border);
-      padding: 0.5rem 0.75rem; font-size: 12px; color: var(--text); border-radius: 4px;
-      pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 50;
-      max-width: 220px; line-height: 1.5;
+    .finding h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+    .finding p { margin: 0; font-size: 17px; line-height: 1.35; max-width: 76ch; text-wrap: pretty; }
+    .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--ink); border: 1px solid var(--ink); }
+    .chart-block { background: var(--surface); padding: 17px; min-width: 0; }
+    .chart-block.wide { grid-column: 1 / -1; }
+    .chart-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+    .chart-head h3 { margin: 0; font-size: 14px; font-weight: 580; }
+    .chart-head span { color: var(--ink-3); font-size: 10px; }
+    .bar-list { display: grid; gap: 11px; }
+    .bar-row { display: grid; grid-template-columns: 130px minmax(80px, 1fr) 72px; align-items: center; gap: 10px; font-size: 11px; }
+    .bar-row.selected .bar-label { color: var(--accent); font-weight: 650; }
+    .bar-track { height: 18px; background: var(--surface-2); position: relative; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--blue); transform-origin: left; transition: transform 260ms var(--ease), background 180ms; }
+    .bar-row.selected .bar-fill { background: var(--accent); }
+    .bar-value { text-align: right; font-variant-numeric: tabular-nums; font-weight: 580; }
+    .context-chart { width: 100%; height: auto; min-height: 240px; display: block; }
+    .context-chart .gridline { stroke: var(--rule); stroke-width: 1; }
+    .context-chart .axis-text { fill: var(--ink-3); font: 10px Geologica, sans-serif; }
+    .context-chart .line { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+    .context-chart .point { stroke: var(--surface); stroke-width: 2; vector-effect: non-scaling-stroke; }
+    .legend { display: flex; flex-wrap: wrap; gap: 13px; margin-top: 10px; }
+    .legend button { border: 0; background: transparent; padding: 3px 0; color: var(--ink-2); cursor: pointer; font-size: 10px; }
+    .legend i { display: inline-block; width: 16px; height: 3px; margin-right: 6px; vertical-align: middle; }
+    .task-grid { display: grid; grid-template-columns: minmax(190px, 1.25fr) repeat(4, minmax(105px, 1fr)); border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); overflow-x: auto; }
+    .task-cell { min-width: 0; padding: 10px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: var(--surface); }
+    .task-cell.head { background: var(--ink); color: #fff; }
+    .task-cell.label { color: var(--ink-2); font-size: 11px; overflow-wrap: anywhere; }
+    .task-result { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+    .blocks { display: flex; gap: 3px; }
+    .blocks i { width: 8px; height: 18px; background: var(--surface-2); }
+    .blocks i.pass { background: var(--pass); }
+    .blocks i.fail { background: var(--accent); }
+    .task-cell.selected-col { background: #fff; box-shadow: inset 0 3px 0 var(--accent); }
+    .split-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+    .split-item { border-top: 1px solid var(--ink); padding-top: 9px; }
+    .split-item b { font-size: 22px; font-weight: 580; font-variant-numeric: tabular-nums; }
+    .split-item span { display: block; color: var(--ink-3); font-size: 10px; }
+    .annotation { margin-top: 16px; padding: 12px 14px; background: var(--accent-soft); color: #622211; font-size: 12px; }
+    .method-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; border-top: 1px solid var(--ink); padding-top: 18px; }
+    .method-grid h3 { font-size: 12px; margin: 0 0 7px; }
+    .method-grid p { font-size: 11px; color: var(--ink-2); margin: 0; }
+    .provenance { margin-top: 38px; padding-top: 14px; border-top: 1px solid var(--ink); display: flex; justify-content: space-between; gap: 24px; color: var(--ink-3); font-size: 10px; overflow-wrap: anywhere; }
+    .loading { padding: 80px 0; text-align: center; color: var(--ink-3); }
+    .loading:before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 8px; background: var(--accent); animation: pulse 900ms ease-in-out infinite alternate; }
+    @keyframes pulse { to { opacity: .25; } }
+    .error { max-width: 700px; margin: 60px auto; padding: 18px; background: var(--accent-soft); color: #622211; }
+    @media (max-width: 900px) {
+      .run-head { grid-template-columns: 1fr; gap: 22px; }
+      .model-selector { grid-template-columns: repeat(2, 1fr); }
+      .chart-grid { grid-template-columns: 1fr; }
+      .chart-block.wide { grid-column: auto; }
+      .task-grid { min-width: 760px; }
+      .split-summary { grid-template-columns: repeat(2, 1fr); }
+      .method-grid { grid-template-columns: 1fr; gap: 16px; }
     }
-    .chart-tooltip.visible { opacity: 1; }
-    body.chart-dim [data-model-id] { opacity: 0.18 !important; transition: opacity 0.15s ease; }
-    body.chart-dim [data-model-id].chart-highlight { opacity: 1 !important; }
-    .model-selector { display: flex; gap: 0.25rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-    .model-selector button {
-      background: none; border: 1px solid var(--border); color: var(--text-muted);
-      font-family: var(--sans); font-size: 12px; padding: 0.35rem 0.75rem;
-      cursor: pointer; border-radius: 3px; transition: color 0.2s, border-color 0.2s, background 0.2s;
+    @media (max-width: 600px) {
+      .topbar { padding: 0 14px; }
+      .top-meta span:not(:last-child) { display: none; }
+      .shell { padding: 18px 14px 48px; }
+      .run-head h1 { font-size: 29px; }
+      .model-selector { grid-template-columns: 1fr; }
+      .section-intro { display: block; }
+      .section-intro .reading { text-align: left; margin-top: 8px; }
+      .finding { grid-template-columns: 1fr; gap: 6px; }
+      .finding p { font-size: 15px; }
+      .bar-row { grid-template-columns: 100px minmax(60px, 1fr) 58px; gap: 7px; }
+      .provenance { display: block; }
+      .provenance span { display: block; margin-top: 6px; }
     }
-    .model-selector button:hover { border-color: var(--text-dim); color: var(--text); }
-    .model-selector button.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-    .model-panel { display: none; }
-    .model-panel.active { display: block; }
-    .fixture-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 1.5rem;
-    }
-    .fixture-cell { background: var(--bg); padding: 0.75rem 1rem; }
-    .fixture-cell .name { font-family: var(--sans); font-size: 12px; color: var(--text-muted); margin-bottom: 0.25rem; }
-    .fixture-cell .score { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--text); }
-    .fixture-cell .score.pass { color: var(--accent); }
-    .fixture-cell .score.fail { color: var(--text-dim); }
-    .method-table { width: 100%; border-collapse: collapse; margin-bottom: 2.5rem; font-size: 14px; table-layout: fixed; }
-    .method-table th {
-      text-align: left; padding: 0.7rem 1rem; font-size: 11px; font-weight: 600;
-      font-family: var(--sans); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border);
-    }
-    .method-table td { padding: 0.7rem 1rem; border-bottom: 1px solid #171710; color: var(--text-muted); word-wrap: break-word; overflow-wrap: break-word; }
-    .method-table td:first-child { font-family: var(--sans); color: var(--text); font-weight: 500; }
-    .footer {
-      margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
-      font-family: var(--sans); font-size: 12px; color: var(--text-dim); display: flex; justify-content: space-between;
-      align-items: center; flex-wrap: wrap; gap: 0.5rem;
-    }
-    .footer a { color: var(--text-muted); text-decoration: none; }
-    .footer a:hover { color: var(--accent); }
-    @media (max-width: 768px) {
-      .main { padding: 3.5rem 1rem 3rem; }
-      .topbar { padding: 0 1rem; }
-      .header h1 { font-size: 24px; }
-      .stack-grid { grid-template-columns: 1fr; }
-      .data-table { font-size: 13px; }
-      .data-table th, .data-table td { padding: 0.6rem 0.5rem; }
-      .fixture-grid { grid-template-columns: repeat(2, 1fr); }
-      .topbar-nav button { padding: 0.35rem 0.5rem; font-size: 12px; }
-    }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
-      .tab-panel { animation: none; }
-      .data-table tbody tr, .topbar-nav button, .model-selector button, .footer a { transition: none; }
+      *, *:before, *:after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
     }
   </style>
 </head>
 <body>
   <header class="topbar">
-    <div class="topbar-title">localllm</div>
-    <nav class="topbar-nav">
-      <button class="active" data-tab="overview">Overview</button>
-      <button data-tab="leaderboard">Leaderboard</button>
-      <button data-tab="charts">Charts</button>
-      <button data-tab="methodology">Methodology</button>
-    </nav>
+    <div class="brand">local<span>llm</span> / evidence bench</div>
+    <div class="top-meta"><span>profile <b>fair-v1-128k-q8</b></span><span>run <b>12 Jul 2026</b></span></div>
   </header>
-  <main class="main">
-    <div class="header">
-      <h1>local<span>llm</span></h1>
-      <p>Local model evaluation and benchmark results. Qwen3.6-27B and 35B abliterated MTP models running on llama.cpp with CPU TTS sidecar.</p>
-      <div class="updated">last updated 2026-07-01 &middot; 2 models on disk &middot; 4 comparison candidates &middot; 5 benchmark suites</div>
-    </div>
-
-    <!-- Overview -->
-    <section class="tab-panel active" id="tab-overview">
-      <div class="section-label">Current Stack</div>
-      <div class="stack-grid">
-        <div class="stack-item">
-          <div class="label">Main Chat</div>
-          <div class="name">Qwen3.6-27B MTP Q6</div>
-          <div class="meta">Huihui abliterated &middot; Vulkan &middot; 128k ctx &middot; MTP draft n=3</div>
-        </div>
-        <div class="stack-item">
-          <div class="label">Secondary</div>
-          <div class="name">Qwen3.6-35B A3B MTP Q6</div>
-          <div class="meta">Huihui abliterated &middot; Vulkan &middot; 256k ctx &middot; MTP draft n=2</div>
-        </div>
-        <div class="stack-item">
-          <div class="label">Embedding</div>
-          <div class="name">Qwen3-Embedding-4B</div>
-          <div class="meta">Q4_K_M &middot; CPU</div>
-        </div>
-        <div class="stack-item">
-          <div class="label">Reranker</div>
-          <div class="name">Qwen3-Reranker-4B</div>
-          <div class="meta">Q4_K_M &middot; Vulkan &middot; 2048 ctx</div>
-        </div>
-      </div>
-      <div class="section-label">Current Comparison Models</div>
-      <table class="data-table" data-sortable="true">
-        <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
-          <th data-col="2">Quant <span class="sort-arrow">↕</span></th>
-          <th data-col="3">Params <span class="sort-arrow">↕</span></th>
-          <th data-col="4">Replay <span class="sort-arrow">↕</span></th>
-          <th data-col="5">Sim <span class="sort-arrow">↕</span></th>
-          <th data-col="6">Coding <span class="sort-arrow">↕</span></th>
-          <th data-col="7">Agentic <span class="sort-arrow">↕</span></th>
-          <th data-col="8">Status</th>
-        </tr></thead>
-        <tbody>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>Q6_K</td><td>27B</td><td>27/35</td><td>7/8</td><td>0.50</td><td>0.95</td><td><span class="badge active">Production</span></td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>Q6_K</td><td>35B</td><td>16/31</td><td>8/8</td><td>0.50</td><td>0.875</td><td><span class="badge active">On Disk</span></td></tr>
-        </tbody>
-      </table>
-      <div class="section-label">Archived Candidates</div>
-      <table class="data-table" data-sortable="true">
-        <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
-          <th data-col="2">Quant <span class="sort-arrow">↕</span></th>
-          <th data-col="3">Params <span class="sort-arrow">↕</span></th>
-          <th data-col="4">Replay <span class="sort-arrow">↕</span></th>
-          <th data-col="5">Sim <span class="sort-arrow">↕</span></th>
-          <th data-col="6">Coding <span class="sort-arrow">↕</span></th>
-          <th data-col="7">Agentic <span class="sort-arrow">↕</span></th>
-          <th data-col="8">Status</th>
-        </tr></thead>
-        <tbody>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>Q5_K_M</td><td>35B</td><td>25/35</td><td>7/8</td><td>0.50</td><td>1.00</td><td><span class="badge archived">Deleted</span></td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>Q6_K</td><td>35B</td><td>24/35</td><td>7/8</td><td>0.25</td><td>0.85</td><td><span class="badge archived">Deleted</span></td></tr>
-        </tbody>
-      </table>
-      <div class="callout">
-        <p><strong>Current finding:</strong> Qwen3.6-27B Huihui remains the daily default because it has the best retained Qwen replay behavior and can keep the reranker in VRAM. Qwen3.6-35B Huihui is stronger in coding-sim, but its replay/tool-shape reliability is worse and the full-context q8-KV shape leaves no reranker VRAM headroom.</p>
-      </div>
-    </section>
-
-    <!-- Leaderboard -->
-    <section class="tab-panel" id="tab-leaderboard">
-      <div class="section-label">Transcript Replay</div>
-      <p class="prose">Turn-level accuracy against known-good transcript fixtures. Measures how faithfully a model reproduces expected conversation flow.</p>
-      <table class="data-table" data-sortable="true">
-        <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
-          <th data-col="2">Turns <span class="sort-arrow">↕</span></th>
-          <th data-col="3">Match Rate <span class="sort-arrow">↕</span></th>
-          <th data-col="4">Fixtures <span class="sort-arrow">↕</span></th>
-          <th data-col="5">Pass Rate <span class="sort-arrow">↕</span></th>
-          <th data-col="6">Avg Score <span class="sort-arrow">↕</span></th>
-        </tr></thead>
-        <tbody>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>27/35</td><td>77.1%</td><td>2/5</td><td>40.0%</td><td>0.9143</td></tr>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>25/35</td><td>71.4%</td><td>2/5</td><td>40.0%</td><td>0.9048</td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>24/35</td><td>68.6%</td><td>1/5</td><td>20.0%</td><td>0.8857</td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>16/31</td><td>51.6%</td><td>1/5</td><td>20.0%</td><td>0.7473</td></tr>
-        </tbody>
-      </table>
-      <div class="section-label">Sim Compare</div>
-      <p class="prose">Semantic similarity against reference responses across coding and agentic scenarios. Measures output quality beyond exact match.</p>
-      <table class="data-table" data-sortable="true">
-        <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
-          <th data-col="2">Pass <span class="sort-arrow">↕</span></th>
-          <th data-col="3">Pass Rate <span class="sort-arrow">↕</span></th>
-          <th data-col="4">Scope Clean <span class="sort-arrow">↕</span></th>
-          <th data-col="5">Tool Error Free <span class="sort-arrow">↕</span></th>
-          <th data-col="6">Avg Score <span class="sort-arrow">↕</span></th>
-        </tr></thead>
-        <tbody>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>8/8</td><td>100%</td><td>7/8</td><td>7/8</td><td>0.9437</td></tr>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>7/8</td><td>87.5%</td><td>7/8</td><td>8/8</td><td>0.9000</td></tr>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>7/8</td><td>87.5%</td><td>6/8</td><td>7/8</td><td>0.8438</td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>7/8</td><td>87.5%</td><td>6/8</td><td>7/8</td><td>0.8438</td></tr>
-        </tbody>
-      </table>
-      <div class="section-label">Coding Compare</div>
-      <table class="data-table" data-sortable="true">
-        <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
-          <th data-col="2">Avg Score <span class="sort-arrow">↕</span></th>
-          <th data-col="3">Fixtures <span class="sort-arrow">↕</span></th>
-          <th data-col="4">Pass <span class="sort-arrow">↕</span></th>
-          <th data-col="5">Fail <span class="sort-arrow">↕</span></th>
-        </tr></thead>
-        <tbody>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>0.50</td><td>4</td><td>2</td><td>2</td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>0.50</td><td>4</td><td>2</td><td>2</td></tr>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>0.50</td><td>4</td><td>2</td><td>2</td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>0.25</td><td>4</td><td>1</td><td>3</td></tr>
-        </tbody>
-      </table>
-      <div class="section-label">Agentic Barrage</div>
-      <table class="data-table" data-sortable="true">
-        <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
-          <th data-col="2">Avg Score <span class="sort-arrow">↕</span></th>
-          <th data-col="3">Scenarios <span class="sort-arrow">↕</span></th>
-          <th data-col="4">Pass <span class="sort-arrow">↕</span></th>
-          <th data-col="5">Fail <span class="sort-arrow">↕</span></th>
-        </tr></thead>
-        <tbody>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>1.00</td><td>scored</td><td>-</td><td>-</td></tr>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>0.95</td><td>scored</td><td>-</td><td>-</td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>0.875</td><td>scored</td><td>-</td><td>-</td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>0.85</td><td>scored</td><td>-</td><td>-</td></tr>
-        </tbody>
-      </table>
-      <div class="section-label">Speed</div>
-      <table class="data-table" data-sortable="true">
-        <thead><tr>
-          <th data-col="0">Model <span class="sort-arrow">↕</span></th>
-          <th data-col="1">Alias <span class="sort-arrow">↕</span></th>
-          <th data-col="2">Prompt tok/s <span class="sort-arrow">↕</span></th>
-          <th data-col="3">Predict tok/s <span class="sort-arrow">↕</span></th>
-          <th data-col="4">Peak VRAM <span class="sort-arrow">↕</span></th>
-          <th data-col="5">Peak RAM <span class="sort-arrow">↕</span></th>
-        </tr></thead>
-        <tbody>
-          <tr class="archived"><td>ornith-q5</td><td>Ornith-1.0-35B</td><td>2548</td><td>107.3</td><td>27.9 GiB</td><td>-</td></tr>
-          <tr class="archived"><td>ornith-q6</td><td>Ornith-1.0-35B</td><td>2450</td><td>98.5</td><td>31.4 GiB</td><td>-</td></tr>
-          <tr><td>qwen35-huihui</td><td>Qwen3.6-35B A3B</td><td>1826</td><td>123.6</td><td>32.0 GiB</td><td>-</td></tr>
-          <tr><td>qwen27-huihui</td><td>Qwen3.6-27B</td><td>680</td><td>47.4</td><td>28.2 GiB</td><td>-</td></tr>
-        </tbody>
-      </table>
-      <p class="prose" style="font-size: 11px; color: var(--text-dim);">\u2020 archived models no longer on disk. Historical results preserved for reference.</p>
-    </section>
-
-    <!-- Charts -->
-    <section class="tab-panel" id="tab-charts">
-      <div class="section-label">Radar: All Models Across Suites</div>
-      <div class="chart-container">
-        <svg class="chart-svg" id="radar-chart" viewBox="0 0 600 500"></svg>
-      </div>
-      <div class="section-label">Bar: Transcript Replay by Model</div>
-      <div class="chart-container">
-        <svg class="chart-svg" id="bar-chart" viewBox="0 0 700 350"></svg>
-      </div>
-      <div class="section-label">Scatter: Speed vs Coding Score</div>
-      <div class="chart-container">
-        <svg class="chart-svg" id="scatter-chart" viewBox="0 0 600 400"></svg>
-      </div>
-      <div class="section-label">Grouped Bar: Sim vs Replay Pass Rate</div>
-      <div class="chart-container">
-        <svg class="chart-svg" id="grouped-bar-chart" viewBox="0 0 700 350"></svg>
-      </div>
-      <div class="section-label">Line: VRAM vs Predict Speed</div>
-      <div class="chart-container">
-        <svg class="chart-svg" id="line-chart" viewBox="0 0 600 400"></svg>
-      </div>
-    </section>
-
-    <!-- Methodology -->
-    <section class="tab-panel" id="tab-methodology">
-      <div class="section-label">Benchmark Suites</div>
-      <table class="method-table">
-        <thead><tr><th>Suite</th><th>What It Measures</th><th>Scoring</th></tr></thead>
-        <tbody>
-          <tr><td>Transcript Replay</td><td>Turn-level accuracy against known-good transcript fixtures. Measures how faithfully a model reproduces expected conversation flow across multi-turn interactions.</td><td>Partial score per fixture (0-2). Aggregate: matched turns / total turns, pass rate across fixtures.</td></tr>
-          <tr><td>Sim Compare</td><td>Semantic similarity against reference responses across coding and agentic scenarios. Measures output quality beyond exact string matching.</td><td>Pass/fail per scenario with similarity threshold. Scope-clean and tool-error-free sub-scores.</td></tr>
-          <tr><td>Coding Compare</td><td>Single-turn coding smoke tasks. Measures whether generated code passes hidden checks without needing a full agent loop.</td><td>Average score 0-1 across the committed task set.</td></tr>
-          <tr><td>Agentic Barrage</td><td>Multi-step agentic task execution under pressure, including planning, revision, evidence triage, tool restraint, and tool followthrough.</td><td>Average score 0-1 across rubric-scored scenarios.</td></tr>
-          <tr><td>Speed</td><td>Prompt processing and token prediction throughput on the target hardware. Peak VRAM and RAM usage under full context load.</td><td>Tokens per second for prompt and predict phases. GiB for peak memory usage.</td></tr>
-        </tbody>
-      </table>
-      <div class="section-label">Scoring Rules</div>
-      <p class="prose">Primary evidence is kept split by family instead of collapsed into one blended score. Transcript replay is the general-agent signal; sim compare is the coding-agent signal. Speed is reported for fit and hardware planning, not as a quality ranking.</p>
-      <p class="prose">Archived models no longer receive new benchmark runs. Historical results are preserved for reference and comparison only.</p>
-      <div class="section-label">Elimination Rationale</div>
-      <p class="prose">Ornith Q5 was retired after hands-on prose/editing use despite strong benchmark results. Ornith Q6 was deleted because Q5 was faster, roomier, and cleaner in the local tests. Qwen3.6-27B Huihui stays as the daily default; Qwen3.6-35B Huihui stays as the retained 35B Huihui/abliterated option.</p>
-      <div class="section-label">Hardware</div>
-      <p class="prose">All current benchmarks run on a single AMD AI Pro R9700 32 GB host with Vulkan GPU acceleration via llama.cpp. The daily 27B chat preset uses 128k context, q8 KV, and MTP draft n=3. The retained 35B Huihui preset uses 256k context, q8 KV, and MTP draft n=2.</p>
-      <div class="section-label">Raw Data</div>
-      <p class="prose">All benchmark results are stored as JSON in <code>benchmarks/summaries/</code>. Each suite produces a <code>summary.json</code> with per-candidate scores and a <code>published.json</code> with the public-facing label. Full run manifests and per-fixture output are in <code>benchmarks/model_eval/results/</code>.</p>
-    </section>
-
-    <footer class="footer">
-      <span>localllm &middot; local model evaluation</span>
-      <span><a href="https://github.com/jorphex/localllm/tree/master/benchmarks/summaries">source data</a> &middot; <a href="https://jjjjj.dev">jjjjj.dev</a></span>
-    </footer>
+  <main class="shell" id="app">
+    <div class="loading">Loading normalized benchmark data</div>
   </main>
-
   <script>
-    // Tab switching
-    function switchTab(tabId, pushState = true) {
-      document.querySelectorAll('.topbar-nav button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      const btn = document.querySelector('.topbar-nav button[data-tab="' + tabId + '"]');
-      const panel = document.getElementById('tab-' + tabId);
-      if (btn) btn.classList.add('active');
-      if (panel) panel.classList.add('active');
-      if (pushState) {
-        const url = new URL(window.location.href);
-        url.hash = tabId;
-        history.replaceState(null, '', url.toString());
-      }
+    const state = { data: null, selected: 'qwen27-huihui', view: 'overview' };
+    const colors = ['#e34b24', '#245bb8', '#167257', '#6c4dab'];
+    const prettyTask = value => value.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const format = (value, digits = 1) => value == null ? '—' : Number(value).toFixed(digits);
+    const pct = item => item.total ? item.passed / item.total * 100 : 0;
+    const modelShort = m => `${m.name.replace('Qwen 3.6 ', '')} · ${m.build}`;
+
+    function ratio(value) {
+      const good = value.passed === value.total;
+      return `<span class="ratio"><span class="mini-track"><i class="${good ? '' : 'partial'}" style="width:${pct(value)}%"></i></span><b>${value.passed}/${value.total}</b></span>`;
     }
 
-    document.querySelectorAll('.topbar-nav button').forEach(btn => {
-      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    function modelSelector() {
+      return `<div class="selector-label"><span>Compare four builds</span><span>Selection follows you through every suite</span></div>
+        <div class="model-selector" aria-label="Select model">${state.data.models.map(m => `
+          <button class="model-button ${m.id === state.selected ? 'active' : ''}" data-model-select="${m.id}" aria-pressed="${m.id === state.selected}">
+            <span class="build">${m.build}</span><span class="name">${m.name}</span>
+            <span class="model-foot"><span>${m.family}</span><span>${m.modelSizeGb} GB</span></span>
+          </button>`).join('')}</div>`;
+    }
+
+    function suiteNav() {
+      const tabs = [['overview','Readout'],['performance','Performance'],['tools','Tools'],['sandbox','Sandbox'],['concurrency','Concurrency'],['vision','Vision'],['method','Method']];
+      return `<nav class="suite-nav" aria-label="Benchmark family">${tabs.map(([id,label]) => `<button class="suite-tab ${state.view === id ? 'active' : ''}" data-view="${id}" aria-selected="${state.view === id}">${label}</button>`).join('')}</nav>`;
+    }
+
+    function overview() {
+      return `<section class="view ${state.view === 'overview' ? 'active' : ''}" id="view-overview">
+        <div class="section-intro"><div><h2>Qualification readout</h2><p>Completion and capability are reported independently. There is deliberately no aggregate score.</p></div><p class="reading">Green means every retained trial passed. Orange is a partial result, not a benchmark crash.</p></div>
+        <div class="matrix-scroll"><table class="matrix"><thead><tr><th>Candidate</th><th>Release</th><th>Performance</th><th>Tools</th><th>Sandbox</th><th>Concurrency</th><th>Vision</th></tr></thead><tbody>
+          ${state.data.models.map(m => `<tr data-model="${m.id}" class="${m.id === state.selected ? 'selected' : ''}"><td class="model-cell"><b>${m.name}</b><small>${m.build} · ${m.modelSizeGb} GB</small></td><td><span class="status-word fail">Not qualified</span></td><td><span class="status-word">Completed</span></td><td>${ratio(m.tools)}</td><td>${ratio(m.sandbox)}</td><td>${ratio(m.concurrency)}</td><td>${ratio(m.vision)}</td></tr>`).join('')}
+        </tbody></table></div>
+        <div class="finding"><h3>What this run says</h3><p>${state.data.interpretation.finding}</p></div>
+        <div class="finding"><h3>What it does not say</h3><p>It does not collapse unlike workloads into a winner. The 35B MoE builds are roughly four times faster in generation; the 27B builds complete more sandbox trials. Tool, concurrency, and vision results are tied.</p></div>
+      </section>`;
+    }
+
+    function bars(metric, label, unit, inverse = false) {
+      const values = state.data.models.map(m => m.performance[metric].median);
+      const max = Math.max(...values);
+      return `<div class="chart-block"><div class="chart-head"><h3>${label}</h3><span>median · ${unit}</span></div><div class="bar-list">${state.data.models.map((m,i) => {
+        const v = m.performance[metric].median;
+        return `<div class="bar-row ${m.id === state.selected ? 'selected' : ''}"><span class="bar-label">${modelShort(m)}</span><div class="bar-track"><div class="bar-fill" style="transform:scaleX(${v / max})"></div></div><span class="bar-value">${format(v, inverse ? 3 : 1)}</span></div>`;
+      }).join('')}</div></div>`;
+    }
+
+    function contextChart() {
+      const width=900,height=270,left=56,right=22,top=20,bottom=36, max=2800;
+      const contexts=['8k','32k','64k','120k'];
+      const x=i=>left+i*((width-left-right)/(contexts.length-1));
+      const y=v=>top+(max-v)/max*(height-top-bottom);
+      const grid=[0,700,1400,2100,2800];
+      return `<div class="chart-block wide"><div class="chart-head"><h3>Context recall prompt processing</h3><span>median prompt tok/s · exact prompt count retained in data</span></div>
+        <svg class="context-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Prompt processing speed across context lengths">${grid.map(v=>`<line class="gridline" x1="${left}" y1="${y(v)}" x2="${width-right}" y2="${y(v)}"/><text class="axis-text" x="4" y="${y(v)+4}">${v}</text>`).join('')}${contexts.map((v,i)=>`<text class="axis-text" text-anchor="middle" x="${x(i)}" y="${height-8}">${v}</text>`).join('')}${state.data.models.map((m,mi)=>{const points=m.performance.contextRecall.map((d,i)=>`${x(i)},${y(d.promptPerSecond.median)}`).join(' ');return `<polyline class="line" points="${points}" stroke="${colors[mi]}" opacity="${m.id===state.selected?1:.35}"/>${m.performance.contextRecall.map((d,i)=>`<circle class="point" cx="${x(i)}" cy="${y(d.promptPerSecond.median)}" r="${m.id===state.selected?5:3}" fill="${colors[mi]}"/>`).join('')}`}).join('')}</svg>
+        <div class="legend">${state.data.models.map((m,i)=>`<button data-model-select="${m.id}"><i style="background:${colors[i]}"></i>${modelShort(m)}</button>`).join('')}</div></div>`;
+    }
+
+    function performance() {
+      return `<section class="view ${state.view === 'performance' ? 'active' : ''}" id="view-performance"><div class="section-intro"><div><h2>Performance</h2><p>Repeated prompt processing, generation, agent-shaped streaming, cache reuse, and long-context recall.</p></div><p class="reading">Higher is better except TTFT. Figures are medians across five fair-profile repeats.</p></div><div class="chart-grid">${bars('directGeneration','Direct generation','tok/s')}${bars('agentTtft','Agent-shaped TTFT','seconds',true)}${bars('referenceAgent','Reference agent loop','tok/s')}${bars('coldPrompt','Cold short-prompt processing','tok/s')}${contextChart()}</div></section>`;
+    }
+
+    function taskMatrix(kind) {
+      const tasks = Object.keys(state.data.models[0][kind].tasks);
+      return `<div class="task-grid"><div class="task-cell head">Task</div>${state.data.models.map(m=>`<div class="task-cell head ${m.id===state.selected?'selected-col':''}">${m.build}<br><span style="opacity:.65">${m.family.split(' · ')[0]}</span></div>`).join('')}${tasks.map(task=>`<div class="task-cell label">${prettyTask(task)}</div>${state.data.models.map(m=>{const r=m[kind].tasks[task];return `<div class="task-cell ${m.id===state.selected?'selected-col':''}"><div class="task-result"><span class="blocks">${Array.from({length:r.total},(_,i)=>`<i class="${i<r.passed?'pass':'fail'}"></i>`).join('')}</span><b>${r.passed}/${r.total}</b></div></div>`}).join('')}`).join('')}</div>`;
+    }
+
+    function qualityView(kind, title, copy) {
+      const selected = state.data.models.find(m=>m.id===state.selected);
+      const annotations = kind === 'tools' && selected.notes.length ? `<div class="annotation"><b>Retained evidence note:</b> ${selected.notes.join(' ')}</div>` : '';
+      return `<section class="view ${state.view === kind ? 'active' : ''}" id="view-${kind}"><div class="section-intro"><div><h2>${title}</h2><p>${copy}</p></div><p class="reading">Core and holdout remain separate. Each block is one retained trial.</p></div><div class="split-summary">${state.data.models.map(m=>`<div class="split-item"><b>${m[kind].passed}/${m[kind].total}</b><span>${modelShort(m)} · total</span></div>`).join('')}</div>${taskMatrix(kind)}${annotations}</section>`;
+    }
+
+    function smallSuite(kind, title, copy) {
+      const tasks = kind === 'concurrency' ? Object.keys(state.data.models[0].concurrency.reliability) : [];
+      return `<section class="view ${state.view === kind ? 'active' : ''}" id="view-${kind}"><div class="section-intro"><div><h2>${title}</h2><p>${copy}</p></div><p class="reading">Reported independently from single-request throughput.</p></div><div class="matrix-scroll"><table class="matrix"><thead><tr><th>Candidate</th><th>Applicable</th><th>Result</th>${tasks.map(t=>`<th>${prettyTask(t)}</th>`).join('')}</tr></thead><tbody>${state.data.models.map(m=>{const s=m[kind];return `<tr data-model="${m.id}" class="${m.id===state.selected?'selected':''}"><td class="model-cell"><b>${m.name}</b><small>${m.build}</small></td><td>${s.applicable?'Yes':'No'}</td><td>${ratio(s)}</td>${tasks.map(t=>`<td>${ratio(s.reliability[t])}</td>`).join('')}</tr>`}).join('')}</tbody></table></div></section>`;
+    }
+
+    function method() {
+      const d=state.data.models[0];
+      return `<section class="view ${state.view === 'method' ? 'active' : ''}" id="view-method"><div class="section-intro"><div><h2>Method & provenance</h2><p>Enough context to interpret the results without reproducing raw benchmark artifacts.</p></div></div><div class="method-grid"><div><h3>Fair profile</h3><p>All candidates used ${d.profile.id}: fixed 128k context, q8 KV, five performance repeats, three quality repeats, and holdout tasks enabled.</p></div><div><h3>Qualification</h3><p>${state.data.interpretation.releaseMeaning} All required suites must pass every strict release requirement.</p></div><div><h3>Separate production evidence</h3><p>OpenWendy is an external production-profile harness. Its outcomes are intentionally not compared with these fair model/runtime measurements.</p></div></div><div class="finding"><h3>Data policy</h3><p>${state.data.interpretation.separation}</p></div></section>`;
+    }
+
+    function render() {
+      const d=state.data;
+      document.getElementById('app').innerHTML = `<section class="run-head"><div><div class="overline">Barrage V2 / release evidence</div><h1>Four builds. Six separate questions.</h1><p>${d.interpretation.separation}</p></div><div class="gate-note"><span class="gate-mark" aria-hidden="true">×</span><div><b>0 of 4 release-qualified</b><p>${d.interpretation.releaseMeaning}</p></div></div></section>${modelSelector()}${suiteNav()}${overview()}${performance()}${qualityView('tools','Tool contract','Executable restraint, exact arguments, dependent sequences, recovery, duplicate avoidance, and evidence use.')}${qualityView('sandbox','Sandbox coding','Disposable coding tasks graded on acceptance, exact file scope, test execution, and recovery behavior.')}${smallSuite('concurrency','Concurrency','Two simultaneous generations and mixed prefill/generation contention.')}${smallSuite('vision','Vision','Deterministic image ingestion and multimodal decoding task.')}${method()}<footer class="provenance"><b>Normalized from ${d.source.schemaVersion} · ${d.source.label}</b><span>source digest ${d.source.digest}</span></footer>`;
+      bind();
+    }
+
+    function bind() {
+      document.querySelectorAll('[data-model-select], tr[data-model]').forEach(el=>el.addEventListener('click',()=>{state.selected=el.dataset.modelSelect||el.dataset.model;render()}));
+      document.querySelectorAll('[data-view]').forEach(el=>el.addEventListener('click',()=>{state.view=el.dataset.view;render();document.querySelector('.suite-nav').scrollIntoView({block:'start'})}));
+    }
+
+    fetch('data/barrage-v2.json').then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()}).then(data=>{state.data=data;render()}).catch(error=>{
+      document.getElementById('app').innerHTML=`<div class="error"><b>Benchmark data could not be loaded.</b><p>${error.message}. Serve this directory over HTTP so the normalized JSON is available.</p></div>`;
     });
-
-    window.addEventListener('hashchange', () => {
-      const tabId = window.location.hash.replace('#', '') || 'overview';
-      switchTab(tabId, false);
-    });
-
-    // Initialize tab from URL hash
-    (function() {
-      const tabId = window.location.hash.replace('#', '') || 'overview';
-      switchTab(tabId, false);
-    })();
-
-    // Wrap data tables for horizontal scrolling on narrow viewports
-    document.querySelectorAll('.data-table').forEach(table => {
-      const wrap = document.createElement('div');
-      wrap.style.overflowX = 'auto';
-      wrap.style.webkitOverflowScrolling = 'touch';
-      wrap.style.marginBottom = '2.5rem';
-      table.parentNode.insertBefore(wrap, table);
-      wrap.appendChild(table);
-      table.style.marginBottom = '0';
-    });
-
-    // Model selector
-    document.querySelectorAll('.model-selector button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.model-selector button').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.model-panel').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('model-' + btn.dataset.model).classList.add('active');
-      });
-    });
-
-    // Table sorting
-    document.querySelectorAll('.data-table[data-sortable]').forEach(table => {
-      const headers = table.querySelectorAll('th[data-col]');
-      let sortCol = 0, sortAsc = true;
-      headers.forEach(header => {
-        header.addEventListener('click', () => {
-          const col = parseInt(header.dataset.col);
-          if (col === sortCol) sortAsc = !sortAsc;
-          else { sortCol = col; sortAsc = true; }
-          headers.forEach(h => h.classList.remove('sorted'));
-          header.classList.add('sorted');
-          header.querySelector('.sort-arrow').textContent = sortAsc ? '↑' : '↓';
-          const tbody = table.querySelector('tbody');
-          const rows = Array.from(tbody.querySelectorAll('tr'));
-          rows.sort((a, b) => {
-            const aText = a.cells[col].textContent.trim();
-            const bText = b.cells[col].textContent.trim();
-            const aNum = parseFloat(aText.replace(/[^0-9.-]/g, ''));
-            const bNum = parseFloat(bText.replace(/[^0-9.-]/g, ''));
-            if (!isNaN(aNum) && !isNaN(bNum)) return sortAsc ? aNum - bNum : bNum - aNum;
-            return sortAsc ? aText.localeCompare(bText) : bText.localeCompare(aText);
-          });
-          rows.forEach(row => tbody.appendChild(row));
-        });
-      });
-    });
-
-    // Chart data
-    const models = [
-      { id: 'qwen27', label: 'qwen27-huihui', color: '#e8943a', archived: false, replay: 77.1, sim: 87.5, coding: 0.50, agentic: 0.95, promptTok: 680, predictTok: 47.4, vram: 28.2, ram: 0 },
-      { id: 'qwen35', label: 'qwen35-huihui', color: '#c47a2a', archived: false, replay: 51.6, sim: 100.0, coding: 0.50, agentic: 0.875, promptTok: 1826, predictTok: 123.6, vram: 32.0, ram: 0 },
-      { id: 'ornith-q5', label: 'ornith-q5', color: '#6a6558', archived: true, replay: 71.4, sim: 87.5, coding: 0.50, agentic: 1.00, promptTok: 2548, predictTok: 107.3, vram: 27.9, ram: 0 },
-      { id: 'ornith-q6', label: 'ornith-q6', color: '#5a5548', archived: true, replay: 68.6, sim: 87.5, coding: 0.25, agentic: 0.85, promptTok: 2450, predictTok: 98.5, vram: 31.4, ram: 0 },
-    ];
-
-    function norm(val, min, max) { return (val - min) / (max - min || 1); }
-
-    function createTooltip(container) {
-      const tooltip = document.createElement('div');
-      tooltip.className = 'chart-tooltip';
-      container.appendChild(tooltip);
-      return tooltip;
-    }
-
-    function showTooltip(tooltip, html, x, y, container) {
-      tooltip.innerHTML = html;
-      tooltip.classList.add('visible');
-      const rect = container.getBoundingClientRect();
-      const tipRect = tooltip.getBoundingClientRect();
-      let left = x - rect.left + 12;
-      let top = y - rect.top + 12;
-      if (left + tipRect.width > rect.width) left = x - rect.left - tipRect.width - 12;
-      if (top + tipRect.height > rect.height) top = y - rect.top - tipRect.height - 12;
-      if (left < 0) left = 0;
-      if (top < 0) top = 0;
-      tooltip.style.left = left + 'px';
-      tooltip.style.top = top + 'px';
-    }
-
-    function hideTooltip(tooltip) {
-      tooltip.classList.remove('visible');
-    }
-
-    function highlightModel(modelId) {
-      document.body.classList.add('chart-dim');
-      document.querySelectorAll('[data-model-id="' + modelId + '"]').forEach(el => el.classList.add('chart-highlight'));
-    }
-
-    function unhighlightModel() {
-      document.body.classList.remove('chart-dim');
-      document.querySelectorAll('.chart-highlight').forEach(el => el.classList.remove('chart-highlight'));
-    }
-
-    // RADAR CHART
-    (function() {
-      const svg = document.getElementById('radar-chart');
-      const tooltip = createTooltip(svg.parentElement);
-      const ns = 'http://www.w3.org/2000/svg';
-      const cx = 300, cy = 240, r = 180;
-      const axes = ['replay', 'sim', 'coding', 'agentic'];
-      const axisLabels = ['Replay %', 'Sim %', 'Coding', 'Agentic'];
-      const ranges = { replay: [45, 80], sim: [80, 105], coding: [0.15, 0.55], agentic: [0.80, 1.05] };
-      const angleStep = (Math.PI * 2) / axes.length;
-
-      for (let ring = 1; ring <= 4; ring++) {
-        const ringR = (r / 4) * ring;
-        const pts = [];
-        for (let i = 0; i < axes.length; i++) {
-          const angle = angleStep * i - Math.PI / 2;
-          pts.push(cx + ringR * Math.cos(angle) + ',' + (cy + ringR * Math.sin(angle)));
-        }
-        const poly = document.createElementNS(ns, 'polygon');
-        poly.setAttribute('points', pts.join(' '));
-        poly.setAttribute('fill', 'none');
-        poly.setAttribute('stroke', '#2a2820');
-        poly.setAttribute('stroke-width', '1');
-        svg.appendChild(poly);
-      }
-
-      axes.forEach((_, i) => {
-        const angle = angleStep * i - Math.PI / 2;
-        const line = document.createElementNS(ns, 'line');
-        line.setAttribute('x1', cx); line.setAttribute('y1', cy);
-        line.setAttribute('x2', cx + r * Math.cos(angle));
-        line.setAttribute('y2', cy + r * Math.sin(angle));
-        line.setAttribute('stroke', '#2a2820'); line.setAttribute('stroke-width', '1');
-        svg.appendChild(line);
-        const lx = cx + (r + 24) * Math.cos(angle);
-        const ly = cy + (r + 24) * Math.sin(angle);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', lx); text.setAttribute('y', ly);
-        text.setAttribute('text-anchor', 'middle'); text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('fill', '#7a7568'); text.setAttribute('font-size', '10');
-        text.textContent = axisLabels[i];
-        svg.appendChild(text);
-      });
-
-      models.forEach(model => {
-        const pts = [];
-        axes.forEach((axis, i) => {
-          const angle = angleStep * i - Math.PI / 2;
-          const val = norm(model[axis], ranges[axis][0], ranges[axis][1]);
-          const dist = val * r;
-          pts.push(cx + dist * Math.cos(angle) + ',' + (cy + dist * Math.sin(angle)));
-        });
-        const poly = document.createElementNS(ns, 'polygon');
-        poly.setAttribute('points', pts.join(' '));
-        poly.setAttribute('fill', model.color);
-        poly.setAttribute('fill-opacity', model.archived ? '0.08' : '0.15');
-        poly.setAttribute('stroke', model.color);
-        poly.setAttribute('stroke-width', model.archived ? '0.5' : '1.5');
-        poly.setAttribute('stroke-opacity', model.archived ? '0.3' : '0.8');
-        poly.setAttribute('data-model-id', model.id);
-        poly.style.cursor = 'pointer';
-        poly.addEventListener('mouseenter', () => { highlightModel(model.id); poly.setAttribute('fill-opacity', '0.3'); poly.setAttribute('stroke-opacity', '1'); });
-        poly.addEventListener('mousemove', (e) => {
-          const html = '<strong style="color:' + model.color + '">' + model.label + '</strong><br>' +
-            axes.map((axis, i) => axisLabels[i] + ': ' + model[axis]).join('<br>');
-          showTooltip(tooltip, html, e.clientX, e.clientY, svg.parentElement);
-        });
-        poly.addEventListener('mouseleave', () => { unhighlightModel(); poly.setAttribute('fill-opacity', model.archived ? '0.08' : '0.15'); poly.setAttribute('stroke-opacity', model.archived ? '0.3' : '0.8'); hideTooltip(tooltip); });
-        svg.appendChild(poly);
-      });
-
-      let ly = 460;
-      models.forEach((model, i) => {
-        const lx = 60 + (i % 4) * 140;
-        if (i >= 4) ly += 20;
-        const rect = document.createElementNS(ns, 'rect');
-        rect.setAttribute('x', lx); rect.setAttribute('y', ly);
-        rect.setAttribute('width', '10'); rect.setAttribute('height', '10');
-        rect.setAttribute('rx', '2'); rect.setAttribute('fill', model.color);
-        rect.setAttribute('opacity', model.archived ? '0.4' : '1');
-        svg.appendChild(rect);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', lx + 16); text.setAttribute('y', ly + 9);
-        text.setAttribute('fill', model.archived ? '#4a4538' : '#e8e4de');
-        text.setAttribute('font-size', '10'); text.textContent = model.label;
-        svg.appendChild(text);
-      });
-    })();
-
-    // BAR CHART
-    (function() {
-      const svg = document.getElementById('bar-chart');
-      const tooltip = createTooltip(svg.parentElement);
-      const ns = 'http://www.w3.org/2000/svg';
-      const sorted = [...models].sort((a, b) => b.replay - a.replay);
-      const barH = 28, gap = 12, startX = 120, startY = 30;
-      const maxVal = 80, minVal = 45;
-
-      [45, 50, 55, 60, 65, 70, 75, 80].forEach(v => {
-        const x = startX + ((v - minVal) / (maxVal - minVal)) * 500;
-        const line = document.createElementNS(ns, 'line');
-        line.setAttribute('x1', x); line.setAttribute('y1', startY);
-        line.setAttribute('x2', x); line.setAttribute('y2', startY + sorted.length * (barH + gap));
-        line.setAttribute('stroke', '#1a1810'); line.setAttribute('stroke-width', '1');
-        svg.appendChild(line);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', x); text.setAttribute('y', startY - 8);
-        text.setAttribute('text-anchor', 'middle'); text.setAttribute('fill', '#4a4538');
-        text.setAttribute('font-size', '9'); text.textContent = v + '%';
-        svg.appendChild(text);
-      });
-
-      sorted.forEach((model, i) => {
-        const y = startY + i * (barH + gap);
-        const w = ((model.replay - minVal) / (maxVal - minVal)) * 500;
-        const rect = document.createElementNS(ns, 'rect');
-        rect.setAttribute('x', startX); rect.setAttribute('y', y);
-        rect.setAttribute('width', w); rect.setAttribute('height', barH);
-        rect.setAttribute('rx', '2'); rect.setAttribute('fill', model.color);
-        rect.setAttribute('opacity', model.archived ? '0.4' : '0.85');
-        rect.setAttribute('data-model-id', model.id);
-        rect.style.cursor = 'pointer';
-        rect.addEventListener('mouseenter', () => { highlightModel(model.id); rect.setAttribute('opacity', model.archived ? '0.6' : '1'); });
-        rect.addEventListener('mousemove', (e) => {
-          showTooltip(tooltip, '<strong style="color:' + model.color + '">' + model.label + '</strong><br>Replay: ' + model.replay + '%', e.clientX, e.clientY, svg.parentElement);
-        });
-        rect.addEventListener('mouseleave', () => { unhighlightModel(); rect.setAttribute('opacity', model.archived ? '0.4' : '0.85'); hideTooltip(tooltip); });
-        svg.appendChild(rect);
-        const label = document.createElementNS(ns, 'text');
-        label.setAttribute('x', startX - 8); label.setAttribute('y', y + barH / 2);
-        label.setAttribute('text-anchor', 'end'); label.setAttribute('dominant-baseline', 'middle');
-        label.setAttribute('fill', model.archived ? '#4a4538' : '#e8e4de');
-        label.setAttribute('font-size', '10'); label.textContent = model.label;
-        svg.appendChild(label);
-        const val = document.createElementNS(ns, 'text');
-        val.setAttribute('x', startX + w + 6); val.setAttribute('y', y + barH / 2);
-        val.setAttribute('dominant-baseline', 'middle');
-        val.setAttribute('fill', model.archived ? '#5a5548' : '#e8e4de');
-        val.setAttribute('font-size', '10'); val.textContent = model.replay + '%';
-        svg.appendChild(val);
-      });
-    })();
-
-    // SCATTER CHART
-    (function() {
-      const svg = document.getElementById('scatter-chart');
-      const tooltip = createTooltip(svg.parentElement);
-      const ns = 'http://www.w3.org/2000/svg';
-      const pad = { top: 30, right: 30, bottom: 50, left: 60 };
-      const w = 600 - pad.left - pad.right, h = 400 - pad.top - pad.bottom;
-      const xMin = 0, xMax = 140, yMin = 0, yMax = 0.6;
-
-      for (let v = 0; v <= 140; v += 20) {
-        const x = pad.left + ((v - xMin) / (xMax - xMin)) * w;
-        const line = document.createElementNS(ns, 'line');
-        line.setAttribute('x1', x); line.setAttribute('y1', pad.top);
-        line.setAttribute('x2', x); line.setAttribute('y2', pad.top + h);
-        line.setAttribute('stroke', '#1a1810'); line.setAttribute('stroke-width', '1');
-        svg.appendChild(line);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', x); text.setAttribute('y', pad.top + h + 20);
-        text.setAttribute('text-anchor', 'middle'); text.setAttribute('fill', '#4a4538');
-        text.setAttribute('font-size', '9'); text.textContent = v;
-        svg.appendChild(text);
-      }
-      for (let v = 0; v <= 0.6; v += 0.1) {
-        const y = pad.top + h - ((v - yMin) / (yMax - yMin)) * h;
-        const line = document.createElementNS(ns, 'line');
-        line.setAttribute('x1', pad.left); line.setAttribute('y1', y);
-        line.setAttribute('x2', pad.left + w); line.setAttribute('y2', y);
-        line.setAttribute('stroke', '#1a1810'); line.setAttribute('stroke-width', '1');
-        svg.appendChild(line);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', pad.left - 8); text.setAttribute('y', y);
-        text.setAttribute('text-anchor', 'end'); text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('fill', '#4a4538'); text.setAttribute('font-size', '9');
-        text.textContent = v.toFixed(2);
-        svg.appendChild(text);
-      }
-
-      const xLabel = document.createElementNS(ns, 'text');
-      xLabel.setAttribute('x', pad.left + w / 2); xLabel.setAttribute('y', 390);
-      xLabel.setAttribute('text-anchor', 'middle'); xLabel.setAttribute('fill', '#7a7568');
-      xLabel.setAttribute('font-size', '10'); xLabel.textContent = 'predict_tok/s';
-      svg.appendChild(xLabel);
-
-      const yLabel = document.createElementNS(ns, 'text');
-      yLabel.setAttribute('x', 15); yLabel.setAttribute('y', pad.top + h / 2);
-      yLabel.setAttribute('text-anchor', 'middle'); yLabel.setAttribute('fill', '#7a7568');
-      yLabel.setAttribute('font-size', '10');
-      yLabel.setAttribute('transform', 'rotate(-90, 15, ' + (pad.top + h / 2) + ')');
-      yLabel.textContent = 'coding score';
-      svg.appendChild(yLabel);
-
-      models.forEach(model => {
-        const x = pad.left + ((model.predictTok - xMin) / (xMax - xMin)) * w;
-        const y = pad.top + h - ((model.coding - yMin) / (yMax - yMin)) * h;
-        const circle = document.createElementNS(ns, 'circle');
-        circle.setAttribute('cx', x); circle.setAttribute('cy', y);
-        circle.setAttribute('r', model.archived ? '5' : '7');
-        circle.setAttribute('fill', model.color);
-        circle.setAttribute('opacity', model.archived ? '0.4' : '0.85');
-        circle.setAttribute('data-model-id', model.id);
-        circle.style.cursor = 'pointer';
-        circle.addEventListener('mouseenter', () => { highlightModel(model.id); circle.setAttribute('r', '9'); circle.setAttribute('opacity', '1'); });
-        circle.addEventListener('mousemove', (e) => {
-          showTooltip(tooltip, '<strong style="color:' + model.color + '">' + model.label + '</strong><br>predict: ' + model.predictTok + ' tok/s<br>coding: ' + model.coding, e.clientX, e.clientY, svg.parentElement);
-        });
-        circle.addEventListener('mouseleave', () => { unhighlightModel(); circle.setAttribute('r', model.archived ? '5' : '7'); circle.setAttribute('opacity', model.archived ? '0.4' : '0.85'); hideTooltip(tooltip); });
-        svg.appendChild(circle);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', x + 10); text.setAttribute('y', y + 4);
-        text.setAttribute('fill', model.archived ? '#4a4538' : '#e8e4de');
-        text.setAttribute('font-size', '9'); text.textContent = model.label;
-        svg.appendChild(text);
-      });
-    })();
-
-    // GROUPED BAR CHART
-    (function() {
-      const svg = document.getElementById('grouped-bar-chart');
-      const tooltip = createTooltip(svg.parentElement);
-      const ns = 'http://www.w3.org/2000/svg';
-      const groupW = 70, barW = 28, gap = 4;
-      const startY = 30, startX = 80;
-      const maxVal = 100, minVal = 0;
-
-      [0, 20, 40, 60, 80, 100].forEach(v => {
-        const y = startY + (1 - (v - minVal) / (maxVal - minVal)) * 260;
-        const line = document.createElementNS(ns, 'line');
-        line.setAttribute('x1', startX); line.setAttribute('y1', y);
-        line.setAttribute('x2', startX + models.length * (groupW + 20)); line.setAttribute('y2', y);
-        line.setAttribute('stroke', '#1a1810'); line.setAttribute('stroke-width', '1');
-        svg.appendChild(line);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', startX - 8); text.setAttribute('y', y);
-        text.setAttribute('text-anchor', 'end'); text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('fill', '#4a4538'); text.setAttribute('font-size', '9');
-        text.textContent = v + '%';
-        svg.appendChild(text);
-      });
-
-      models.forEach((model, i) => {
-        const gx = startX + i * (groupW + 20);
-        const bars = [{ val: model.sim }, { val: model.replay }];
-        bars.forEach((bar, j) => {
-          const bh = ((bar.val - minVal) / (maxVal - minVal)) * 260;
-          const rect = document.createElementNS(ns, 'rect');
-          rect.setAttribute('x', gx + j * (barW + gap));
-          rect.setAttribute('y', startY + 260 - bh);
-          rect.setAttribute('width', barW); rect.setAttribute('height', bh);
-          rect.setAttribute('rx', '2');
-          rect.setAttribute('fill', j === 0 ? model.color : (model.archived ? '#3a3528' : '#c47a2a'));
-          rect.setAttribute('opacity', model.archived ? '0.35' : '0.75');
-          rect.setAttribute('data-model-id', model.id);
-          rect.style.cursor = 'pointer';
-          const metricName = j === 0 ? 'sim compare' : 'transcript replay';
-          rect.addEventListener('mouseenter', () => { highlightModel(model.id); rect.setAttribute('opacity', '1'); });
-          rect.addEventListener('mousemove', (e) => {
-            showTooltip(tooltip, '<strong style="color:' + model.color + '">' + model.label + '</strong><br>' + metricName + ': ' + bar.val + '%', e.clientX, e.clientY, svg.parentElement);
-          });
-          rect.addEventListener('mouseleave', () => { unhighlightModel(); rect.setAttribute('opacity', model.archived ? '0.35' : '0.75'); hideTooltip(tooltip); });
-          svg.appendChild(rect);
-        });
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', gx + groupW / 2); text.setAttribute('y', startY + 275);
-        text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('fill', model.archived ? '#4a4538' : '#e8e4de');
-        text.setAttribute('font-size', '9'); text.textContent = model.label.split('-')[0];
-        svg.appendChild(text);
-      });
-
-      const legendY = 330;
-      [{ color: '#e8943a', label: 'sim compare' }, { color: '#c47a2a', label: 'transcript replay' }].forEach((item, i) => {
-        const lx = 200 + i * 160;
-        const rect = document.createElementNS(ns, 'rect');
-        rect.setAttribute('x', lx); rect.setAttribute('y', legendY);
-        rect.setAttribute('width', '10'); rect.setAttribute('height', '10');
-        rect.setAttribute('rx', '2'); rect.setAttribute('fill', item.color);
-        svg.appendChild(rect);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', lx + 16); text.setAttribute('y', legendY + 9);
-        text.setAttribute('fill', '#7a7568'); text.setAttribute('font-size', '10');
-        text.textContent = item.label;
-        svg.appendChild(text);
-      });
-    })();
-
-    // LINE CHART
-    (function() {
-      const svg = document.getElementById('line-chart');
-      const tooltip = createTooltip(svg.parentElement);
-      const ns = 'http://www.w3.org/2000/svg';
-      const pad = { top: 30, right: 30, bottom: 50, left: 60 };
-      const w = 600 - pad.left - pad.right, h = 400 - pad.top - pad.bottom;
-      const sorted = [...models].sort((a, b) => a.predictTok - b.predictTok);
-      const xMin = 0, xMax = 140, yMin = 25, yMax = 35;
-
-      for (let v = 0; v <= 140; v += 20) {
-        const x = pad.left + ((v - xMin) / (xMax - xMin)) * w;
-        const line = document.createElementNS(ns, 'line');
-        line.setAttribute('x1', x); line.setAttribute('y1', pad.top);
-        line.setAttribute('x2', x); line.setAttribute('y2', pad.top + h);
-        line.setAttribute('stroke', '#1a1810'); line.setAttribute('stroke-width', '1');
-        svg.appendChild(line);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', x); text.setAttribute('y', pad.top + h + 20);
-        text.setAttribute('text-anchor', 'middle'); text.setAttribute('fill', '#4a4538');
-        text.setAttribute('font-size', '9'); text.textContent = v;
-        svg.appendChild(text);
-      }
-      for (let v = 25; v <= 35; v += 2) {
-        const y = pad.top + h - ((v - yMin) / (yMax - yMin)) * h;
-        const line = document.createElementNS(ns, 'line');
-        line.setAttribute('x1', pad.left); line.setAttribute('y1', y);
-        line.setAttribute('x2', pad.left + w); line.setAttribute('y2', y);
-        line.setAttribute('stroke', '#1a1810'); line.setAttribute('stroke-width', '1');
-        svg.appendChild(line);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', pad.left - 8); text.setAttribute('y', y);
-        text.setAttribute('text-anchor', 'end'); text.setAttribute('dominant-baseline', 'middle');
-        text.setAttribute('fill', '#4a4538'); text.setAttribute('font-size', '9');
-        text.textContent = v;
-        svg.appendChild(text);
-      }
-
-      const xLabel = document.createElementNS(ns, 'text');
-      xLabel.setAttribute('x', pad.left + w / 2); xLabel.setAttribute('y', 390);
-      xLabel.setAttribute('text-anchor', 'middle'); xLabel.setAttribute('fill', '#7a7568');
-      xLabel.setAttribute('font-size', '10'); xLabel.textContent = 'predict_tok/s';
-      svg.appendChild(xLabel);
-
-      const yLabel = document.createElementNS(ns, 'text');
-      yLabel.setAttribute('x', 15); yLabel.setAttribute('y', pad.top + h / 2);
-      yLabel.setAttribute('text-anchor', 'middle'); yLabel.setAttribute('fill', '#7a7568');
-      yLabel.setAttribute('font-size', '10');
-      yLabel.setAttribute('transform', 'rotate(-90, 15, ' + (pad.top + h / 2) + ')');
-      yLabel.textContent = 'peak VRAM (GiB)';
-      svg.appendChild(yLabel);
-
-      let pathD = '';
-      const points = [];
-      sorted.forEach((model, i) => {
-        const x = pad.left + ((model.predictTok - xMin) / (xMax - xMin)) * w;
-        const y = pad.top + h - ((model.vram - yMin) / (yMax - yMin)) * h;
-        points.push({ x, y, model });
-        pathD += (i === 0 ? 'M' : 'L') + x + ',' + y;
-      });
-
-      const path = document.createElementNS(ns, 'path');
-      path.setAttribute('d', pathD); path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', '#e8943a'); path.setAttribute('stroke-width', '1.5');
-      path.setAttribute('stroke-opacity', '0.4'); path.setAttribute('stroke-dasharray', '4,3');
-      svg.appendChild(path);
-
-      points.forEach(({ x, y, model }) => {
-        const circle = document.createElementNS(ns, 'circle');
-        circle.setAttribute('cx', x); circle.setAttribute('cy', y);
-        circle.setAttribute('r', model.archived ? '4' : '6');
-        circle.setAttribute('fill', model.color);
-        circle.setAttribute('opacity', model.archived ? '0.4' : '0.85');
-        circle.setAttribute('data-model-id', model.id);
-        circle.style.cursor = 'pointer';
-        circle.addEventListener('mouseenter', () => { highlightModel(model.id); circle.setAttribute('r', '8'); circle.setAttribute('opacity', '1'); });
-        circle.addEventListener('mousemove', (e) => {
-          showTooltip(tooltip, '<strong style="color:' + model.color + '">' + model.label + '</strong><br>predict: ' + model.predictTok + ' tok/s<br>VRAM: ' + model.vram + ' GiB', e.clientX, e.clientY, svg.parentElement);
-        });
-        circle.addEventListener('mouseleave', () => { unhighlightModel(); circle.setAttribute('r', model.archived ? '4' : '6'); circle.setAttribute('opacity', model.archived ? '0.4' : '0.85'); hideTooltip(tooltip); });
-        svg.appendChild(circle);
-        const text = document.createElementNS(ns, 'text');
-        text.setAttribute('x', x + 8); text.setAttribute('y', y - 6);
-        text.setAttribute('fill', model.archived ? '#4a4538' : '#e8e4de');
-        text.setAttribute('font-size', '9'); text.textContent = model.label;
-        svg.appendChild(text);
-      });
-    })();
   </script>
 </body>
 </html>
