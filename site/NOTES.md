@@ -1,5 +1,9 @@
 # Resolved
 
+[Readability refinement] complete — body text is 16px, task and denominator semantics are explicit, chart series use stronger color plus line-pattern differentiation, selected columns retain high contrast, and model changes update in place without layout shift.
+
+[Interaction verification] Chromium passed keyboard and pointer model selection at 320–1440px with zero layout shift, no viewport overflow or console errors, and canonical suite totals unchanged.
+
 [Barrage V2 interface] complete — the main site now presents the four-model release run as separate evidence families, with explicit qualification semantics and no blended model score.
 
 [Normalization] generated site schema matches the canonical source for all displayed suite totals and performance medians — later summaries can be ingested by rerunning `node scripts/normalize-benchmark.mjs <source> <destination>`.

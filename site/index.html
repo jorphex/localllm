@@ -14,7 +14,7 @@
       --surface-2: #dde2e3;
       --ink: #172027;
       --ink-2: #46545d;
-      --ink-3: #66747c;
+      --ink-3: #52616a;
       --rule: #b8c0c3;
       --strong-rule: #7d898f;
       --accent: #e34b24;
@@ -36,7 +36,7 @@
       background: var(--canvas);
       color: var(--ink);
       font-family: Geologica, "Arial Narrow", Arial, sans-serif;
-      font-size: 14px;
+      font-size: 16px;
       line-height: 1.45;
       font-variation-settings: "SHRP" 35;
     }
@@ -58,7 +58,7 @@
     }
     .brand { font-size: 18px; font-weight: 650; letter-spacing: -.03em; white-space: nowrap; }
     .brand span { color: var(--accent); }
-    .top-meta { display: flex; gap: 18px; color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .top-meta { display: flex; gap: 18px; color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
     .top-meta b { color: var(--ink); font-weight: 520; }
     .shell { max-width: 1500px; margin: 0 auto; padding: 26px 28px 72px; }
     .run-head {
@@ -71,12 +71,12 @@
     }
     .run-head h1 { margin: 5px 0 8px; font-size: 36px; line-height: 1.02; letter-spacing: -.035em; text-wrap: balance; }
     .run-head p { max-width: 68ch; margin: 0; color: var(--ink-2); text-wrap: pretty; }
-    .overline { color: var(--ink-3); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+    .overline { color: var(--ink-3); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
     .gate-note { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
     .gate-mark { width: 34px; height: 34px; display: grid; place-items: center; background: var(--accent); color: #fff; font-size: 18px; font-weight: 650; }
     .gate-note b { display: block; margin-bottom: 3px; font-size: 15px; }
-    .gate-note p { font-size: 12px; color: var(--ink-2); }
-    .selector-label { margin: 24px 0 8px; display: flex; justify-content: space-between; color: var(--ink-3); font-size: 11px; }
+    .gate-note p { font-size: 14px; color: var(--ink-2); }
+    .selector-label { margin: 24px 0 8px; display: flex; justify-content: space-between; color: var(--ink-3); font-size: 12px; }
     .model-selector { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--ink); background: var(--ink); gap: 1px; }
     .model-button {
       border: 0;
@@ -90,9 +90,9 @@
     }
     .model-button:hover { background: #fff; }
     .model-button.active { background: var(--ink); color: #fff; }
-    .model-button .build { color: var(--accent); font-size: 11px; font-weight: 650; }
-    .model-button .name { display: block; margin: 2px 0 7px; font-size: 15px; font-weight: 580; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .model-button .model-foot { display: flex; justify-content: space-between; gap: 6px; font-size: 10px; color: var(--ink-3); }
+    .model-button .build { color: var(--accent); font-size: 12px; font-weight: 650; }
+    .model-button .name { display: block; margin: 2px 0 7px; font-size: 16px; font-weight: 580; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .model-button .model-foot { display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: var(--ink-3); }
     .model-button.active .model-foot { color: #aeb9bf; }
     .suite-nav {
       display: flex;
@@ -107,15 +107,15 @@
     .suite-tab:hover { color: var(--ink); }
     .suite-tab.active { color: var(--ink); border-bottom-color: var(--accent); font-weight: 580; }
     .view { display: none; padding-top: 26px; }
-    .view.active { display: block; animation: view-in 180ms var(--ease); }
-    @keyframes view-in { from { opacity: .4; transform: translateY(4px); } }
+    .view.active { display: block; animation: view-in 150ms var(--ease); }
+    @keyframes view-in { from { opacity: .6; } }
     .section-intro { display: flex; justify-content: space-between; align-items: end; gap: 36px; margin-bottom: 18px; }
     .section-intro h2 { margin: 0 0 4px; font-size: 22px; letter-spacing: -.025em; }
-    .section-intro p { color: var(--ink-2); margin: 0; max-width: 66ch; font-size: 12px; }
+    .section-intro p { color: var(--ink-2); margin: 0; max-width: 66ch; font-size: 14px; }
     .section-intro .reading { max-width: 360px; text-align: right; color: var(--ink-3); }
     .matrix-scroll { overflow-x: auto; border-top: 1px solid var(--ink); }
     .matrix { width: 100%; border-collapse: collapse; min-width: 860px; font-variant-numeric: tabular-nums; }
-    .matrix th { padding: 9px 10px; border-bottom: 1px solid var(--strong-rule); text-align: left; font-size: 10px; color: var(--ink-3); font-weight: 580; text-transform: uppercase; letter-spacing: .055em; }
+    .matrix th { padding: 10px; border-bottom: 1px solid var(--strong-rule); text-align: left; font-size: 11px; color: var(--ink-3); font-weight: 580; text-transform: uppercase; letter-spacing: .045em; }
     .matrix td { padding: 11px 10px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
     .matrix tr[data-model] { cursor: pointer; }
     .matrix tr[data-model]:hover td { background: rgba(255,255,255,.44); }
@@ -128,7 +128,7 @@
     .mini-track { width: 54px; height: 6px; background: var(--surface-2); }
     .mini-track i { display: block; height: 100%; background: var(--pass); }
     .mini-track i.partial { background: var(--accent); }
-    .status-word { color: var(--pass); font-size: 11px; font-weight: 600; }
+    .status-word { color: var(--pass); font-size: 12px; font-weight: 600; }
     .status-word.fail { color: var(--warn); }
     .finding {
       margin-top: 20px;
@@ -139,16 +139,16 @@
       border-bottom: 1px solid var(--ink);
       padding: 16px 0;
     }
-    .finding h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+    .finding h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
     .finding p { margin: 0; font-size: 17px; line-height: 1.35; max-width: 76ch; text-wrap: pretty; }
     .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--ink); border: 1px solid var(--ink); }
     .chart-block { background: var(--surface); padding: 17px; min-width: 0; }
     .chart-block.wide { grid-column: 1 / -1; }
     .chart-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
-    .chart-head h3 { margin: 0; font-size: 14px; font-weight: 580; }
-    .chart-head span { color: var(--ink-3); font-size: 10px; }
+    .chart-head h3 { margin: 0; font-size: 15px; font-weight: 580; }
+    .chart-head span { color: var(--ink-3); font-size: 12px; }
     .bar-list { display: grid; gap: 11px; }
-    .bar-row { display: grid; grid-template-columns: 130px minmax(80px, 1fr) 72px; align-items: center; gap: 10px; font-size: 11px; }
+    .bar-row { display: grid; grid-template-columns: 150px minmax(80px, 1fr) 72px; align-items: center; gap: 10px; font-size: 13px; }
     .bar-row.selected .bar-label { color: var(--accent); font-weight: 650; }
     .bar-track { height: 18px; background: var(--surface-2); position: relative; overflow: hidden; }
     .bar-fill { height: 100%; background: var(--blue); transform-origin: left; transition: transform 260ms var(--ease), background 180ms; }
@@ -156,31 +156,42 @@
     .bar-value { text-align: right; font-variant-numeric: tabular-nums; font-weight: 580; }
     .context-chart { width: 100%; height: auto; min-height: 240px; display: block; }
     .context-chart .gridline { stroke: var(--rule); stroke-width: 1; }
-    .context-chart .axis-text { fill: var(--ink-3); font: 10px Geologica, sans-serif; }
-    .context-chart .line { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+    .context-chart .axis-text { fill: var(--ink-3); font: 12px Geologica, sans-serif; }
+    .context-chart .line { fill: none; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
     .context-chart .point { stroke: var(--surface); stroke-width: 2; vector-effect: non-scaling-stroke; }
     .legend { display: flex; flex-wrap: wrap; gap: 13px; margin-top: 10px; }
-    .legend button { border: 0; background: transparent; padding: 3px 0; color: var(--ink-2); cursor: pointer; font-size: 10px; }
+    .legend button { border: 0; background: transparent; padding: 4px 0; color: var(--ink-2); cursor: pointer; font-size: 12px; }
     .legend i { display: inline-block; width: 16px; height: 3px; margin-right: 6px; vertical-align: middle; }
-    .task-grid { display: grid; grid-template-columns: minmax(190px, 1.25fr) repeat(4, minmax(105px, 1fr)); border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); overflow-x: auto; }
+    .legend i.dashed { height: 0; background: transparent !important; border-top: 3px dashed currentColor; }
+    .task-scroll { overflow-x: auto; }
+    .task-grid { display: grid; grid-template-columns: minmax(250px, 1.35fr) repeat(4, minmax(125px, 1fr)); border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); }
     .task-cell { min-width: 0; padding: 10px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: var(--surface); }
     .task-cell.head { background: var(--ink); color: #fff; }
-    .task-cell.label { color: var(--ink-2); font-size: 11px; overflow-wrap: anywhere; }
+    .task-cell.label { color: var(--ink-2); font-size: 13px; overflow-wrap: anywhere; }
+    .task-cell.label b { display: block; color: var(--ink); font-size: 14px; font-weight: 580; }
+    .task-cell.label small { display: block; margin-top: 4px; color: var(--ink-2); font-size: 12px; line-height: 1.4; }
+    .task-split { display: inline-block; margin-left: 5px; color: var(--ink-3); font-size: 10px; font-weight: 520; text-transform: uppercase; letter-spacing: .04em; }
     .task-result { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
     .blocks { display: flex; gap: 3px; }
     .blocks i { width: 8px; height: 18px; background: var(--surface-2); }
     .blocks i.pass { background: var(--pass); }
     .blocks i.fail { background: var(--accent); }
-    .task-cell.selected-col { background: #fff; box-shadow: inset 0 3px 0 var(--accent); }
+    .task-cell.selected-col { background: #fff; color: var(--ink); box-shadow: inset 0 3px 0 var(--accent); }
+    .task-cell.head.selected-col { background: var(--ink); color: #fff; box-shadow: inset 0 4px 0 var(--accent); }
+    .column-select { width: 100%; border: 0; background: transparent; color: inherit; padding: 0; text-align: left; cursor: pointer; font-weight: 580; }
+    .column-select span { opacity: .72; font-size: 11px; }
     .split-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
     .split-item { border-top: 1px solid var(--ink); padding-top: 9px; }
     .split-item b { font-size: 22px; font-weight: 580; font-variant-numeric: tabular-nums; }
-    .split-item span { display: block; color: var(--ink-3); font-size: 10px; }
-    .annotation { margin-top: 16px; padding: 12px 14px; background: var(--accent-soft); color: #622211; font-size: 12px; }
+    .split-item span { display: block; color: var(--ink-3); font-size: 12px; }
+    .annotation { margin-top: 16px; padding: 12px 14px; background: var(--accent-soft); color: #622211; font-size: 14px; }
     .method-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; border-top: 1px solid var(--ink); padding-top: 18px; }
-    .method-grid h3 { font-size: 12px; margin: 0 0 7px; }
-    .method-grid p { font-size: 11px; color: var(--ink-2); margin: 0; }
-    .provenance { margin-top: 38px; padding-top: 14px; border-top: 1px solid var(--ink); display: flex; justify-content: space-between; gap: 24px; color: var(--ink-3); font-size: 10px; overflow-wrap: anywhere; }
+    .method-grid h3 { font-size: 14px; margin: 0 0 7px; }
+    .method-grid p { font-size: 13px; color: var(--ink-2); margin: 0; }
+    .provenance { margin-top: 38px; padding-top: 14px; border-top: 1px solid var(--ink); display: flex; justify-content: space-between; gap: 24px; color: var(--ink-3); font-size: 11px; overflow-wrap: anywhere; }
+    .selection-key { display: inline-flex; align-items: center; gap: 7px; margin-top: 5px; color: var(--ink-2); font-weight: 580; }
+    .selection-key i { width: 18px; height: 8px; background: var(--accent); }
+    [hidden] { display: none !important; }
     .loading { padding: 80px 0; text-align: center; color: var(--ink-3); }
     .loading:before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 8px; background: var(--accent); animation: pulse 900ms ease-in-out infinite alternate; }
     @keyframes pulse { to { opacity: .25; } }
@@ -204,7 +215,7 @@
       .section-intro .reading { text-align: left; margin-top: 8px; }
       .finding { grid-template-columns: 1fr; gap: 6px; }
       .finding p { font-size: 15px; }
-      .bar-row { grid-template-columns: 100px minmax(60px, 1fr) 58px; gap: 7px; }
+      .bar-row { grid-template-columns: 112px minmax(60px, 1fr) 58px; gap: 7px; font-size: 12px; }
       .provenance { display: block; }
       .provenance span { display: block; margin-top: 6px; }
     }
@@ -224,7 +235,28 @@
   </main>
   <script>
     const state = { data: null, selected: 'qwen27-huihui', view: 'overview' };
-    const colors = ['#e34b24', '#245bb8', '#167257', '#6c4dab'];
+    const colors = ['#e34b24', '#1556b8', '#00745b', '#9a2f78'];
+    const taskDefinitions = {
+      tools: {
+        tool_restraint: ['Tool restraint', 'Answers directly when the prompt explicitly says not to use a tool.', 'core'],
+        tool_followthrough: ['Evidence follow-through', 'Calls the required lookup and carries its returned value into the final answer.', 'core'],
+        dependent_tool_sequence: ['Dependent sequence', 'Uses the first tool result as the exact input to a second tool call.', 'core'],
+        parallel_tool_calls: ['Parallel calls', 'Issues two independent lookups together and reports both results.', 'core'],
+        tool_error_recovery: ['Error recovery', 'Recognizes a failed primary lookup, switches to the fallback, and completes the answer.', 'core'],
+        duplicate_call_avoidance: ['Duplicate avoidance', 'Uses the requested lookup exactly once without repeating an already-completed call.', 'holdout'],
+        tool_restraint_holdout: ['Tool restraint', 'Unseen prompt that must be answered without invoking any tool.', 'holdout'],
+      },
+      sandbox: {
+        normalize_tags: ['Normalize tags', 'Single-file fix: trim, remove blanks, lowercase, and preserve tag order.', 'core'],
+        merge_intervals: ['Merge intervals', 'Single-file fix: sort and merge overlapping or touching integer ranges.', 'core'],
+        retry_limit: ['Retry limit', 'Implement exact retry counts and re-raise the final exception after exhaustion.', 'core'],
+        pricing_repository: ['Pricing repository', 'Discover and repair discount logic across two files without changing tests.', 'core'],
+        transient_test_recovery: ['Transient recovery', 'Fix a parser, recover from an injected test-runner failure, and rerun tests.', 'core'],
+        duration_format: ['Duration format', 'Unseen single-file task formatting non-negative seconds as compact h/m/s text.', 'holdout'],
+        config_overlay: ['Config overlay', 'Unseen multi-file task resolving explicit timeouts with a default fallback.', 'holdout'],
+        package_summary: ['Package summary', 'Unseen package-discovery task with an exact one-file change boundary.', 'holdout'],
+      },
+    };
     const prettyTask = value => value.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
     const format = (value, digits = 1) => value == null ? '—' : Number(value).toFixed(digits);
     const pct = item => item.total ? item.passed / item.total * 100 : 0;
@@ -232,7 +264,7 @@
 
     function ratio(value) {
       const good = value.passed === value.total;
-      return `<span class="ratio"><span class="mini-track"><i class="${good ? '' : 'partial'}" style="width:${pct(value)}%"></i></span><b>${value.passed}/${value.total}</b></span>`;
+      return `<span class="ratio" title="${value.passed} passing trials out of ${value.total} retained attempts" aria-label="${value.passed} passing trials out of ${value.total} retained attempts"><span class="mini-track"><i class="${good ? '' : 'partial'}" style="width:${pct(value)}%"></i></span><b>${value.passed}/${value.total}</b></span>`;
     }
 
     function modelSelector() {
@@ -251,9 +283,9 @@
 
     function overview() {
       return `<section class="view ${state.view === 'overview' ? 'active' : ''}" id="view-overview">
-        <div class="section-intro"><div><h2>Qualification readout</h2><p>Completion and capability are reported independently. There is deliberately no aggregate score.</p></div><p class="reading">Green means every retained trial passed. Orange is a partial result, not a benchmark crash.</p></div>
+        <div class="section-intro"><div><h2>Qualification readout</h2><p>Completion and capability are reported independently. There is deliberately no aggregate score.</p></div><p class="reading">Every fraction is passing trials / retained attempts. Tools: 7 tasks × 3 attempts. Sandbox: 8 × 3. Concurrency: 2 × 5. Vision: 1 × 3.</p></div>
         <div class="matrix-scroll"><table class="matrix"><thead><tr><th>Candidate</th><th>Release</th><th>Performance</th><th>Tools</th><th>Sandbox</th><th>Concurrency</th><th>Vision</th></tr></thead><tbody>
-          ${state.data.models.map(m => `<tr data-model="${m.id}" class="${m.id === state.selected ? 'selected' : ''}"><td class="model-cell"><b>${m.name}</b><small>${m.build} · ${m.modelSizeGb} GB</small></td><td><span class="status-word fail">Not qualified</span></td><td><span class="status-word">Completed</span></td><td>${ratio(m.tools)}</td><td>${ratio(m.sandbox)}</td><td>${ratio(m.concurrency)}</td><td>${ratio(m.vision)}</td></tr>`).join('')}
+          ${state.data.models.map(m => `<tr data-model="${m.id}" class="${m.id === state.selected ? 'selected' : ''}" tabindex="0" role="button" aria-label="Select ${m.name} ${m.build}"><td class="model-cell"><b>${m.name}</b><small>${m.build} · ${m.modelSizeGb} GB</small></td><td><span class="status-word fail">Not qualified</span></td><td><span class="status-word">Completed</span></td><td>${ratio(m.tools)}</td><td>${ratio(m.sandbox)}</td><td>${ratio(m.concurrency)}</td><td>${ratio(m.vision)}</td></tr>`).join('')}
         </tbody></table></div>
         <div class="finding"><h3>What this run says</h3><p>${state.data.interpretation.finding}</p></div>
         <div class="finding"><h3>What it does not say</h3><p>It does not collapse unlike workloads into a winner. The 35B MoE builds are roughly four times faster in generation; the 27B builds complete more sandbox trials. Tool, concurrency, and vision results are tied.</p></div>
@@ -265,7 +297,7 @@
       const max = Math.max(...values);
       return `<div class="chart-block"><div class="chart-head"><h3>${label}</h3><span>median · ${unit}</span></div><div class="bar-list">${state.data.models.map((m,i) => {
         const v = m.performance[metric].median;
-        return `<div class="bar-row ${m.id === state.selected ? 'selected' : ''}"><span class="bar-label">${modelShort(m)}</span><div class="bar-track"><div class="bar-fill" style="transform:scaleX(${v / max})"></div></div><span class="bar-value">${format(v, inverse ? 3 : 1)}</span></div>`;
+        return `<div class="bar-row ${m.id === state.selected ? 'selected' : ''}" data-model-row="${m.id}"><span class="bar-label">${modelShort(m)}</span><div class="bar-track"><div class="bar-fill" style="transform:scaleX(${v / max})"></div></div><span class="bar-value">${format(v, inverse ? 3 : 1)}</span></div>`;
       }).join('')}</div></div>`;
     }
 
@@ -276,28 +308,30 @@
       const y=v=>top+(max-v)/max*(height-top-bottom);
       const grid=[0,700,1400,2100,2800];
       return `<div class="chart-block wide"><div class="chart-head"><h3>Context recall prompt processing</h3><span>median prompt tok/s · exact prompt count retained in data</span></div>
-        <svg class="context-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Prompt processing speed across context lengths">${grid.map(v=>`<line class="gridline" x1="${left}" y1="${y(v)}" x2="${width-right}" y2="${y(v)}"/><text class="axis-text" x="4" y="${y(v)+4}">${v}</text>`).join('')}${contexts.map((v,i)=>`<text class="axis-text" text-anchor="middle" x="${x(i)}" y="${height-8}">${v}</text>`).join('')}${state.data.models.map((m,mi)=>{const points=m.performance.contextRecall.map((d,i)=>`${x(i)},${y(d.promptPerSecond.median)}`).join(' ');return `<polyline class="line" points="${points}" stroke="${colors[mi]}" opacity="${m.id===state.selected?1:.35}"/>${m.performance.contextRecall.map((d,i)=>`<circle class="point" cx="${x(i)}" cy="${y(d.promptPerSecond.median)}" r="${m.id===state.selected?5:3}" fill="${colors[mi]}"/>`).join('')}`}).join('')}</svg>
-        <div class="legend">${state.data.models.map((m,i)=>`<button data-model-select="${m.id}"><i style="background:${colors[i]}"></i>${modelShort(m)}</button>`).join('')}</div></div>`;
+        <svg class="context-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Prompt processing speed across context lengths">${grid.map(v=>`<line class="gridline" x1="${left}" y1="${y(v)}" x2="${width-right}" y2="${y(v)}"/><text class="axis-text" x="4" y="${y(v)+4}">${v}</text>`).join('')}${contexts.map((v,i)=>`<text class="axis-text" text-anchor="middle" x="${x(i)}" y="${height-8}">${v}</text>`).join('')}${state.data.models.map((m,mi)=>{const points=m.performance.contextRecall.map((d,i)=>`${x(i)},${y(d.promptPerSecond.median)}`).join(' ');return `<polyline data-model-series="${m.id}" class="line" points="${points}" stroke="${colors[mi]}" ${m.build==='Unsloth'?'stroke-dasharray="8 5"':''} opacity="${m.id===state.selected?1:.72}"/>${m.performance.contextRecall.map((d,i)=>`<circle data-model-series="${m.id}" class="point" cx="${x(i)}" cy="${y(d.promptPerSecond.median)}" r="${m.id===state.selected?5:4}" fill="${colors[mi]}"/>`).join('')}`}).join('')}</svg>
+        <div class="legend">${state.data.models.map((m,i)=>`<button data-model-select="${m.id}"><i class="${m.build==='Unsloth'?'dashed':''}" style="background:${colors[i]};border-color:${colors[i]}"></i>${modelShort(m)}</button>`).join('')}</div></div>`;
     }
 
     function performance() {
-      return `<section class="view ${state.view === 'performance' ? 'active' : ''}" id="view-performance"><div class="section-intro"><div><h2>Performance</h2><p>Repeated prompt processing, generation, agent-shaped streaming, cache reuse, and long-context recall.</p></div><p class="reading">Higher is better except TTFT. Figures are medians across five fair-profile repeats.</p></div><div class="chart-grid">${bars('directGeneration','Direct generation','tok/s')}${bars('agentTtft','Agent-shaped TTFT','seconds',true)}${bars('referenceAgent','Reference agent loop','tok/s')}${bars('coldPrompt','Cold short-prompt processing','tok/s')}${contextChart()}</div></section>`;
+      return `<section class="view ${state.view === 'performance' ? 'active' : ''}" id="view-performance"><div class="section-intro"><div><h2>Performance</h2><p>Repeated prompt processing, generation, agent-shaped streaming, cache reuse, and long-context recall.</p></div><p class="reading">Higher is better except TTFT. Figures are medians across five fair-profile repeats.<span class="selection-key"><i></i>Orange marks the selected model.</span></p></div><div class="chart-grid">${bars('directGeneration','Direct generation','tok/s')}${bars('agentTtft','Agent-shaped TTFT','seconds',true)}${bars('referenceAgent','Reference agent loop','tok/s')}${bars('coldPrompt','Cold short-prompt processing','tok/s')}${contextChart()}</div></section>`;
     }
 
     function taskMatrix(kind) {
       const tasks = Object.keys(state.data.models[0][kind].tasks);
-      return `<div class="task-grid"><div class="task-cell head">Task</div>${state.data.models.map(m=>`<div class="task-cell head ${m.id===state.selected?'selected-col':''}">${m.build}<br><span style="opacity:.65">${m.family.split(' · ')[0]}</span></div>`).join('')}${tasks.map(task=>`<div class="task-cell label">${prettyTask(task)}</div>${state.data.models.map(m=>{const r=m[kind].tasks[task];return `<div class="task-cell ${m.id===state.selected?'selected-col':''}"><div class="task-result"><span class="blocks">${Array.from({length:r.total},(_,i)=>`<i class="${i<r.passed?'pass':'fail'}"></i>`).join('')}</span><b>${r.passed}/${r.total}</b></div></div>`}).join('')}`).join('')}</div>`;
+      return `<div class="task-scroll"><div class="task-grid"><div class="task-cell head">Task and acceptance target</div>${state.data.models.map(m=>`<div class="task-cell head ${m.id===state.selected?'selected-col':''}" data-model-column="${m.id}"><button class="column-select" data-model-select="${m.id}">${m.build}<br><span>${m.family.split(' · ')[0]} · select model</span></button></div>`).join('')}${tasks.map(task=>{const [name,description,split]=taskDefinitions[kind][task]||[prettyTask(task),'Retained benchmark task.',''];return `<div class="task-cell label"><b>${name}<span class="task-split">${split}</span></b><small>${description}</small></div>${state.data.models.map(m=>{const r=m[kind].tasks[task];return `<div class="task-cell ${m.id===state.selected?'selected-col':''}" data-model-column="${m.id}"><div class="task-result"><span class="blocks" aria-hidden="true">${Array.from({length:r.total},(_,i)=>`<i class="${i<r.passed?'pass':'fail'}"></i>`).join('')}</span><b title="${r.passed} passing trials out of ${r.total} attempts">${r.passed}/${r.total}</b></div></div>`}).join('')}`}).join('')}</div></div>`;
     }
 
     function qualityView(kind, title, copy) {
       const selected = state.data.models.find(m=>m.id===state.selected);
-      const annotations = kind === 'tools' && selected.notes.length ? `<div class="annotation"><b>Retained evidence note:</b> ${selected.notes.join(' ')}</div>` : '';
-      return `<section class="view ${state.view === kind ? 'active' : ''}" id="view-${kind}"><div class="section-intro"><div><h2>${title}</h2><p>${copy}</p></div><p class="reading">Core and holdout remain separate. Each block is one retained trial.</p></div><div class="split-summary">${state.data.models.map(m=>`<div class="split-item"><b>${m[kind].passed}/${m[kind].total}</b><span>${modelShort(m)} · total</span></div>`).join('')}</div>${taskMatrix(kind)}${annotations}</section>`;
+      const annotations = state.data.models.map(m=>m.notes.length?`<div class="annotation" data-model-note="${m.id}" ${m.id===state.selected?'':'hidden'}><b>Retained evidence note:</b> ${m.notes.join(' ')}</div>`:'').join('');
+      const attemptCopy = kind === 'tools' ? 'Seven tasks, each attempted three times: five core tasks (15 attempts) plus two unseen holdouts (6 attempts).' : 'Eight coding tasks, each attempted three times: five core tasks (15 attempts) plus three unseen holdouts (9 attempts).';
+      return `<section class="view ${state.view === kind ? 'active' : ''}" id="view-${kind}"><div class="section-intro"><div><h2>${title}</h2><p>${copy}</p></div><p class="reading">${attemptCopy} Every fraction is passing trials / total attempts.</p></div><div class="split-summary">${state.data.models.map(m=>`<div class="split-item"><b>${m[kind].passed}/${m[kind].total}</b><span>${modelShort(m)} · passing trials / attempts</span></div>`).join('')}</div>${taskMatrix(kind)}${annotations}</section>`;
     }
 
     function smallSuite(kind, title, copy) {
       const tasks = kind === 'concurrency' ? Object.keys(state.data.models[0].concurrency.reliability) : [];
-      return `<section class="view ${state.view === kind ? 'active' : ''}" id="view-${kind}"><div class="section-intro"><div><h2>${title}</h2><p>${copy}</p></div><p class="reading">Reported independently from single-request throughput.</p></div><div class="matrix-scroll"><table class="matrix"><thead><tr><th>Candidate</th><th>Applicable</th><th>Result</th>${tasks.map(t=>`<th>${prettyTask(t)}</th>`).join('')}</tr></thead><tbody>${state.data.models.map(m=>{const s=m[kind];return `<tr data-model="${m.id}" class="${m.id===state.selected?'selected':''}"><td class="model-cell"><b>${m.name}</b><small>${m.build}</small></td><td>${s.applicable?'Yes':'No'}</td><td>${ratio(s)}</td>${tasks.map(t=>`<td>${ratio(s.reliability[t])}</td>`).join('')}</tr>`}).join('')}</tbody></table></div></section>`;
+      const trialCopy = kind === 'concurrency' ? 'Two workload types, each repeated five times. 10/10 means all ten retained attempts passed.' : 'One deterministic 1024×1024 quadrant-image task repeated three times. 3/3 means all three attempts passed.';
+      return `<section class="view ${state.view === kind ? 'active' : ''}" id="view-${kind}"><div class="section-intro"><div><h2>${title}</h2><p>${copy}</p></div><p class="reading">${trialCopy}</p></div><div class="matrix-scroll"><table class="matrix"><thead><tr><th>Candidate</th><th>Applicable</th><th>Passing trials / attempts</th>${tasks.map(t=>`<th>${prettyTask(t)} · 5 attempts</th>`).join('')}</tr></thead><tbody>${state.data.models.map(m=>{const s=m[kind];return `<tr data-model="${m.id}" class="${m.id===state.selected?'selected':''}" tabindex="0" role="button" aria-label="Select ${m.name} ${m.build}"><td class="model-cell"><b>${m.name}</b><small>${m.build}</small></td><td>${s.applicable?'Yes':'No'}</td><td>${ratio(s)}</td>${tasks.map(t=>`<td>${ratio(s.reliability[t])}</td>`).join('')}</tr>`}).join('')}</tbody></table></div></section>`;
     }
 
     function method() {
@@ -311,8 +345,30 @@
       bind();
     }
 
+    function selectModel(modelId) {
+      state.selected = modelId;
+      document.querySelectorAll('.model-button[data-model-select]').forEach(el => {
+        const selected = el.dataset.modelSelect === modelId;
+        el.classList.toggle('active', selected);
+        el.setAttribute('aria-pressed', selected);
+      });
+      document.querySelectorAll('tr[data-model]').forEach(el => el.classList.toggle('selected', el.dataset.model === modelId));
+      document.querySelectorAll('[data-model-row]').forEach(el => el.classList.toggle('selected', el.dataset.modelRow === modelId));
+      document.querySelectorAll('[data-model-column]').forEach(el => el.classList.toggle('selected-col', el.dataset.modelColumn === modelId));
+      document.querySelectorAll('[data-model-note]').forEach(el => el.hidden = el.dataset.modelNote !== modelId);
+      document.querySelectorAll('[data-model-series]').forEach(el => {
+        const selected = el.dataset.modelSeries === modelId;
+        if (el.tagName === 'polyline') el.setAttribute('opacity', selected ? '1' : '.62');
+        if (el.tagName === 'circle') el.setAttribute('r', selected ? '5' : '4');
+      });
+    }
+
     function bind() {
-      document.querySelectorAll('[data-model-select], tr[data-model]').forEach(el=>el.addEventListener('click',()=>{state.selected=el.dataset.modelSelect||el.dataset.model;render()}));
+      document.querySelectorAll('[data-model-select]').forEach(el=>el.addEventListener('click',()=>selectModel(el.dataset.modelSelect)));
+      document.querySelectorAll('tr[data-model]').forEach(el=>{
+        el.addEventListener('click',()=>selectModel(el.dataset.model));
+        el.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectModel(el.dataset.model)}});
+      });
       document.querySelectorAll('[data-view]').forEach(el=>el.addEventListener('click',()=>{state.view=el.dataset.view;render();document.querySelector('.suite-nav').scrollIntoView({block:'start'})}));
     }
 

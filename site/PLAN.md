@@ -13,3 +13,11 @@
 - [x] Keep benchmark families separate and make release-gate semantics explicit.
 - [x] Verify data fidelity, interactions, accessibility, responsive behavior, and browser rendering.
 - [x] Review the complete interface against the research-notebook purpose and correct visual or semantic ambiguity.
+
+## Readability refinement
+
+- [x] Increase supporting text and data-label sizes without reducing useful density.
+- [x] Explain selection color, benchmark denominators, task intent, and core/holdout status in place.
+- [x] Make model selection consistent across every table without rebuilding the active view.
+- [x] Improve chart-series differentiation and selected-column contrast.
+- [x] Re-test interactions, visual contrast, responsive layouts, and canonical data fidelity.
