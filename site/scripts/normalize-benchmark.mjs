@@ -9,6 +9,9 @@ const defaultSource = resolve(
 const source = resolve(process.argv[2] || defaultSource);
 const destination = resolve(process.argv[3] || "data/barrage-v2.json");
 const raw = JSON.parse(await readFile(source, "utf8"));
+const publishedEnvironment = raw.candidates[0]?.environment || {};
+const serverMatch = publishedEnvironment.server_version?.match(/version:\s*(\d+)\s+\(([^)]+)\)/);
+const driverMatch = publishedEnvironment.gpu?.driver?.match(/Driver version:\s*([^\n]+)/);
 
 const labels = {
   "qwen27-huihui": ["Qwen 3.6 27B", "Huihui", "27B dense"],
@@ -42,7 +45,27 @@ const result = {
     finding:
       "All four models completed performance, cache, tool, concurrency, and vision checks. Sandbox acceptance prevented release qualification for every candidate.",
     separation:
-      "Performance, tools, sandbox, concurrency, vision, and OpenWendy are separate evidence families. No composite score is calculated.",
+      "Performance, tools, sandbox, concurrency, vision, and bespoke agent-harness evaluations are separate evidence families. No composite score is calculated.",
+  },
+  testStack: {
+    hardware: {
+      gpu: "AMD AI Pro R9700",
+      gpuMemoryGb: 32,
+      cpu: null,
+      systemMemoryGb: null,
+      source: "BENCHMARK_RESULTS.md",
+    },
+    runtime: {
+      name: "llama.cpp",
+      build: serverMatch?.[1] || null,
+      commit: serverMatch?.[2] || null,
+      backend: publishedEnvironment.runtime_backend || null,
+      gpuProbe: publishedEnvironment.gpu?.backend || null,
+      gpuDriver: driverMatch?.[1]?.trim() || null,
+      platform: publishedEnvironment.platform || null,
+      compiler: publishedEnvironment.server_version?.match(/built with ([^\n]+)/)?.[1] || null,
+      source: "summary.json",
+    },
   },
   models: raw.candidates.map((candidate) => {
     const performance = candidate.performance?.summary || {};
@@ -52,6 +75,7 @@ const result = {
       name,
       build,
       family,
+      quant: candidate.environment.model.path.match(/Q\d+_[A-Z0-9_]+/)?.[0] || "unknown",
       generatedAt: candidate.generated_at,
       status: candidate.status,
       modelSizeGb: Number((candidate.environment.model.size_bytes / 1e9).toFixed(1)),

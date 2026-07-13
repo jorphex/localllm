@@ -188,6 +188,14 @@
     .method-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; border-top: 1px solid var(--ink); padding-top: 18px; }
     .method-grid h3 { font-size: 14px; margin: 0 0 7px; }
     .method-grid p { font-size: 13px; color: var(--ink-2); margin: 0; }
+    .stack-heading { margin: 30px 0 10px; font-size: 16px; }
+    .stack-list { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--ink); border-left: 1px solid var(--ink); }
+    .stack-item { min-width: 0; padding: 12px; border-right: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: var(--surface); }
+    .stack-item b { display: block; margin-bottom: 3px; font-size: 14px; font-weight: 600; }
+    .stack-item span { display: block; color: var(--ink-2); font-size: 13px; overflow-wrap: anywhere; }
+    .stack-item.missing { background: transparent; }
+    .stack-item.missing span { color: var(--ink-3); }
+    .stack-source { margin: 10px 0 0; max-width: 75ch; color: var(--ink-3); font-size: 12px; }
     .provenance { margin-top: 38px; padding-top: 14px; border-top: 1px solid var(--ink); display: flex; justify-content: space-between; gap: 24px; color: var(--ink-3); font-size: 11px; overflow-wrap: anywhere; }
     .selection-key { display: inline-flex; align-items: center; gap: 7px; margin-top: 5px; color: var(--ink-2); font-weight: 580; }
     .selection-key i { width: 18px; height: 8px; background: var(--accent); }
@@ -204,6 +212,7 @@
       .task-grid { min-width: 760px; }
       .split-summary { grid-template-columns: repeat(2, 1fr); }
       .method-grid { grid-template-columns: 1fr; gap: 16px; }
+      .stack-list { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 600px) {
       .topbar { padding: 0 14px; }
@@ -218,6 +227,7 @@
       .bar-row { grid-template-columns: 112px minmax(60px, 1fr) 58px; gap: 7px; font-size: 12px; }
       .provenance { display: block; }
       .provenance span { display: block; margin-top: 6px; }
+      .stack-list { grid-template-columns: 1fr; }
     }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
@@ -260,7 +270,7 @@
     const prettyTask = value => value.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
     const format = (value, digits = 1) => value == null ? '—' : Number(value).toFixed(digits);
     const pct = item => item.total ? item.passed / item.total * 100 : 0;
-    const modelShort = m => `${m.name.replace('Qwen 3.6 ', '')} · ${m.build}`;
+    const modelShort = m => `${m.name.replace('Qwen 3.6 ', '')} · ${m.build} · ${m.quant}`;
 
     function ratio(value) {
       const good = value.passed === value.total;
@@ -271,7 +281,7 @@
       return `<div class="selector-label"><span>Compare four builds</span><span>Selection follows you through every suite</span></div>
         <div class="model-selector" aria-label="Select model">${state.data.models.map(m => `
           <button class="model-button ${m.id === state.selected ? 'active' : ''}" data-model-select="${m.id}" aria-pressed="${m.id === state.selected}">
-            <span class="build">${m.build}</span><span class="name">${m.name}</span>
+            <span class="build">${m.build} · ${m.quant}</span><span class="name">${m.name}</span>
             <span class="model-foot"><span>${m.family}</span><span>${m.modelSizeGb} GB</span></span>
           </button>`).join('')}</div>`;
     }
@@ -285,7 +295,7 @@
       return `<section class="view ${state.view === 'overview' ? 'active' : ''}" id="view-overview">
         <div class="section-intro"><div><h2>Qualification readout</h2><p>Completion and capability are reported independently. There is deliberately no aggregate score.</p></div><p class="reading">Every fraction is passing trials / retained attempts. Tools: 7 tasks × 3 attempts. Sandbox: 8 × 3. Concurrency: 2 × 5. Vision: 1 × 3.</p></div>
         <div class="matrix-scroll"><table class="matrix"><thead><tr><th>Candidate</th><th>Release</th><th>Performance</th><th>Tools</th><th>Sandbox</th><th>Concurrency</th><th>Vision</th></tr></thead><tbody>
-          ${state.data.models.map(m => `<tr data-model="${m.id}" class="${m.id === state.selected ? 'selected' : ''}" tabindex="0" role="button" aria-label="Select ${m.name} ${m.build}"><td class="model-cell"><b>${m.name}</b><small>${m.build} · ${m.modelSizeGb} GB</small></td><td><span class="status-word fail">Not qualified</span></td><td><span class="status-word">Completed</span></td><td>${ratio(m.tools)}</td><td>${ratio(m.sandbox)}</td><td>${ratio(m.concurrency)}</td><td>${ratio(m.vision)}</td></tr>`).join('')}
+          ${state.data.models.map(m => `<tr data-model="${m.id}" class="${m.id === state.selected ? 'selected' : ''}" tabindex="0" role="button" aria-label="Select ${m.name} ${m.build} ${m.quant}"><td class="model-cell"><b>${m.name}</b><small>${m.build} · ${m.quant} · ${m.modelSizeGb} GB</small></td><td><span class="status-word fail">Not qualified</span></td><td><span class="status-word">Completed</span></td><td>${ratio(m.tools)}</td><td>${ratio(m.sandbox)}</td><td>${ratio(m.concurrency)}</td><td>${ratio(m.vision)}</td></tr>`).join('')}
         </tbody></table></div>
         <div class="finding"><h3>What this run says</h3><p>${state.data.interpretation.finding}</p></div>
         <div class="finding"><h3>What it does not say</h3><p>It does not collapse unlike workloads into a winner. The 35B MoE builds are roughly four times faster in generation; the 27B builds complete more sandbox trials. Tool, concurrency, and vision results are tied.</p></div>
@@ -318,7 +328,7 @@
 
     function taskMatrix(kind) {
       const tasks = Object.keys(state.data.models[0][kind].tasks);
-      return `<div class="task-scroll"><div class="task-grid"><div class="task-cell head">Task and acceptance target</div>${state.data.models.map(m=>`<div class="task-cell head ${m.id===state.selected?'selected-col':''}" data-model-column="${m.id}"><button class="column-select" data-model-select="${m.id}">${m.build}<br><span>${m.family.split(' · ')[0]} · select model</span></button></div>`).join('')}${tasks.map(task=>{const [name,description,split]=taskDefinitions[kind][task]||[prettyTask(task),'Retained benchmark task.',''];return `<div class="task-cell label"><b>${name}<span class="task-split">${split}</span></b><small>${description}</small></div>${state.data.models.map(m=>{const r=m[kind].tasks[task];return `<div class="task-cell ${m.id===state.selected?'selected-col':''}" data-model-column="${m.id}"><div class="task-result"><span class="blocks" aria-hidden="true">${Array.from({length:r.total},(_,i)=>`<i class="${i<r.passed?'pass':'fail'}"></i>`).join('')}</span><b title="${r.passed} passing trials out of ${r.total} attempts">${r.passed}/${r.total}</b></div></div>`}).join('')}`}).join('')}</div></div>`;
+      return `<div class="task-scroll"><div class="task-grid"><div class="task-cell head">Task and acceptance target</div>${state.data.models.map(m=>`<div class="task-cell head ${m.id===state.selected?'selected-col':''}" data-model-column="${m.id}"><button class="column-select" data-model-select="${m.id}">${m.build} · ${m.quant}<br><span>${m.family.split(' · ')[0]} · select model</span></button></div>`).join('')}${tasks.map(task=>{const [name,description,split]=taskDefinitions[kind][task]||[prettyTask(task),'Retained benchmark task.',''];return `<div class="task-cell label"><b>${name}<span class="task-split">${split}</span></b><small>${description}</small></div>${state.data.models.map(m=>{const r=m[kind].tasks[task];return `<div class="task-cell ${m.id===state.selected?'selected-col':''}" data-model-column="${m.id}"><div class="task-result"><span class="blocks" aria-hidden="true">${Array.from({length:r.total},(_,i)=>`<i class="${i<r.passed?'pass':'fail'}"></i>`).join('')}</span><b title="${r.passed} passing trials out of ${r.total} attempts">${r.passed}/${r.total}</b></div></div>`}).join('')}`}).join('')}</div></div>`;
     }
 
     function qualityView(kind, title, copy) {
@@ -331,12 +341,12 @@
     function smallSuite(kind, title, copy) {
       const tasks = kind === 'concurrency' ? Object.keys(state.data.models[0].concurrency.reliability) : [];
       const trialCopy = kind === 'concurrency' ? 'Two workload types, each repeated five times. 10/10 means all ten retained attempts passed.' : 'One deterministic 1024×1024 quadrant-image task repeated three times. 3/3 means all three attempts passed.';
-      return `<section class="view ${state.view === kind ? 'active' : ''}" id="view-${kind}"><div class="section-intro"><div><h2>${title}</h2><p>${copy}</p></div><p class="reading">${trialCopy}</p></div><div class="matrix-scroll"><table class="matrix"><thead><tr><th>Candidate</th><th>Applicable</th><th>Passing trials / attempts</th>${tasks.map(t=>`<th>${prettyTask(t)} · 5 attempts</th>`).join('')}</tr></thead><tbody>${state.data.models.map(m=>{const s=m[kind];return `<tr data-model="${m.id}" class="${m.id===state.selected?'selected':''}" tabindex="0" role="button" aria-label="Select ${m.name} ${m.build}"><td class="model-cell"><b>${m.name}</b><small>${m.build}</small></td><td>${s.applicable?'Yes':'No'}</td><td>${ratio(s)}</td>${tasks.map(t=>`<td>${ratio(s.reliability[t])}</td>`).join('')}</tr>`}).join('')}</tbody></table></div></section>`;
+      return `<section class="view ${state.view === kind ? 'active' : ''}" id="view-${kind}"><div class="section-intro"><div><h2>${title}</h2><p>${copy}</p></div><p class="reading">${trialCopy}</p></div><div class="matrix-scroll"><table class="matrix"><thead><tr><th>Candidate</th><th>Applicable</th><th>Passing trials / attempts</th>${tasks.map(t=>`<th>${prettyTask(t)} · 5 attempts</th>`).join('')}</tr></thead><tbody>${state.data.models.map(m=>{const s=m[kind];return `<tr data-model="${m.id}" class="${m.id===state.selected?'selected':''}" tabindex="0" role="button" aria-label="Select ${m.name} ${m.build} ${m.quant}"><td class="model-cell"><b>${m.name}</b><small>${m.build} · ${m.quant}</small></td><td>${s.applicable?'Yes':'No'}</td><td>${ratio(s)}</td>${tasks.map(t=>`<td>${ratio(s.reliability[t])}</td>`).join('')}</tr>`}).join('')}</tbody></table></div></section>`;
     }
 
     function method() {
-      const d=state.data.models[0];
-      return `<section class="view ${state.view === 'method' ? 'active' : ''}" id="view-method"><div class="section-intro"><div><h2>Method & provenance</h2><p>Enough context to interpret the results without reproducing raw benchmark artifacts.</p></div></div><div class="method-grid"><div><h3>Fair profile</h3><p>All candidates used ${d.profile.id}: fixed 128k context, q8 KV, five performance repeats, three quality repeats, and holdout tasks enabled.</p></div><div><h3>Qualification</h3><p>${state.data.interpretation.releaseMeaning} All required suites must pass every strict release requirement.</p></div><div><h3>Separate production evidence</h3><p>OpenWendy is an external production-profile harness. Its outcomes are intentionally not compared with these fair model/runtime measurements.</p></div></div><div class="finding"><h3>Data policy</h3><p>${state.data.interpretation.separation}</p></div></section>`;
+      const d=state.data.models[0], stack=state.data.testStack;
+      return `<section class="view ${state.view === 'method' ? 'active' : ''}" id="view-method"><div class="section-intro"><div><h2>Method & provenance</h2><p>Enough context to interpret the results without reproducing raw benchmark artifacts.</p></div></div><div class="method-grid"><div><h3>Fair profile</h3><p>All candidates used ${d.profile.id}: fixed 128k context, q8 KV, Q6_K model weights, five performance repeats, three quality repeats, and holdout tasks enabled.</p></div><div><h3>Qualification</h3><p>${state.data.interpretation.releaseMeaning} All required suites must pass every strict release requirement.</p></div><div><h3>Separate production evidence</h3><p>A bespoke agent harness measures end-to-end production behavior. Those outcomes are intentionally not compared with these fair model/runtime measurements.</p></div></div><h3 class="stack-heading">Recorded test stack</h3><div class="stack-list"><div class="stack-item"><b>GPU</b><span>${stack.hardware.gpu} · ${stack.hardware.gpuMemoryGb} GB</span></div><div class="stack-item missing"><b>CPU</b><span>Not retained in the published summary</span></div><div class="stack-item missing"><b>System memory</b><span>Not retained in the published summary</span></div><div class="stack-item"><b>Inference runtime</b><span>${stack.runtime.name} build ${stack.runtime.build} · ${stack.runtime.commit}</span></div><div class="stack-item"><b>Backend</b><span>${stack.runtime.backend} · full GPU offload required</span></div><div class="stack-item"><b>GPU probe</b><span>${stack.runtime.gpuProbe} SMI · driver ${stack.runtime.gpuDriver}</span></div><div class="stack-item"><b>Host platform</b><span>${stack.runtime.platform}</span></div><div class="stack-item"><b>Compiler target</b><span>${stack.runtime.compiler}</span></div></div><p class="stack-source">GPU identity and capacity come from BENCHMARK_RESULTS.md. Runtime and platform values come from the canonical summary. CPU and system RAM are shown as unavailable because the published evidence did not retain them.</p><div class="finding"><h3>Data policy</h3><p>${state.data.interpretation.separation}</p></div></section>`;
     }
 
     function render() {

@@ -1,5 +1,11 @@
 # Resolved
 
+[Model identity and stack] complete — every model label includes Q6_K; Method records the R9700 32 GB, llama.cpp build/commit, Vulkan backend, GPU probe/driver, host, and compiler while explicitly marking unpublished CPU and RAM fields unavailable.
+
+[Stack provenance] verified — GPU identity/capacity comes from BENCHMARK_RESULTS.md; runtime fields are parsed from summary.json; normalized values and all suite totals still match the canonical source.
+
+[Public terminology] private project names removed — production evidence is described generically as a bespoke agent harness so the site remains understandable without private-repository context.
+
 [Readability refinement] complete — body text is 16px, task and denominator semantics are explicit, chart series use stronger color plus line-pattern differentiation, selected columns retain high contrast, and model changes update in place without layout shift.
 
 [Interaction verification] Chromium passed keyboard and pointer model selection at 320–1440px with zero layout shift, no viewport overflow or console errors, and canonical suite totals unchanged.

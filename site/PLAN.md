@@ -21,3 +21,10 @@
 - [x] Make model selection consistent across every table without rebuilding the active view.
 - [x] Improve chart-series differentiation and selected-column contrast.
 - [x] Re-test interactions, visual contrast, responsive layouts, and canonical data fidelity.
+
+## Model identity and test stack
+
+- [x] Add quantization to every model label and comparison surface.
+- [x] Normalize the published runtime environment and documented GPU context.
+- [x] Expand Method with hardware, software, and explicit missing-field provenance.
+- [x] Regenerate data and verify labels, stack facts, responsive layout, and source fidelity.
