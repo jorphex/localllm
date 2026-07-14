@@ -365,6 +365,17 @@ class BarrageV2Tests(unittest.TestCase):
         self.assertFalse(result["cache_hit"])
         self.assertFalse(result["passed"])
 
+    def test_warm_cache_gate_allows_one_ubatch_of_reprocessing(self):
+        self.assertEqual(runner.warm_cache_required_n(8030, 2048), 5974)
+        self.assertGreaterEqual(5978, runner.warm_cache_required_n(8030, 2048))
+        self.assertLess(5978, runner.warm_cache_required_n(8030, 0))
+
+    def test_launch_argument_int_reads_ubatch_and_rejects_bad_values(self):
+        self.assertEqual(runner.launch_argument_int(["llama-server", "-ub", "2048"], "-ub", "--ubatch"), 2048)
+        self.assertEqual(runner.launch_argument_int(["llama-server"], "-ub", "--ubatch"), 0)
+        with self.assertRaises(ValueError):
+            runner.launch_argument_int(["llama-server", "-ub", "bad"], "-ub", "--ubatch")
+
     def test_tool_restraint_requires_a_nonempty_answer(self):
         result = runner.run_tool_contracts(EmptyRestraintClient(), "http://fake", "fake", 1, [TOOL_CONTRACTS[0]])[0]
         self.assertTrue(result["tool_ok"])

@@ -1,0 +1,84 @@
+{
+  "schema_version": "retrieval-runtime-tuning-v1.0",
+  "label": "qwen3-retrieval-runtime-20260714",
+  "date": "2026-07-14",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 3900X 12-Core Processor",
+    "gpu": "AMD Radeon AI PRO R9700",
+    "gpu_backend": "Vulkan0"
+  },
+  "policy": {
+    "context_tokens_per_slot": 2048,
+    "embedding_placement": "CPU/RAM",
+    "reranker_placement": "Vulkan0/VRAM",
+    "quality_cases": 6,
+    "primary_embedding_batch_items": 8,
+    "primary_reranker_documents": 8
+  },
+  "embedding": {
+    "model": "Qwen3-Embedding-4B-Q4_K_M",
+    "baseline": {
+      "profile": "np1/t8/tb4/b128/ub128",
+      "single_query_median_seconds": 0.0889624659976107,
+      "batch8_median_seconds": 14.524813748997985,
+      "backfill32_median_seconds": 61.75239544000215,
+      "semantic_top1": "6/6"
+    },
+    "promoted": {
+      "profile": "np8/t12/tb12/b1024/ub1024",
+      "total_context_tokens": 16384,
+      "context_tokens_per_slot": 2048,
+      "single_query_median_seconds": 0.09100488200056134,
+      "batch8_median_seconds": 0.1625358530000085,
+      "backfill32_median_seconds": 24.999955899998895,
+      "batch8_speedup": 89.36375255616511,
+      "backfill32_speedup": 2.4701001748569036,
+      "minimum_baseline_vector_cosine": 0.9980893892158762,
+      "semantic_top1": "6/6"
+    },
+    "replication": {
+      "baseline_batch8_median_seconds": 14.528010218000418,
+      "promoted_batch8_median_seconds": 0.16331085199999507,
+      "baseline_backfill32_median_seconds": 65.01520326099853,
+      "promoted_backfill32_median_seconds": 24.98397200600084
+    },
+    "decision": "promoted"
+  },
+  "reranker": {
+    "model": "Qwen3-Reranker-4B-Q4_K_M",
+    "retained_profile": "np1/t8/tb4/b512/ub512/fa-on",
+    "sweep": [
+      {"profile": "current", "pair2_median_seconds": 0.056461411997588584, "documents8_median_seconds": 0.15983206699820585, "vram_mib": 3498},
+      {"profile": "b128/ub128", "pair2_median_seconds": 0.06282621399805066, "documents8_median_seconds": 0.16314842300198507, "vram_mib": 3271},
+      {"profile": "b256/ub256", "pair2_median_seconds": 0.05671839200294926, "documents8_median_seconds": 0.1602739100017061, "vram_mib": 3346},
+      {"profile": "b1024/ub1024", "pair2_median_seconds": 0.05754872100078501, "documents8_median_seconds": 0.16447645699736313, "vram_mib": 3801},
+      {"profile": "tb8", "pair2_median_seconds": 0.055979887998546474, "documents8_median_seconds": 0.16204754499995033, "vram_mib": 3498},
+      {"profile": "t12/tb12", "pair2_median_seconds": 0.05547227299757651, "documents8_median_seconds": 0.1584782659992925, "vram_mib": 3498},
+      {"profile": "fa-off", "pair2_median_seconds": 0.0668793069999083, "documents8_median_seconds": 0.17749291400104994, "vram_mib": 3505}
+    ],
+    "validation": {
+      "current_documents8_median_seconds": 0.15896108700326295,
+      "t12_documents8_median_seconds": 0.15923961200314807,
+      "current_quality_top1": "4/6",
+      "current_quality_mrr": 0.7430555555555556,
+      "t12_quality_top1": "4/6",
+      "t12_quality_mrr": 0.7430555555555556
+    },
+    "rejected_parallel_slots": [
+      {"slots": 1, "quality_top1": "4/6", "documents8_median_seconds": 0.15813898999840603, "vram_mib": 3498},
+      {"slots": 2, "quality_top1": "1/6", "documents8_median_seconds": 0.15584134900200297, "vram_mib": 3791},
+      {"slots": 4, "quality_top1": "0/6", "documents8_median_seconds": 0.17867456699968898, "vram_mib": 4676}
+    ],
+    "decision": "unchanged"
+  },
+  "safety": {
+    "runtime_pm": "pinned on/active",
+    "fatal_kernel_patterns": 0,
+    "stack_restored_healthy": true
+  },
+  "raw_evidence_local": [
+    "benchmarks/retrieval-v1-results/retrieval-runtime-20260714T112100Z",
+    "benchmarks/retrieval-v1-results/retrieval-runtime-20260714T114400Z",
+    "benchmarks/retrieval-v1-results/retrieval-reranker-20260714T121500Z"
+  ]
+}

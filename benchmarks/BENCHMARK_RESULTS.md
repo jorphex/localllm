@@ -23,6 +23,21 @@ Rules used here:
 - `agentic_barrage` is supporting evidence only.
 - Speed-only tuning notes are fairness setup, not ranking by themselves.
 
+## Retrieval Runtime Tuning — 2026-07-14
+
+- Qwen3 Embedding 4B moved from one CPU slot (`t8/tb4`, `b128/ub128`) to eight CPU slots (`t12/tb12`, `b1024/ub1024`) while preserving 2048 context per request. Median eight-item latency improved from 14.52s to 0.163s (89.4x), and 32-item backfill improved from 61.75s to 25.00s (2.47x); all 6/6 synthetic semantic cases passed.
+- Qwen3 Reranker 4B remains at one GPU slot (`t8/tb4`, `b512/ub512`, flash attention on). The nominal `t12` sweep win did not repeat in validation, and alternate batch sizes did not materially improve latency.
+- Parallel reranker slots were rejected: top-result quality fell from 4/6 at one slot to 1/6 at two and 0/6 at four, with higher VRAM and no useful speed gain. The 4/6 result is a small fixture-specific model observation, not a public aggregate quality score.
+- Compact evidence: `benchmarks/summaries/retrieval_v1/qwen3-retrieval-runtime-20260714/summary.json` and `REPORT.md`.
+
+## 35B Plus GPU Reranker Direct Fit — 2026-07-14
+
+- Both retained 35B models completed 12/12 short/long direct trials at maximum explicit GPU layers with the GPU reranker resident; no CPU model-layer offload was required.
+- Qwen35 Huihui medians were 1810 short PP, 826 long PP, 123.5 short TG, and 749.6/39.4 long-context PP/TG. It remained substantially faster than tuned Qwen27 Huihui except that long-context TG was effectively tied.
+- Qwen35 Unsloth medians fell to 357 short PP, 327 long PP, 50.7 short TG, and 305.5/25.1 long-context PP/TG, so mere co-resident fit did not preserve its speed advantage.
+- Huihui ended with only 88 MiB measured free VRAM. Concurrent active reranking and vision were outside this direct-call study, so 35B presets remain exclusive-GPU by default.
+- Compact evidence: `benchmarks/summaries/tuning_v1/35b-reranker-fit-20260714/summary.json` and `REPORT.md`.
+
 ## Current Readout: 2026-06-26 Qwen3.6 And Ornith
 
 This is the current decision layer for the retained Qwen3.6 stack. It uses the committed summaries under `benchmarks/summaries/` and keeps the old Qwen3.5/Gemma sections below as archive.
@@ -742,3 +757,15 @@ Run: `ornith-torture-20260626T034246Z-ornith-q5-transcript_replay`
 | --- | --- | --- | --- |
 | ornith-q5 | 2/5 | 25/35 | 0.9048 |
 
+## tuning_v1
+
+Run: `qwen36-runtime-tuning-20260714`
+
+| Model | Context | Shape | Long PP | Sampled TG | Tool TG | Barrage |
+| --- | ---: | --- | ---: | ---: | ---: | ---: |
+| qwen27-unsloth | 131072 | b2048/u1024 t12/tb12 draft-mtp n4 | 433.89 | 52.08 | 73.85 | 50/50 |
+| qwen27-huihui | 131072 | b2048/u1024 t10/tb8 draft-mtp n4 | 430.07 | 55.23 | 76.47 | 50/50 |
+| qwen35-unsloth | 163840 | b4096/u2048 t10/tb8 none n0 | 1336.89 | 103.36 | 105.28 | 50/50 |
+| qwen35-huihui | 262144 | b1024/u512 t10/tb8 draft-mtp n3 | 868.80 | 78.75 | 98.32 | 50/50 |
+
+Production decision: **retain n2/t10/tb8**.

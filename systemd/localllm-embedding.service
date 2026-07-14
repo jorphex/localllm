@@ -7,13 +7,13 @@ WorkingDirectory=%h/projects/localllm
 Environment=EMBED_HOST=127.0.0.1
 Environment=EMBED_PORT=8092
 Environment=EMBED_MODEL=embedding/Qwen3-Embedding-4B-Q4_K_M.gguf
-Environment=EMBED_THREADS=8
-Environment=EMBED_CONTEXT=2048
-Environment=EMBED_UBATCH=128
+Environment=EMBED_THREADS=12
+Environment=EMBED_CONTEXT=16384
+Environment=EMBED_UBATCH=1024
 Environment=EMBED_DEVICE=none
 Environment=EMBED_GPU_LAYERS=0
 Environment=EMBED_FIT=false
-Environment="EMBED_EXTRA_ARGS=-np 1 -b 128 -tb 4 -cram 0 --no-warmup -fa off --threads-http 2"
+Environment="EMBED_EXTRA_ARGS=-np 8 -b 1024 -tb 12 -cram 0 --no-warmup -fa off --threads-http 2"
 ExecStart=%h/projects/localllm/scripts/serve-embedding.sh
 Restart=always
 RestartSec=3

@@ -1,0 +1,66 @@
+{
+  "schema_version": "runtime-tuning-v1.0",
+  "runtime": {
+    "server_bin": "/home/j/.local/src/llama.cpp/build-vulkan-r9700/bin/llama-server",
+    "device": "Vulkan0",
+    "port": 9731,
+    "startup_timeout_seconds": 240,
+    "request_timeout_seconds": 900,
+    "cooldown_seconds": 8,
+    "max_baseline_vram_mib": 1024,
+    "min_available_ram_mib": 12000,
+    "min_free_swap_mib": 1200
+  },
+  "invariants": {
+    "parallel": 1,
+    "flash_attention": true,
+    "cache_type_k": "q8_0",
+    "cache_type_v": "q8_0",
+    "gpu_layers": "auto",
+    "fit": true,
+    "cache_prompt": true,
+    "cache_ram_mib": 2048,
+    "cache_reuse": 0,
+    "slot_prompt_similarity": 0.1,
+    "threads_http": 4,
+    "image_max_tokens": 8192
+  },
+  "models": {
+    "qwen27-unsloth": {
+      "preset": "qwen-3.6-27b-mtp-unsloth-q6-fast-128k",
+      "model": "qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf",
+      "mmproj": "qwen-3.6/Qwen3.6-27B-MTP-mmproj-F16-unsloth.gguf",
+      "max_context": 131072,
+      "production": {"batch": 2048, "ubatch": 1024, "threads": 10, "threads_batch": 8, "checkpoints": 4, "mtp_n": 2}
+    },
+    "qwen27-huihui": {
+      "preset": "qwen-3.6-27b-mtp-huihui-q6-fast-128k",
+      "model": "qwen-3.6/Qwen3.6-27B-abliterated-MTP-Q6_K-Huihui.gguf",
+      "mmproj": "qwen-3.6/Qwen3.6-27B-abliterated-MTP-mmproj-F16-Huihui.gguf",
+      "max_context": 131072,
+      "production": {"batch": 2048, "ubatch": 1024, "threads": 10, "threads_batch": 8, "checkpoints": 4, "mtp_n": 3}
+    },
+    "qwen35-unsloth": {
+      "preset": "qwen-3.6-35b-a3b-unsloth-q6-fast-160k",
+      "model": "qwen-3.6/Qwen3.6-35B-A3B-UD-Q6_K-unsloth.gguf",
+      "mmproj": "qwen-3.6/Qwen3.6-35B-A3B-mmproj-F16-unsloth.gguf",
+      "max_context": 163840,
+      "production": {"batch": 4096, "ubatch": 2048, "threads": 10, "threads_batch": 8, "checkpoints": 8, "mtp_n": 2}
+    },
+    "qwen35-huihui": {
+      "preset": "qwen-3.6-35b-a3b-huihui-mtp-q6-full-256k-q8",
+      "model": "qwen-3.6/Huihui-Qwen3.6-35B-A3B-abliterated-MTP-Q6_K.gguf",
+      "mmproj": "qwen-3.6/Huihui-Qwen3.6-35B-A3B-abliterated-MTP-mmproj-f16.gguf",
+      "max_context": 262144,
+      "production": {"batch": 1024, "ubatch": 512, "threads": 10, "threads_batch": 8, "checkpoints": 8, "mtp_n": 2}
+    }
+  },
+  "phases": {
+    "main-shape": {"repeats": 3, "context": 32768},
+    "main-spec": {"repeats": 3, "context": 32768},
+    "main-context": {"repeats": 2},
+    "other-models": {"repeats": 3, "context": 32768},
+    "validation": {"repeats": 5},
+    "validation-controls": {"repeats": 5}
+  }
+}

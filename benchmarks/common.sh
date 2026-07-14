@@ -77,7 +77,7 @@ start_temp_server() {
   fi
   append_cache_args BENCH command
   append_extra_args "${extra_args}" command
-  "${command[@]}" >"${log_path}" 2>&1 &
+  setsid "${command[@]}" >"${log_path}" 2>&1 &
   echo $!
 }
 
@@ -196,6 +196,13 @@ stop_temp_server() {
   if [[ -z "${pid}" ]]; then
     return
   fi
-  kill "${pid}" 2>/dev/null || true
+  kill -TERM -- "-${pid}" 2>/dev/null || true
+  local deadline=$((SECONDS + 15))
+  while kill -0 "${pid}" 2>/dev/null && (( SECONDS < deadline )); do
+    sleep 1
+  done
+  if kill -0 "${pid}" 2>/dev/null; then
+    kill -KILL -- "-${pid}" 2>/dev/null || true
+  fi
   wait "${pid}" 2>/dev/null || true
 }

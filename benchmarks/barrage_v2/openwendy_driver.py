@@ -396,6 +396,7 @@ def run_request(request: dict[str, Any], *, base_url: str, model_id: str, timeou
         client.get(f"{base_url}/api/health/details").raise_for_status()
         results = []
         for task in request["tasks"]:
+            task_started = time.perf_counter()
             kind = str(task.get("kind", "conversation"))
             if kind == "conversation":
                 result = run_openwendy_task(client, base_url, task, model_id, timeout)
@@ -407,6 +408,7 @@ def run_request(request: dict[str, Any], *, base_url: str, model_id: str, timeou
                 result = run_workspace_roundtrip_task(client, base_url, task, model_id, timeout)
             else:
                 raise ValueError(f"unknown OpenWendy task kind: {kind}")
+            result["elapsed_seconds"] = round(time.perf_counter() - task_started, 4)
             results.append(result)
     return {
         "schema_version": SCHEMA_VERSION,

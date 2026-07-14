@@ -1,0 +1,495 @@
+{
+  "barrage": [
+    {
+      "model_id": "qwen27-unsloth",
+      "performance": {
+        "derived_passed": 50,
+        "raw_passed": 50,
+        "total": 50,
+        "workloads": [
+          "agent_stream",
+          "cold_pp_short",
+          "context_recall_120k",
+          "context_recall_32k",
+          "context_recall_64k",
+          "context_recall_8k",
+          "direct_tg",
+          "reference_agent_loop",
+          "warm_append_32k",
+          "warm_append_8k"
+        ]
+      },
+      "status": "completed",
+      "tool_contract": {
+        "passed": 15,
+        "total": 15
+      },
+      "vision": {
+        "passed": 3,
+        "total": 3
+      }
+    },
+    {
+      "model_id": "qwen27-huihui",
+      "performance": {
+        "derived_passed": 50,
+        "raw_passed": 50,
+        "total": 50,
+        "workloads": [
+          "agent_stream",
+          "cold_pp_short",
+          "context_recall_120k",
+          "context_recall_32k",
+          "context_recall_64k",
+          "context_recall_8k",
+          "direct_tg",
+          "reference_agent_loop",
+          "warm_append_32k",
+          "warm_append_8k"
+        ]
+      },
+      "status": "completed",
+      "tool_contract": {
+        "passed": 15,
+        "total": 15
+      },
+      "vision": {
+        "passed": 3,
+        "total": 3
+      }
+    },
+    {
+      "model_id": "qwen35-unsloth",
+      "performance": {
+        "derived_passed": 50,
+        "grading_note": "Five raw warm_append_8k failures used the superseded fixed 80% cache gate. All reused 5,978 of 8,030 prime tokens, within one ubatch plus template-boundary allowance; raw evidence is unchanged.",
+        "raw_passed": 45,
+        "total": 50,
+        "workloads": [
+          "agent_stream",
+          "cold_pp_short",
+          "context_recall_120k",
+          "context_recall_32k",
+          "context_recall_64k",
+          "context_recall_8k",
+          "direct_tg",
+          "reference_agent_loop",
+          "warm_append_32k",
+          "warm_append_8k"
+        ]
+      },
+      "status": "completed",
+      "tool_contract": {
+        "passed": 15,
+        "total": 15
+      },
+      "vision": {
+        "passed": 3,
+        "total": 3
+      }
+    },
+    {
+      "model_id": "qwen35-huihui",
+      "performance": {
+        "derived_passed": 50,
+        "raw_passed": 50,
+        "total": 50,
+        "workloads": [
+          "agent_stream",
+          "cold_pp_short",
+          "context_recall_120k",
+          "context_recall_32k",
+          "context_recall_64k",
+          "context_recall_8k",
+          "direct_tg",
+          "reference_agent_loop",
+          "warm_append_32k",
+          "warm_append_8k"
+        ]
+      },
+      "status": "completed",
+      "tool_contract": {
+        "passed": 15,
+        "total": 15
+      },
+      "vision": {
+        "passed": 3,
+        "total": 3
+      }
+    }
+  ],
+  "controls": {
+    "passed": 140,
+    "trials": 140
+  },
+  "direct": {
+    "expected_failures": 3,
+    "passed": 536,
+    "trials": 539
+  },
+  "excluded": [
+    {
+      "path": "tuning-v1-q35-unsloth-nospec-20260713",
+      "reason": "wrong model filename; preflight only"
+    },
+    {
+      "path": "tuning-v1-q35-unsloth-nospec-20260713-r2",
+      "reason": "lock-interrupted startup only"
+    }
+  ],
+  "generated_at": "2026-07-14T05:48:28.382543+00:00",
+  "label": "qwen36-runtime-tuning-20260714",
+  "models": [
+    {
+      "metrics": {
+        "cold_pp_long": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 433.8932,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "cold_pp_short": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 731.2972,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "context_recall": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 37.8599,
+          "prompt_per_second": 407.4668,
+          "speculation_acceptance": 1.0,
+          "trials": 5
+        },
+        "deterministic_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 46.9919,
+          "prompt_per_second": 43.5969,
+          "speculation_acceptance": 0.5829,
+          "trials": 5
+        },
+        "sampled_agent_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 52.0783,
+          "prompt_per_second": 547.8509,
+          "speculation_acceptance": 0.6264,
+          "trials": 5
+        },
+        "structured_tool_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 73.8522,
+          "prompt_per_second": 444.7314,
+          "speculation_acceptance": 1.0,
+          "trials": 5
+        },
+        "warm_append": {
+          "cache_n": 105628.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 41.8585,
+          "speculation_acceptance": null,
+          "trials": 5
+        }
+      },
+      "model_id": "qwen27-unsloth",
+      "profile": {
+        "batch": 2048,
+        "checkpoints": 4,
+        "context": 131072,
+        "mmproj": "qwen-3.6/Qwen3.6-27B-MTP-mmproj-F16-unsloth.gguf",
+        "model": "qwen-3.6/Qwen3.6-27B-MTP-Q6_K-unsloth.gguf",
+        "mtp_n": 4,
+        "spec_type": "draft-mtp",
+        "threads": 12,
+        "threads_batch": 12,
+        "ubatch": 1024
+      }
+    },
+    {
+      "metrics": {
+        "cold_pp_long": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 430.0746,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "cold_pp_short": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 717.0649,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "context_recall": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 38.5741,
+          "prompt_per_second": 404.0139,
+          "speculation_acceptance": 1.0,
+          "trials": 5
+        },
+        "deterministic_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 52.5809,
+          "prompt_per_second": 42.8159,
+          "speculation_acceptance": 0.6207,
+          "trials": 5
+        },
+        "sampled_agent_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 55.2299,
+          "prompt_per_second": 546.7848,
+          "speculation_acceptance": 0.6331,
+          "trials": 5
+        },
+        "structured_tool_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 76.4728,
+          "prompt_per_second": 438.7983,
+          "speculation_acceptance": 1.0,
+          "trials": 5
+        },
+        "warm_append": {
+          "cache_n": 105628.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 42.1598,
+          "speculation_acceptance": null,
+          "trials": 5
+        }
+      },
+      "model_id": "qwen27-huihui",
+      "profile": {
+        "batch": 2048,
+        "checkpoints": 4,
+        "context": 131072,
+        "mmproj": "qwen-3.6/Qwen3.6-27B-abliterated-MTP-mmproj-F16-Huihui.gguf",
+        "model": "qwen-3.6/Qwen3.6-27B-abliterated-MTP-Q6_K-Huihui.gguf",
+        "mtp_n": 4,
+        "spec_type": "draft-mtp",
+        "threads": 10,
+        "threads_batch": 8,
+        "ubatch": 1024
+      }
+    },
+    {
+      "metrics": {
+        "cold_pp_long": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 1336.8906,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "cold_pp_short": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 2621.1786,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "context_recall": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 79.572,
+          "prompt_per_second": 1226.0893,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "deterministic_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 97.5968,
+          "prompt_per_second": 122.7305,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "sampled_agent_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 103.3648,
+          "prompt_per_second": 1958.9255,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "structured_tool_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 105.2832,
+          "prompt_per_second": 1245.0299,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "warm_append": {
+          "cache_n": 105627.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 145.0176,
+          "speculation_acceptance": null,
+          "trials": 5
+        }
+      },
+      "model_id": "qwen35-unsloth",
+      "profile": {
+        "batch": 4096,
+        "checkpoints": 8,
+        "context": 163840,
+        "mmproj": "qwen-3.6/Qwen3.6-35B-A3B-mmproj-F16-unsloth.gguf",
+        "model": "qwen-3.6/Qwen3.6-35B-A3B-UD-Q6_K-unsloth.gguf",
+        "mtp_n": 0,
+        "spec_type": "none",
+        "threads": 10,
+        "threads_batch": 8,
+        "ubatch": 2048
+      }
+    },
+    {
+      "metrics": {
+        "cold_pp_long": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 868.7961,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "cold_pp_short": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 1058.7133,
+          "speculation_acceptance": null,
+          "trials": 5
+        },
+        "context_recall": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 59.6531,
+          "prompt_per_second": 810.2786,
+          "speculation_acceptance": 1.0,
+          "trials": 5
+        },
+        "deterministic_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 75.3373,
+          "prompt_per_second": 64.0503,
+          "speculation_acceptance": 0.68,
+          "trials": 5
+        },
+        "sampled_agent_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 78.7485,
+          "prompt_per_second": 692.9098,
+          "speculation_acceptance": 0.7148,
+          "trials": 5
+        },
+        "structured_tool_tg": {
+          "cache_n": 0.0,
+          "passed": 5,
+          "predicted_per_second": 98.3228,
+          "prompt_per_second": 444.7416,
+          "speculation_acceptance": 1.0,
+          "trials": 5
+        },
+        "warm_append": {
+          "cache_n": 105627.0,
+          "passed": 5,
+          "predicted_per_second": 1000000.0,
+          "prompt_per_second": 66.0477,
+          "speculation_acceptance": null,
+          "trials": 5
+        }
+      },
+      "model_id": "qwen35-huihui",
+      "profile": {
+        "batch": 1024,
+        "checkpoints": 8,
+        "context": 262144,
+        "mmproj": "qwen-3.6/Huihui-Qwen3.6-35B-A3B-abliterated-MTP-mmproj-f16.gguf",
+        "model": "qwen-3.6/Huihui-Qwen3.6-35B-A3B-abliterated-MTP-Q6_K.gguf",
+        "mtp_n": 3,
+        "spec_type": "draft-mtp",
+        "threads": 10,
+        "threads_batch": 8,
+        "ubatch": 512
+      }
+    }
+  ],
+  "openwendy": {
+    "arms": [
+      {
+        "arm": "current",
+        "failed_tasks": [
+          "calculate_core",
+          "calculate_holdout",
+          "concurrent_calculations_core"
+        ],
+        "median_elapsed_seconds": 77.0331,
+        "repeats": 3,
+        "run_passed": 0,
+        "task_passed": 12,
+        "task_total": 21
+      },
+      {
+        "arm": "finalist",
+        "failed_tasks": [
+          "calculate_core",
+          "calculate_holdout",
+          "concurrent_calculations_core"
+        ],
+        "median_elapsed_seconds": 97.083,
+        "repeats": 3,
+        "run_passed": 0,
+        "task_passed": 12,
+        "task_total": 21
+      }
+    ],
+    "common_finding": "Both arms made every expected calculation tool call with correct arguments and output, but OpenWendy completed those tasks with an empty final answer.",
+    "decision": {
+      "reason": "No behavior improvement and slower median end-to-end execution for the finalist.",
+      "selected_arm": "current",
+      "selected_shape": "n2/t10/tb8"
+    },
+    "finalist_elapsed_change_percent": 26.0,
+    "harness": {
+      "digest": "2aba9ea038ec04f78a20227488cd0cd8839be16fb1327cd1d7b04175b1f5ab55",
+      "id": "openwendy-core-api"
+    },
+    "safety": {
+      "completed_at": "2026-07-14T05:40:50Z",
+      "completed_runs": 6,
+      "restored": true,
+      "safety_fault": false
+    }
+  },
+  "schema_version": "runtime-tuning-campaign-v1.0",
+  "sources": {
+    "barrage_sha256": {
+      "qwen27-huihui": "788a31438c3c7715e1079d9b2a0fb82acb645eeda878c11bfd1aa7a83a83e7c2",
+      "qwen27-unsloth": "a028ce2d89044d0ccac327dbd74a179b8e98637aa2372c9e72d6f664db7101c1",
+      "qwen35-huihui": "2dc180aa4cb44f448fb44722e2c2b439940241c5bbe4d2a5171f56000f3781d5",
+      "qwen35-unsloth": "628ff5b55dd83dde82b4fd0d6d77ccd1f1076b936b4a17497a91cc1eae02bf5b"
+    },
+    "controls_sha256": "2c9c10d5cad82b6ec4bae59bba564046cb5e6aa40b20e4c52a84d3583d074178",
+    "direct_sha256": "324f6f16b9f9b026ba6b06b986eeb763cb19ca634cc8e098bf9c52b93279e21c",
+    "openwendy_sha256": "a86ed0a0c034d8f4f9294d6e4f77379958f73af2057e5f3985fafdf0f733e198"
+  }
+}

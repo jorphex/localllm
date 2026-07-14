@@ -1,0 +1,80 @@
+{
+  "schema_version": "reranker-fit-summary-v1.0",
+  "label": "35b-reranker-fit-20260714",
+  "status": "passed",
+  "started_at": "2026-07-14T09:44:46.401994+00:00",
+  "completed_at": "2026-07-14T10:41:30.329806+00:00",
+  "conditions": {
+    "gpu": "AMD Radeon AI PRO R9700",
+    "vram_total_mib": 32624,
+    "reranker": "Qwen3-Reranker-4B-Q4_K_M",
+    "reranker_only_vram_mib": 3498,
+    "kv_cache": "q8_0/q8_0",
+    "repeats_per_workload": 3,
+    "workloads": ["short_pp", "long_pp", "short_tg", "long_context_tg"]
+  },
+  "models": [
+    {
+      "model_id": "qwen35-unsloth",
+      "context": 163840,
+      "requested_gpu_layers": 41,
+      "total_layers": 41,
+      "cpu_layers": 0,
+      "fit_mode": "off",
+      "vram_used_mib_start": 32030,
+      "vram_free_mib_start": 594,
+      "vram_free_mib_end": 547,
+      "reranker_pid_unchanged": true,
+      "trials_passed": 12,
+      "trials_total": 12,
+      "medians": {
+        "short_pp_tps": 356.7283,
+        "long_pp_tps": 326.6148,
+        "short_tg_tps": 50.7112,
+        "long_context_pp_tps": 305.4949,
+        "long_context_tg_tps": 25.0515
+      }
+    },
+    {
+      "model_id": "qwen35-huihui",
+      "context": 262144,
+      "requested_gpu_layers": 42,
+      "total_layers": 42,
+      "cpu_layers": 0,
+      "fit_mode": "off",
+      "vram_used_mib_start": 32504,
+      "vram_free_mib_start": 120,
+      "vram_free_mib_end": 88,
+      "reranker_pid_unchanged": true,
+      "trials_passed": 12,
+      "trials_total": 12,
+      "medians": {
+        "short_pp_tps": 1810.4236,
+        "long_pp_tps": 825.6386,
+        "short_tg_tps": 123.4786,
+        "long_context_pp_tps": 749.6499,
+        "long_context_tg_tps": 39.3555
+      },
+      "ratio_to_tuned_qwen27_huihui": {
+        "short_pp": 2.5248,
+        "long_pp": 1.9198,
+        "short_tg": 2.3484,
+        "long_context_pp": 1.8555,
+        "long_context_tg": 1.0203
+      }
+    }
+  ],
+  "safety": {
+    "runtime_pm": "on/active",
+    "kernel_fault_matches": 0,
+    "safety_artifacts_nonempty": 0,
+    "managed_stack_restored": true,
+    "active_config_sha256": "a205e5ca9441989d77c95ffbc61bc9e255d5a7ccca3bc3bacbbbe119b5ce0477"
+  },
+  "decision": {
+    "direct_call_winner": "qwen35-huihui",
+    "offload_required_for_tested_direct_calls": false,
+    "production_promotion": false,
+    "reason": "Huihui retained strong speed but ended with only 88 MiB measured VRAM headroom; concurrent main/reranker load and vision were not exercised."
+  }
+}

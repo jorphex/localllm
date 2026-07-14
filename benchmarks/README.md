@@ -37,7 +37,7 @@ The runner exits `0` only for a complete candidate, `1` for a completed candidat
 
 Performance and concurrency trials use `performance_repeats` (normally five). Tool, sandbox, and vision tasks use `quality_repeats` (normally three) with a trial-specific seed. Summaries report median, mean, p95, population standard deviation, pass/error rates, and a 95% Wilson interval where applicable.
 
-Warm append trials use workload- and trial-specific prefix namespaces so unrelated prompt-cache entries cannot masquerade as same-session reuse. A warm trial passes only when at least 80% of the prime prompt is reported through `cache_n`; the exact `cache_ratio` remains in raw evidence.
+Warm append trials use workload- and trial-specific prefix namespaces so unrelated prompt-cache entries cannot masquerade as same-session reuse. A warm trial requires a reported cache hit and permits reprocessing of at most one configured ubatch plus eight template-boundary tokens, capped at 20% of the prime prompt. This accounts for llama.cpp ubatch alignment without allowing a weak cache hit to pass; exact cache counts and the derived threshold remain in raw evidence.
 
 A quick implementation smoke deliberately does not qualify as release evidence:
 
@@ -69,6 +69,36 @@ python3 benchmarks/generate_results_md.py
 ```
 
 This writes `benchmarks/summaries/barrage_v2/<label>/summary.json` and updates the committed benchmark rollup without copying raw prompts, responses, generated image data, or sandbox transcripts. Compact summaries retain per-suite reliability, core/holdout counts, applicability, and release-gate evidence for later site ingestion.
+
+## Runtime tuning campaigns
+
+Runtime Tuning V1 is a separate staged workflow built on, but not merged into, the default Barrage V2 suite:
+
+1. Direct tuning measures PP/TG, deterministic and sampled generation, tool-shaped generation, context recall, warm-prefix reuse, fit, and speculative acceptance while selecting a runtime shape.
+2. Model-specific finalists run the Barrage V2 `performance`, `tool_contract`, and `vision` suites. These are production-profile validations, not a replacement for a complete fair V2 run; sandbox and concurrency are absent unless explicitly requested.
+3. Production candidates may run an alternating OpenWendy A/B through the existing production driver. This measures model plus harness behavior and remains separate from direct model/runtime results.
+4. Host safety qualification and guards cover lifecycle risk; they are not model-quality measurements.
+
+The current compact tuning publication is:
+
+```text
+benchmarks/summaries/tuning_v1/qwen36-runtime-tuning-20260714/
+  summary.json
+  REPORT.md
+```
+
+Its schema is `runtime-tuning-campaign-v1.0`, so it requires a tuning-specific site normalizer rather than the Barrage V2 normalizer. Publish it as a runtime tuning study, not as a complete V2 model ranking. The OpenWendy section should be described publicly as a production or bespoke agent harness. The 35B Unsloth Barrage total includes a documented ubatch-aware reinterpretation of five retained raw warm-cache grader failures; the compact JSON preserves both raw and derived counts.
+
+## Retrieval runtime tuning
+
+Embedding and reranker serving are tuned separately from model-generation Barrage results. The retrieval runner keeps 2048 context per request slot, uses synthetic OpenWendy-shaped batches, checks embedding dimensions/vector similarity/semantic top results, and compares reranker relevance against its one-slot baseline. It stops and restores the full managed stack and applies the same AMDGPU lifecycle guard to every GPU transition.
+
+```bash
+uv run python -m benchmarks.retrieval_v1.runner
+uv run python -m benchmarks.retrieval_v1.runner --phase reranker
+```
+
+Raw artifacts under `benchmarks/retrieval-v1-results/` are ignored. The current compact publication is `benchmarks/summaries/retrieval_v1/qwen3-retrieval-runtime-20260714/summary.json`, schema `retrieval-runtime-tuning-v1.0`. This is a serving-runtime study, not a general retrieval-model leaderboard.
 
 ## Production profiles
 

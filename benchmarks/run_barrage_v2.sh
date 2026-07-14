@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/common.sh"
+source "${PROJECT_ROOT}/scripts/gpu-safety.sh"
 
 BARRAGE_V2_CANDIDATES="${BARRAGE_V2_CANDIDATES:-}"
 BARRAGE_V2_PROFILE_CLASS="${BARRAGE_V2_PROFILE_CLASS:-fair}"
@@ -31,6 +32,7 @@ BARRAGE_V2_DRY_RUN="${BARRAGE_V2_DRY_RUN:-false}"
 BARRAGE_V2_RESULTS_DIR="${BARRAGE_V2_RESULTS_DIR:-${PROJECT_ROOT}/benchmarks/barrage-v2-results/$(date -u +%Y%m%dT%H%M%SZ)}"
 BARRAGE_V2_STOP_STACK="${BARRAGE_V2_STOP_STACK:-true}"
 BARRAGE_V2_START_STACK_AFTER="${BARRAGE_V2_START_STACK_AFTER:-${BARRAGE_V2_STOP_STACK}}"
+BARRAGE_V2_GPU_SAFETY="${BARRAGE_V2_GPU_SAFETY:-true}"
 
 if [[ -z "${BARRAGE_V2_CANDIDATES}" ]]; then
   echo "Set BARRAGE_V2_CANDIDATES to alias|model|mmproj[|port] entries separated by semicolons." >&2
@@ -195,18 +197,77 @@ fi
 
 STACK_STOPPED=0
 CURRENT_PID=""
-cleanup() {
-  [[ -z "${CURRENT_PID}" ]] || stop_temp_server "${CURRENT_PID}"
-  if [[ "${STACK_STOPPED}" -eq 1 ]] && truthy "${BARRAGE_V2_START_STACK_AFTER}"; then
-    bash "${PROJECT_ROOT}/scripts/start-stack.sh" || true
+SAFETY_FAULT=0
+SAFETY_CURSOR=""
+SAFETY_ROOT="${BARRAGE_V2_RESULTS_DIR}/safety"
+
+guarded_stop_current() {
+  local evidence_file="${1:-${SAFETY_ROOT}/post-unload-kernel.log}"
+  if [[ -n "${CURRENT_PID}" ]]; then
+    stop_temp_server "${CURRENT_PID}"
+    CURRENT_PID=""
   fi
+  if truthy "${BARRAGE_V2_GPU_SAFETY}"; then
+    if ! gpu_safety_stabilize "${SAFETY_CURSOR}" "${evidence_file}"; then
+      SAFETY_FAULT=1
+    fi
+    if ! gpu_safety_monitor_clean; then
+      SAFETY_FAULT=1
+    fi
+    gpu_safety_stop_monitor
+  fi
+  [[ "${SAFETY_FAULT}" -eq 0 ]]
+}
+
+cleanup() {
+  if [[ -n "${CURRENT_PID}" ]]; then
+    guarded_stop_current "${SAFETY_ROOT}/cleanup-post-unload-kernel.log" || true
+  fi
+  gpu_safety_stop_monitor
+  if [[ "${STACK_STOPPED}" -eq 1 ]] && truthy "${BARRAGE_V2_START_STACK_AFTER}"; then
+    if ! truthy "${BARRAGE_V2_GPU_SAFETY}"; then
+      bash "${PROJECT_ROOT}/scripts/start-stack.sh" || true
+    elif [[ "${SAFETY_FAULT}" -eq 0 ]] && gpu_safety_assert_pm && gpu_safety_scan_after_cursor "${SAFETY_CURSOR}" "${SAFETY_ROOT}/pre-restore-kernel.log"; then
+      if bash "${PROJECT_ROOT}/scripts/start-stack.sh"; then
+        sleep "${GPU_SAFETY_STABILIZE_SECONDS}"
+        if ! gpu_safety_assert_pm || ! gpu_safety_scan_after_cursor "${SAFETY_CURSOR}" "${SAFETY_ROOT}/post-restore-kernel.log"; then
+          SAFETY_FAULT=1
+        fi
+      else
+        SAFETY_FAULT=1
+      fi
+    else
+      SAFETY_FAULT=1
+      echo "Safety fault: managed GPU services were not restored automatically." >&2
+    fi
+  fi
+  gpu_safety_stop_inhibitor
 }
 trap cleanup EXIT
+
+if truthy "${BARRAGE_V2_GPU_SAFETY}"; then
+  mkdir -p "${SAFETY_ROOT}"
+  gpu_safety_assert_pm
+  gpu_safety_assert_clean_boot "${SAFETY_ROOT}/preflight-kernel.log"
+  SAFETY_CURSOR="$(gpu_safety_capture_cursor)"
+  gpu_safety_start_inhibitor
+  jq -n \
+    --arg started_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg kernel "$(uname -r)" \
+    --arg cursor "${SAFETY_CURSOR}" \
+    --arg pm_guard "${GPU_SAFETY_PM_GUARD}" \
+    '{started_at:$started_at,kernel:$kernel,journal_cursor:$cursor,pm_guard:$pm_guard,status:"running"}' \
+    > "${SAFETY_ROOT}/state.json"
+fi
 
 if truthy "${BARRAGE_V2_STOP_STACK}"; then
   # Once a stop is attempted, cleanup owns restoring the managed stack even if systemctl reports a partial failure.
   STACK_STOPPED=1
   bash "${PROJECT_ROOT}/scripts/stop-stack.sh"
+fi
+
+if truthy "${BARRAGE_V2_GPU_SAFETY}"; then
+  gpu_safety_stabilize "${SAFETY_CURSOR}" "${SAFETY_ROOT}/post-stack-stop-kernel.log"
 fi
 
 capture_stabilization() {
@@ -254,39 +315,40 @@ for index in "${!candidates[@]}"; do
     continue
   fi
   CURRENT_PID="$(start_temp_server "${port}" "${BARRAGE_V2_CONTEXT}" "${BARRAGE_V2_EXTRA_ARGS}" "${alias}" "${server_log_path}")"
+  if truthy "${BARRAGE_V2_GPU_SAFETY}"; then
+    gpu_safety_start_monitor "${SAFETY_CURSOR}" "${CURRENT_PID}" "${candidate_dir}/safety"
+  fi
   if ! wait_for_server "${port}" 180; then
     record_launcher_preflight_failure "${candidate_dir}" "${alias}" "${model}" "${index}" "scratch server did not become healthy" "http://127.0.0.1:${port}" "${BARRAGE_V2_SCHEDULE}" "${BARRAGE_V2_COOLDOWN_SECONDS}" '[]' '{}' '[]' "${server_log_path}" "${stabilization}"
-    stop_temp_server "${CURRENT_PID}"
-    CURRENT_PID=""
+    guarded_stop_current "${candidate_dir}/safety/startup-failure-kernel.log" || true
     overall_status=1
-    cooldown_after_candidate "${index}"
-    continue
+    break
+  fi
+  if truthy "${BARRAGE_V2_GPU_SAFETY}" && { ! gpu_safety_monitor_clean || ! gpu_safety_scan_after_cursor "${SAFETY_CURSOR}" "${candidate_dir}/safety/post-load-kernel.log"; }; then
+    SAFETY_FAULT=1
+    guarded_stop_current "${candidate_dir}/safety/post-load-failure-kernel.log" || true
+    overall_status=1
+    break
   fi
   postload_gpu="$(gpu_mem_json)"
   stabilization="$(jq -cn --argjson baseline "${stabilization}" --argjson postload_gpu "${postload_gpu}" '$baseline + {postload_gpu:$postload_gpu}')"
   if ! launch_argv="$(tr '\0' '\n' < "/proc/${CURRENT_PID}/cmdline" | jq -R . | jq -s .)"; then
     record_launcher_preflight_failure "${candidate_dir}" "${alias}" "${model}" "${index}" "could not capture scratch-server argv" "http://127.0.0.1:${port}" "${BARRAGE_V2_SCHEDULE}" "${BARRAGE_V2_COOLDOWN_SECONDS}" '[]' '{}' '[]' "${server_log_path}" "${stabilization}"
-    stop_temp_server "${CURRENT_PID}"
-    CURRENT_PID=""
+    guarded_stop_current "${candidate_dir}/safety/argv-failure-kernel.log" || true
     overall_status=1
-    cooldown_after_candidate "${index}"
-    continue
+    break
   fi
   if ! server_props="$(curl -fsS "http://${BENCH_HOST}:${port}/props")"; then
     record_launcher_preflight_failure "${candidate_dir}" "${alias}" "${model}" "${index}" "could not fetch scratch-server /props" "http://127.0.0.1:${port}" "${BARRAGE_V2_SCHEDULE}" "${BARRAGE_V2_COOLDOWN_SECONDS}" "${launch_argv}" '{}' '[]' "${server_log_path}" "${stabilization}"
-    stop_temp_server "${CURRENT_PID}"
-    CURRENT_PID=""
+    guarded_stop_current "${candidate_dir}/safety/props-failure-kernel.log" || true
     overall_status=1
-    cooldown_after_candidate "${index}"
-    continue
+    break
   fi
   if ! server_slots="$(curl -fsS "http://${BENCH_HOST}:${port}/slots")"; then
     record_launcher_preflight_failure "${candidate_dir}" "${alias}" "${model}" "${index}" "could not fetch scratch-server /slots" "http://127.0.0.1:${port}" "${BARRAGE_V2_SCHEDULE}" "${BARRAGE_V2_COOLDOWN_SECONDS}" "${launch_argv}" "${server_props}" '[]' "${server_log_path}" "${stabilization}"
-    stop_temp_server "${CURRENT_PID}"
-    CURRENT_PID=""
+    guarded_stop_current "${candidate_dir}/safety/slots-failure-kernel.log" || true
     overall_status=1
-    cooldown_after_candidate "${index}"
-    continue
+    break
   fi
   args=(--base-url "http://127.0.0.1:${port}" --model "${alias}" --out-dir "${candidate_dir}" --profile-class "${BARRAGE_V2_PROFILE_CLASS}" --profile-id "${BARRAGE_V2_PROFILE_ID}" --model-path "${MODEL_DIR}/${model}" --server-bin "${LLAMA_SERVER_BIN}" --suites "${BARRAGE_V2_SUITES}" --order-seed "${BARRAGE_V2_ORDER_SEED}" --candidate-order-index "${index}" --candidate-count "${#candidates[@]}" --candidate-order "${candidate_order_json}" --launch-argv "${launch_argv}" --launch-cache-prompt "${BARRAGE_V2_CACHE_PROMPT}" --launch-cache-ram "${BARRAGE_V2_CACHE_RAM}" --launch-cache-reuse "${BARRAGE_V2_CACHE_REUSE}" --launch-slot-similarity "${BARRAGE_V2_SLOT_PROMPT_SIMILARITY}" --server-props "${server_props}" --server-slots "${server_slots}" --server-log-path "${server_log_path}" --stabilization "${stabilization}" --schedule "${BARRAGE_V2_SCHEDULE}" --cooldown-seconds "${BARRAGE_V2_COOLDOWN_SECONDS}")
   [[ -z "${BARRAGE_V2_REPEATS}" ]] || args+=(--repeats "${BARRAGE_V2_REPEATS}")
@@ -296,12 +358,25 @@ for index in "${!candidates[@]}"; do
   if ! python3 -m benchmarks.barrage_v2.runner "${args[@]}"; then
     overall_status=1
   fi
-  stop_temp_server "${CURRENT_PID}"
-  CURRENT_PID=""
+  if ! guarded_stop_current "${candidate_dir}/safety/post-unload-kernel.log"; then
+    overall_status=1
+    break
+  fi
   cooldown_after_candidate "${index}"
 done
 
 cleanup
 trap - EXIT
+if truthy "${BARRAGE_V2_GPU_SAFETY}"; then
+  jq -n \
+    --arg completed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --argjson safety_fault "${SAFETY_FAULT}" \
+    --argjson command_status "${overall_status}" \
+    '{completed_at:$completed_at,safety_fault:($safety_fault != 0),command_status:$command_status,status:(if $safety_fault == 0 then "clean" else "fault" end)}' \
+    > "${SAFETY_ROOT}/completion.json"
+fi
 printf 'BARRAGE_V2_RESULTS_DIR %s\n' "${BARRAGE_V2_RESULTS_DIR}"
+if [[ "${SAFETY_FAULT}" -ne 0 ]]; then
+  exit 1
+fi
 exit "${overall_status}"

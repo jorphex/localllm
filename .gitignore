@@ -17,6 +17,8 @@ models/*
 benchmarks/results/
 benchmarks/*/results/
 benchmarks/barrage-v2-results/
+benchmarks/tuning-v1-results/
+benchmarks/retrieval-v1-results/
 benchmarks/*/__pycache__/
 node_modules/
 .wrangler/

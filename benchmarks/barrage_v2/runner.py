@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import math
 import random
 import re
 import struct
@@ -120,7 +121,33 @@ def streamed_content(events: list[dict[str, Any]]) -> str:
     )
 
 
-def run_performance(client: httpx.Client, base_url: str, model: str, repeats: int, timeout: float, order_seed: int) -> list[dict[str, Any]]:
+def warm_cache_required_n(prime_prompt_n: int, ubatch: int) -> int:
+    ratio_gate = math.ceil(prime_prompt_n * 0.8)
+    if ubatch <= 0:
+        return ratio_gate
+    return min(ratio_gate, max(1, prime_prompt_n - ubatch - 8))
+
+
+def launch_argument_int(argv: list[str], *names: str) -> int:
+    for name in names:
+        if name in argv:
+            try:
+                return int(argv[argv.index(name) + 1])
+            except (IndexError, ValueError) as exc:
+                raise ValueError(f"launch argument {name} must have an integer value") from exc
+    return 0
+
+
+def run_performance(
+    client: httpx.Client,
+    base_url: str,
+    model: str,
+    repeats: int,
+    timeout: float,
+    order_seed: int,
+    *,
+    ubatch: int = 0,
+) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     jobs = [(workload, trial) for workload in PERFORMANCE_WORKLOADS for trial in range(1, repeats + 1)]
     random.Random(order_seed).shuffle(jobs)
@@ -155,8 +182,12 @@ def run_performance(client: httpx.Client, base_url: str, model: str, repeats: in
                 record["prime_response"] = prime_response
                 record["predicted_per_second"] = None
                 record["cache_hit"] = bool(record.get("cache_n"))
-                record["cache_ratio"] = round(float(record.get("cache_n") or 0) / max(1, int(prime_response.get("timings", {}).get("prompt_n") or 0)), 4)
-                record["passed"] = record["cache_ratio"] >= 0.8
+                prime_prompt_n = int(prime_response.get("timings", {}).get("prompt_n") or 0)
+                cache_n = int(record.get("cache_n") or 0)
+                record["cache_ratio"] = round(cache_n / max(1, prime_prompt_n), 4)
+                record["cache_required_n"] = warm_cache_required_n(prime_prompt_n, ubatch)
+                record["cache_alignment_allowance"] = ubatch
+                record["passed"] = cache_n >= record["cache_required_n"]
                 records.append(record)
                 continue
             if workload["kind"] == "context_recall":
@@ -893,6 +924,7 @@ def main() -> int:
         quality_repeats = args.quality_repeats or int(cfg["execution"]["quality_repeats"])
         if quality_repeats < 1:
             raise ValueError("quality repeats must be positive")
+        launch_argv = json.loads(args.launch_argv)
         manifest = {
             "schema_version": SCHEMA_VERSION,
             "generated_at": datetime.now(UTC).isoformat(),
@@ -901,7 +933,7 @@ def main() -> int:
             "profile": {"class": args.profile_class, "id": args.profile_id},
             "execution_order": {"seed": args.order_seed, "candidate_index": args.candidate_order_index, "candidate_count": args.candidate_count, "candidate_order": json.loads(args.candidate_order)},
             "schedule": {"kind": args.schedule, "cooldown_seconds": args.cooldown_seconds, "stabilization": stabilization},
-            "launch": {"argv": json.loads(args.launch_argv), "cache_prompt": args.launch_cache_prompt.lower() in {"1", "true", "yes", "on"}, "cache_ram_mib": int(args.launch_cache_ram), "cache_reuse": int(args.launch_cache_reuse), "slot_prompt_similarity": float(args.launch_slot_similarity)},
+            "launch": {"argv": launch_argv, "cache_prompt": args.launch_cache_prompt.lower() in {"1", "true", "yes", "on"}, "cache_ram_mib": int(args.launch_cache_ram), "cache_reuse": int(args.launch_cache_reuse), "slot_prompt_similarity": float(args.launch_slot_similarity)},
             "evaluation": {
                 "performance_repeats": repeats,
                 "quality_repeats": quality_repeats,
@@ -964,7 +996,15 @@ def main() -> int:
 
         if "performance" in suites:
             def performance() -> dict[str, Any]:
-                rows = run_performance(client, args.base_url, args.model, repeats, timeout, args.order_seed)
+                rows = run_performance(
+                    client,
+                    args.base_url,
+                    args.model,
+                    repeats,
+                    timeout,
+                    args.order_seed,
+                    ubatch=launch_argument_int(launch_argv, "-ub", "--ubatch"),
+                )
                 for row in rows:
                     write_json(trials_dir / f"performance-{row['workload']}-{row['trial']}.json", row)
                 return {"trials": rows, "summary": aggregate_trials(rows), "error_count": sum(row.get("status") == "error" for row in rows)}

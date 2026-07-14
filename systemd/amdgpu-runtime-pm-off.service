@@ -1,0 +1,14 @@
+[Unit]
+Description=Pin AMDGPU PCI runtime power management on
+After=systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/amdgpu-runtime-pm-guard --apply
+ExecStartPost=/usr/local/sbin/amdgpu-runtime-pm-guard --check
+
+[Install]
+WantedBy=multi-user.target

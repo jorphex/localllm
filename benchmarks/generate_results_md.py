@@ -144,6 +144,29 @@ def render_barrage_v2(summary: dict) -> str:
     return "\n".join(lines)
 
 
+def render_tuning_v1(summary: dict) -> str:
+    lines = [
+        "| Model | Context | Shape | Long PP | Sampled TG | Tool TG | Barrage |",
+        "| --- | ---: | --- | ---: | ---: | ---: | ---: |",
+    ]
+    barrage = {row["model_id"]: row for row in summary.get("barrage", [])}
+    for model in summary.get("models", []):
+        profile = model["profile"]
+        metrics = model["metrics"]
+        performance = barrage.get(model["model_id"], {}).get("performance", {})
+        shape = f"b{profile['batch']}/u{profile['ubatch']} t{profile['threads']}/tb{profile['threads_batch']} {profile['spec_type']} n{profile['mtp_n']}"
+        lines.append(
+            f"| {model['model_id']} | {profile['context']} | {shape} | "
+            f"{metrics['cold_pp_long']['prompt_per_second']:.2f} | "
+            f"{metrics['sampled_agent_tg']['predicted_per_second']:.2f} | "
+            f"{metrics['structured_tool_tg']['predicted_per_second']:.2f} | "
+            f"{performance.get('derived_passed', '-')}/{performance.get('total', '-')} |"
+        )
+    decision = summary.get("openwendy", {}).get("decision", {})
+    lines.extend(["", f"Production decision: **retain {decision.get('selected_shape', 'unknown')}**."])
+    return "\n".join(lines)
+
+
 def render_suite(suite: str, run_dir: Path, summary: dict) -> str:
     renderer = {
         "transcript_replay": render_transcript_replay,
@@ -152,6 +175,7 @@ def render_suite(suite: str, run_dir: Path, summary: dict) -> str:
         "opencode_compare": render_opencode_compare,
         "coding_compare": render_coding_compare,
         "barrage_v2": render_barrage_v2,
+        "tuning_v1": render_tuning_v1,
     }.get(suite, render_scalar_score)
 
     return (
