@@ -32,7 +32,7 @@
 
 [Runtime tuning study] model-specific retained profiles are a separate evidence lane — generate `data/runtime-tuning-v1.json` with `scripts/normalize-runtime-tuning.mjs`, show direct PP/TG and validation evidence, preserve raw-versus-derived correction context, and never imply sandbox or concurrency were rerun.
 
-[Provenance] show only retained evidence — GPU identity/capacity may come from benchmark results and runtime fields from the canonical summary; mark missing CPU or RAM as unavailable instead of inferring them from the current host.
+[Provenance] show only verified evidence — GPU identity/capacity comes from benchmark results, runtime fields from the canonical summary, and CPU topology plus installed RAM from direct inspection of the benchmark host.
 
 [Public terminology] private project names stay out of the site — describe non-public production testing generically as a bespoke agent harness.
 
