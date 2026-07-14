@@ -1,0 +1,259 @@
+{
+  "schemaVersion": "site-runtime-tuning-v1",
+  "source": {
+    "schemaVersion": "runtime-tuning-campaign-v1.0",
+    "label": "qwen36-runtime-tuning-20260714",
+    "generatedAt": "2026-07-14T05:48:28.382543+00:00"
+  },
+  "interpretation": {
+    "title": "Runtime tuning · retained profiles",
+    "warning": "Each model used its own retained context and runtime shape. These measurements explain deployment choices; they are not a fair-profile model ranking.",
+    "scope": "This campaign validated direct performance, cache behavior, tools, and vision. Sandbox and concurrency were not rerun."
+  },
+  "integrity": {
+    "validMeasurements": 536,
+    "attemptedMeasurements": 539,
+    "expectedStartupFailures": 3,
+    "controlPassed": 140,
+    "controlTrials": 140,
+    "excludedRuns": 2,
+    "excludedReasons": [
+      "Wrong model filename; preflight only",
+      "Lock-interrupted startup only"
+    ]
+  },
+  "models": [
+    {
+      "id": "qwen27-huihui",
+      "name": "Qwen 3.6 27B",
+      "build": "Huihui",
+      "family": "27B dense",
+      "quant": "Q6_K",
+      "profile": {
+        "context": 131072,
+        "batch": 2048,
+        "ubatch": 1024,
+        "threads": 10,
+        "threadsBatch": 8,
+        "checkpoints": 4,
+        "speculation": "draft-mtp",
+        "mtpN": 4
+      },
+      "metrics": {
+        "longPrompt": 430.0746,
+        "shortPrompt": 717.0649,
+        "contextRecallPrompt": 404.0139,
+        "contextRecallGeneration": 38.5741,
+        "deterministicGeneration": 52.5809,
+        "sampledGeneration": 55.2299,
+        "toolGeneration": 76.4728,
+        "warmAppendPrompt": 42.1598,
+        "warmAppendCacheTokens": 105628,
+        "deterministicAcceptance": 0.6207,
+        "sampledAcceptance": 0.6331
+      },
+      "validation": {
+        "status": "completed",
+        "performance": {
+          "rawPassed": 50,
+          "derivedPassed": 50,
+          "total": 50,
+          "correction": null
+        },
+        "tools": {
+          "passed": 15,
+          "total": 15
+        },
+        "vision": {
+          "passed": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "qwen27-unsloth",
+      "name": "Qwen 3.6 27B",
+      "build": "Unsloth",
+      "family": "27B dense",
+      "quant": "Q6_K",
+      "profile": {
+        "context": 131072,
+        "batch": 2048,
+        "ubatch": 1024,
+        "threads": 12,
+        "threadsBatch": 12,
+        "checkpoints": 4,
+        "speculation": "draft-mtp",
+        "mtpN": 4
+      },
+      "metrics": {
+        "longPrompt": 433.8932,
+        "shortPrompt": 731.2972,
+        "contextRecallPrompt": 407.4668,
+        "contextRecallGeneration": 37.8599,
+        "deterministicGeneration": 46.9919,
+        "sampledGeneration": 52.0783,
+        "toolGeneration": 73.8522,
+        "warmAppendPrompt": 41.8585,
+        "warmAppendCacheTokens": 105628,
+        "deterministicAcceptance": 0.5829,
+        "sampledAcceptance": 0.6264
+      },
+      "validation": {
+        "status": "completed",
+        "performance": {
+          "rawPassed": 50,
+          "derivedPassed": 50,
+          "total": 50,
+          "correction": null
+        },
+        "tools": {
+          "passed": 15,
+          "total": 15
+        },
+        "vision": {
+          "passed": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "qwen35-huihui",
+      "name": "Qwen 3.6 35B A3B",
+      "build": "Huihui",
+      "family": "35B MoE · 3B active",
+      "quant": "Q6_K",
+      "profile": {
+        "context": 262144,
+        "batch": 1024,
+        "ubatch": 512,
+        "threads": 10,
+        "threadsBatch": 8,
+        "checkpoints": 8,
+        "speculation": "draft-mtp",
+        "mtpN": 3
+      },
+      "metrics": {
+        "longPrompt": 868.7961,
+        "shortPrompt": 1058.7133,
+        "contextRecallPrompt": 810.2786,
+        "contextRecallGeneration": 59.6531,
+        "deterministicGeneration": 75.3373,
+        "sampledGeneration": 78.7485,
+        "toolGeneration": 98.3228,
+        "warmAppendPrompt": 66.0477,
+        "warmAppendCacheTokens": 105627,
+        "deterministicAcceptance": 0.68,
+        "sampledAcceptance": 0.7148
+      },
+      "validation": {
+        "status": "completed",
+        "performance": {
+          "rawPassed": 50,
+          "derivedPassed": 50,
+          "total": 50,
+          "correction": null
+        },
+        "tools": {
+          "passed": 15,
+          "total": 15
+        },
+        "vision": {
+          "passed": 3,
+          "total": 3
+        }
+      }
+    },
+    {
+      "id": "qwen35-unsloth",
+      "name": "Qwen 3.6 35B A3B",
+      "build": "Unsloth",
+      "family": "35B MoE · 3B active",
+      "quant": "Q6_K",
+      "profile": {
+        "context": 163840,
+        "batch": 4096,
+        "ubatch": 2048,
+        "threads": 10,
+        "threadsBatch": 8,
+        "checkpoints": 8,
+        "speculation": "none",
+        "mtpN": 0
+      },
+      "metrics": {
+        "longPrompt": 1336.8906,
+        "shortPrompt": 2621.1786,
+        "contextRecallPrompt": 1226.0893,
+        "contextRecallGeneration": 79.572,
+        "deterministicGeneration": 97.5968,
+        "sampledGeneration": 103.3648,
+        "toolGeneration": 105.2832,
+        "warmAppendPrompt": 145.0176,
+        "warmAppendCacheTokens": 105627,
+        "deterministicAcceptance": null,
+        "sampledAcceptance": null
+      },
+      "validation": {
+        "status": "completed",
+        "performance": {
+          "rawPassed": 45,
+          "derivedPassed": 50,
+          "total": 50,
+          "correction": "Five raw warm_append_8k failures used the superseded fixed 80% cache gate. All reused 5,978 of 8,030 prime tokens, within one ubatch plus template-boundary allowance; raw evidence is unchanged."
+        },
+        "tools": {
+          "passed": 15,
+          "total": 15
+        },
+        "vision": {
+          "passed": 3,
+          "total": 3
+        }
+      }
+    }
+  ],
+  "findings": [
+    {
+      "title": "27B Huihui favors generation",
+      "detail": "Against the retained 27B Unsloth shape: 11.9% deterministic TG, 6.1% sampled TG, and 3.5% tool TG. Long PP is within 1%."
+    },
+    {
+      "title": "35B Unsloth is the throughput profile",
+      "detail": "53.9% faster long PP and 31.3% faster sampled TG than the retained 35B Huihui shape. It runs without MTP."
+    },
+    {
+      "title": "35B Huihui is the context profile",
+      "detail": "Retained at 262,144 context with draft-MTP n3; the largest context in this campaign."
+    }
+  ],
+  "agentHarness": {
+    "arms": [
+      {
+        "id": "current",
+        "label": "Current",
+        "taskPassed": 12,
+        "taskTotal": 21,
+        "repeats": 3,
+        "medianElapsedSeconds": 77.0331
+      },
+      {
+        "id": "finalist",
+        "label": "Finalist",
+        "taskPassed": 12,
+        "taskTotal": 21,
+        "repeats": 3,
+        "medianElapsedSeconds": 97.083
+      }
+    ],
+    "selectedShape": "n2/t10/tb8",
+    "selectedArm": "current",
+    "decisionReason": "No behavior improvement and slower median end-to-end execution for the finalist.",
+    "finalistElapsedChangePercent": 26,
+    "commonFinding": "Both arms made every expected calculation tool call with correct arguments and output, but completed those tasks with an empty final answer.",
+    "safety": {
+      "completedRuns": 6,
+      "restored": true,
+      "safetyFault": false
+    }
+  }
+}

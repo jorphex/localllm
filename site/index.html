@@ -185,7 +185,7 @@
     .split-item b { font-size: 22px; font-weight: 580; font-variant-numeric: tabular-nums; }
     .split-item span { display: block; color: var(--ink-3); font-size: 12px; }
     .annotation { margin-top: 16px; padding: 12px 14px; background: var(--accent-soft); color: #622211; font-size: 14px; }
-    .method-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; border-top: 1px solid var(--ink); padding-top: 18px; }
+    .method-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px; border-top: 1px solid var(--ink); padding-top: 18px; }
     .method-grid h3 { font-size: 14px; margin: 0 0 7px; }
     .method-grid p { font-size: 13px; color: var(--ink-2); margin: 0; }
     .stack-heading { margin: 30px 0 10px; font-size: 16px; }
@@ -196,6 +196,17 @@
     .stack-item.missing { background: transparent; }
     .stack-item.missing span { color: var(--ink-3); }
     .stack-source { margin: 10px 0 0; max-width: 75ch; color: var(--ink-3); font-size: 12px; }
+    .study-warning { margin-bottom: 18px; padding: 13px 15px; background: var(--blue-soft); color: #17386d; font-size: 14px; }
+    .study-warning b { display: block; margin-bottom: 3px; }
+    .runtime-shape { color: var(--ink-2); font-size: 12px; line-height: 1.5; white-space: nowrap; }
+    .runtime-findings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 24px; border: 1px solid var(--ink); background: var(--ink); }
+    .runtime-finding { padding: 15px; background: var(--surface); }
+    .runtime-finding b { display: block; margin-bottom: 5px; font-size: 14px; }
+    .runtime-finding p { margin: 0; color: var(--ink-2); font-size: 13px; }
+    .harness-layout { display: grid; grid-template-columns: minmax(0, .8fr) minmax(280px, 1.2fr); gap: 24px; align-items: start; }
+    .harness-decision { padding: 15px; background: var(--pass-soft); color: #164c3c; }
+    .harness-decision b { display: block; margin-bottom: 5px; }
+    .harness-decision p { margin: 0; font-size: 13px; }
     .provenance { margin-top: 38px; padding-top: 14px; border-top: 1px solid var(--ink); display: flex; justify-content: space-between; gap: 24px; color: var(--ink-3); font-size: 11px; overflow-wrap: anywhere; }
     .selection-key { display: inline-flex; align-items: center; gap: 7px; margin-top: 5px; color: var(--ink-2); font-weight: 580; }
     .selection-key i { width: 18px; height: 8px; background: var(--accent); }
@@ -213,6 +224,7 @@
       .split-summary { grid-template-columns: repeat(2, 1fr); }
       .method-grid { grid-template-columns: 1fr; gap: 16px; }
       .stack-list { grid-template-columns: repeat(2, 1fr); }
+      .runtime-findings, .harness-layout { grid-template-columns: 1fr; }
     }
     @media (max-width: 600px) {
       .topbar { padding: 0 14px; }
@@ -244,7 +256,7 @@
     <div class="loading">Loading normalized benchmark data</div>
   </main>
   <script>
-    const state = { data: null, selected: 'qwen27-huihui', view: 'overview' };
+    const state = { data: null, runtimeData: null, selected: 'qwen27-huihui', view: 'overview' };
     const colors = ['#e34b24', '#1556b8', '#00745b', '#9a2f78'];
     const taskDefinitions = {
       tools: {
@@ -278,7 +290,7 @@
     }
 
     function modelSelector() {
-      return `<div class="selector-label"><span>Compare four builds</span><span>Selection follows you through every suite</span></div>
+      return `<div class="selector-label"><span>Compare ${state.data.models.length} builds</span><span>Selection follows you through every suite</span></div>
         <div class="model-selector" aria-label="Select model">${state.data.models.map(m => `
           <button class="model-button ${m.id === state.selected ? 'active' : ''}" data-model-select="${m.id}" aria-pressed="${m.id === state.selected}">
             <span class="build">${m.build} · ${m.quant}</span><span class="name">${m.name}</span>
@@ -287,7 +299,7 @@
     }
 
     function suiteNav() {
-      const tabs = [['overview','Readout'],['performance','Performance'],['tools','Tools'],['sandbox','Sandbox'],['concurrency','Concurrency'],['vision','Vision'],['method','Method']];
+      const tabs = [['overview','Readout'],['performance','Performance'],['runtime','Runtime'],['tools','Tools'],['sandbox','Sandbox'],['concurrency','Concurrency'],['vision','Vision'],['method','Method']];
       return `<nav class="suite-nav" aria-label="Benchmark family">${tabs.map(([id,label]) => `<button class="suite-tab ${state.view === id ? 'active' : ''}" data-view="${id}" aria-selected="${state.view === id}">${label}</button>`).join('')}</nav>`;
     }
 
@@ -326,6 +338,36 @@
       return `<section class="view ${state.view === 'performance' ? 'active' : ''}" id="view-performance"><div class="section-intro"><div><h2>Performance</h2><p>Repeated prompt processing, generation, agent-shaped streaming, cache reuse, and long-context recall.</p></div><p class="reading">Higher is better except TTFT. Figures are medians across five fair-profile repeats.<span class="selection-key"><i></i>Orange marks the selected model.</span></p></div><div class="chart-grid">${bars('directGeneration','Direct generation','tok/s')}${bars('agentTtft','Agent-shaped TTFT','seconds',true)}${bars('referenceAgent','Reference agent loop','tok/s')}${bars('coldPrompt','Cold short-prompt processing','tok/s')}${contextChart()}</div></section>`;
     }
 
+    function runtimeBars(metric, label, unit) {
+      const models = state.runtimeData.models;
+      const max = Math.max(...models.map(model => model.metrics[metric]));
+      return `<div class="chart-block"><div class="chart-head"><h3>${label}</h3><span>retained profile · ${unit}</span></div><div class="bar-list">${models.map(model => {
+        const value = model.metrics[metric];
+        return `<div class="bar-row ${model.id === state.selected ? 'selected' : ''}" data-model-row="${model.id}"><span class="bar-label">${modelShort(model)}</span><div class="bar-track"><div class="bar-fill" style="transform:scaleX(${value / max})"></div></div><span class="bar-value">${format(value, 1)}</span></div>`;
+      }).join('')}</div></div>`;
+    }
+
+    function runtime() {
+      const tuning = state.runtimeData;
+      const correction = tuning.models.find(model => model.validation.performance.correction);
+      return `<section class="view ${state.view === 'runtime' ? 'active' : ''}" id="view-runtime">
+        <div class="section-intro"><div><h2>Runtime tuning</h2><p>Retained deployment shapes from a controlled tuning campaign completed 14 July 2026.</p></div><p class="reading">${tuning.interpretation.scope}</p></div>
+        <div class="study-warning"><b>Model-specific profiles—not a fair ranking</b>${tuning.interpretation.warning}</div>
+        <div class="matrix-scroll"><table class="matrix"><thead><tr><th>Candidate</th><th>Context tokens</th><th>Runtime shape</th><th>Long PP · tok/s</th><th>Deterministic TG · tok/s</th><th>Sampled TG · tok/s</th><th>Tool TG · tok/s</th></tr></thead><tbody>${tuning.models.map(model => {
+          const profile = model.profile;
+          const speculation = profile.speculation === 'none' ? 'no speculation' : `draft-MTP n${profile.mtpN}`;
+          return `<tr data-model="${model.id}" class="${model.id === state.selected ? 'selected' : ''}" tabindex="0" role="button" aria-label="Select ${model.name} ${model.build} ${model.quant}"><td class="model-cell"><b>${model.name}</b><small>${model.build} · ${model.quant}</small></td><td><b>${profile.context.toLocaleString('en-US')}</b></td><td class="runtime-shape">b${profile.batch} / u${profile.ubatch}<br>t${profile.threads} / tb${profile.threadsBatch} · ${speculation}</td><td><b>${format(model.metrics.longPrompt, 1)}</b></td><td>${format(model.metrics.deterministicGeneration, 1)}</td><td>${format(model.metrics.sampledGeneration, 1)}</td><td>${format(model.metrics.toolGeneration, 1)}</td></tr>`;
+        }).join('')}</tbody></table></div>
+        <div class="chart-grid" style="margin-top:18px">${runtimeBars('longPrompt','Long prompt processing','prompt tok/s')}${runtimeBars('sampledGeneration','Sampled agent generation','tok/s')}</div>
+        <div class="runtime-findings">${tuning.findings.map(finding => `<article class="runtime-finding"><b>${finding.title}</b><p>${finding.detail}</p></article>`).join('')}</div>
+        <h3 class="stack-heading">Finalist validation</h3><div class="section-intro" style="margin-bottom:12px"><p>Performance, tool, and vision validation only. Sandbox and concurrency were not rerun in this campaign.</p></div>
+        <div class="matrix-scroll"><table class="matrix"><thead><tr><th>Candidate</th><th>Performance passes · raw</th><th>Performance passes · derived</th><th>Tool passes</th><th>Vision passes</th></tr></thead><tbody>${tuning.models.map(model => `<tr data-model="${model.id}" class="${model.id === state.selected ? 'selected' : ''}" tabindex="0" role="button" aria-label="Select ${model.name} ${model.build} ${model.quant}"><td class="model-cell"><b>${model.name}</b><small>${model.build} · ${model.quant}</small></td><td>${model.validation.performance.rawPassed}/${model.validation.performance.total}</td><td><b>${model.validation.performance.derivedPassed}/${model.validation.performance.total}</b></td><td>${model.validation.tools.passed}/${model.validation.tools.total}</td><td>${model.validation.vision.passed}/${model.validation.vision.total}</td></tr>`).join('')}</tbody></table></div>
+        <div class="annotation"><b>${correction.name} ${correction.build} cache grading:</b> ${correction.validation.performance.correction}</div>
+        <h3 class="stack-heading">Bespoke agent-harness A/B</h3><div class="harness-layout"><div class="matrix-scroll"><table class="matrix" style="min-width:0"><thead><tr><th>Arm</th><th>Task passes</th><th>Median elapsed</th></tr></thead><tbody>${tuning.agentHarness.arms.map(arm => `<tr><td><b>${arm.label}</b></td><td>${arm.taskPassed}/${arm.taskTotal}</td><td>${format(arm.medianElapsedSeconds, 2)}s</td></tr>`).join('')}</tbody></table></div><div class="harness-decision"><b>Retain ${tuning.agentHarness.selectedShape}</b><p>The finalist was ${format(tuning.agentHarness.finalistElapsedChangePercent, 1)}% slower with the same task result. ${tuning.agentHarness.commonFinding}</p></div></div>
+        <h3 class="stack-heading">Campaign integrity</h3><div class="stack-list"><div class="stack-item"><b>Direct measurements</b><span>${tuning.integrity.validMeasurements}/${tuning.integrity.attemptedMeasurements} valid · ${tuning.integrity.expectedStartupFailures} expected unsupported startups</span></div><div class="stack-item"><b>Controls</b><span>${tuning.integrity.controlPassed}/${tuning.integrity.controlTrials} passed</span></div><div class="stack-item"><b>Excluded runs</b><span>${tuning.integrity.excludedRuns} · ${tuning.integrity.excludedReasons.join('; ')}</span></div><div class="stack-item"><b>Safety</b><span>${tuning.agentHarness.safety.completedRuns} guarded runs · no safety fault · environment restored</span></div></div>
+      </section>`;
+    }
+
     function taskMatrix(kind) {
       const tasks = Object.keys(state.data.models[0][kind].tasks);
       return `<div class="task-scroll"><div class="task-grid"><div class="task-cell head">Task and acceptance target</div>${state.data.models.map(m=>`<div class="task-cell head ${m.id===state.selected?'selected-col':''}" data-model-column="${m.id}"><button class="column-select" data-model-select="${m.id}">${m.build} · ${m.quant}<br><span>${m.family.split(' · ')[0]} · select model</span></button></div>`).join('')}${tasks.map(task=>{const [name,description,split]=taskDefinitions[kind][task]||[prettyTask(task),'Retained benchmark task.',''];return `<div class="task-cell label"><b>${name}<span class="task-split">${split}</span></b><small>${description}</small></div>${state.data.models.map(m=>{const r=m[kind].tasks[task];return `<div class="task-cell ${m.id===state.selected?'selected-col':''}" data-model-column="${m.id}"><div class="task-result"><span class="blocks" aria-hidden="true">${Array.from({length:r.total},(_,i)=>`<i class="${i<r.passed?'pass':'fail'}"></i>`).join('')}</span><b title="${r.passed} passing trials out of ${r.total} attempts">${r.passed}/${r.total}</b></div></div>`}).join('')}`}).join('')}</div></div>`;
@@ -346,12 +388,16 @@
 
     function method() {
       const d=state.data.models[0], stack=state.data.testStack;
-      return `<section class="view ${state.view === 'method' ? 'active' : ''}" id="view-method"><div class="section-intro"><div><h2>Method & provenance</h2><p>Enough context to interpret the results without reproducing raw benchmark artifacts.</p></div></div><div class="method-grid"><div><h3>Fair profile</h3><p>All candidates used ${d.profile.id}: fixed 128k context, q8 KV, Q6_K model weights, five performance repeats, three quality repeats, and holdout tasks enabled.</p></div><div><h3>Qualification</h3><p>${state.data.interpretation.releaseMeaning} All required suites must pass every strict release requirement.</p></div><div><h3>Separate production evidence</h3><p>A bespoke agent harness measures end-to-end production behavior. Those outcomes are intentionally not compared with these fair model/runtime measurements.</p></div></div><h3 class="stack-heading">Recorded test stack</h3><div class="stack-list"><div class="stack-item"><b>GPU</b><span>${stack.hardware.gpu} · ${stack.hardware.gpuMemoryGb} GB</span></div><div class="stack-item missing"><b>CPU</b><span>Not retained in the published summary</span></div><div class="stack-item missing"><b>System memory</b><span>Not retained in the published summary</span></div><div class="stack-item"><b>Inference runtime</b><span>${stack.runtime.name} build ${stack.runtime.build} · ${stack.runtime.commit}</span></div><div class="stack-item"><b>Backend</b><span>${stack.runtime.backend} · full GPU offload required</span></div><div class="stack-item"><b>GPU probe</b><span>${stack.runtime.gpuProbe} SMI · driver ${stack.runtime.gpuDriver}</span></div><div class="stack-item"><b>Host platform</b><span>${stack.runtime.platform}</span></div><div class="stack-item"><b>Compiler target</b><span>${stack.runtime.compiler}</span></div></div><p class="stack-source">GPU identity and capacity come from BENCHMARK_RESULTS.md. Runtime and platform values come from the canonical summary. CPU and system RAM are shown as unavailable because the published evidence did not retain them.</p><div class="finding"><h3>Data policy</h3><p>${state.data.interpretation.separation}</p></div></section>`;
+      return `<section class="view ${state.view === 'method' ? 'active' : ''}" id="view-method"><div class="section-intro"><div><h2>Method & provenance</h2><p>Enough context to interpret the results without reproducing raw benchmark artifacts.</p></div></div><div class="method-grid"><div><h3>Fair profile</h3><p>All candidates used ${d.profile.id}: fixed 128k context, q8 KV, Q6_K model weights, five performance repeats, three quality repeats, and holdout tasks enabled.</p></div><div><h3>Runtime tuning</h3><p>Retained profiles use model-specific contexts and runtime shapes. They explain deployment choices and remain separate from fair-profile ranking evidence.</p></div><div><h3>Qualification</h3><p>${state.data.interpretation.releaseMeaning} All required suites must pass every strict release requirement.</p></div><div><h3>Separate production evidence</h3><p>A bespoke agent harness measures end-to-end production behavior. Those outcomes are intentionally not compared with fair model/runtime measurements.</p></div></div><h3 class="stack-heading">Recorded test stack</h3><div class="stack-list"><div class="stack-item"><b>GPU</b><span>${stack.hardware.gpu} · ${stack.hardware.gpuMemoryGb} GB</span></div><div class="stack-item missing"><b>CPU</b><span>Not retained in the published summary</span></div><div class="stack-item missing"><b>System memory</b><span>Not retained in the published summary</span></div><div class="stack-item"><b>Inference runtime</b><span>${stack.runtime.name} build ${stack.runtime.build} · ${stack.runtime.commit}</span></div><div class="stack-item"><b>Backend</b><span>${stack.runtime.backend} · full GPU offload required</span></div><div class="stack-item"><b>GPU probe</b><span>${stack.runtime.gpuProbe} SMI · driver ${stack.runtime.gpuDriver}</span></div><div class="stack-item"><b>Host platform</b><span>${stack.runtime.platform}</span></div><div class="stack-item"><b>Compiler target</b><span>${stack.runtime.compiler}</span></div></div><p class="stack-source">GPU identity and capacity come from BENCHMARK_RESULTS.md. Runtime and platform values come from the canonical summary. CPU and system RAM are shown as unavailable because the published evidence did not retain them.</p><div class="finding"><h3>Data policy</h3><p>${state.data.interpretation.separation}</p></div></section>`;
     }
 
     function render() {
       const d=state.data;
-      document.getElementById('app').innerHTML = `<section class="run-head"><div><div class="overline">Barrage V2 / release evidence</div><h1>Four builds. Six separate questions.</h1><p>${d.interpretation.separation}</p></div><div class="gate-note"><span class="gate-mark" aria-hidden="true">×</span><div><b>0 of 4 release-qualified</b><p>${d.interpretation.releaseMeaning}</p></div></div></section>${modelSelector()}${suiteNav()}${overview()}${performance()}${qualityView('tools','Tool contract','Executable restraint, exact arguments, dependent sequences, recovery, duplicate avoidance, and evidence use.')}${qualityView('sandbox','Sandbox coding','Disposable coding tasks graded on acceptance, exact file scope, test execution, and recovery behavior.')}${smallSuite('concurrency','Concurrency','Two simultaneous generations and mixed prefill/generation contention.')}${smallSuite('vision','Vision','Deterministic image ingestion and multimodal decoding task.')}${method()}<footer class="provenance"><b>Normalized from ${d.source.schemaVersion} · ${d.source.label}</b><span>source digest ${d.source.digest}</span></footer>`;
+      const qualified=d.models.filter(model=>model.release.passed).length;
+      const updated=new Date(state.runtimeData.source.generatedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+      const scopeMeta=state.view==='runtime'?`study <b>runtime-tuning-v1</b>`:`profile <b>${d.models[0].profile.id}</b>`;
+      document.querySelector('.top-meta').innerHTML=`<span>${scopeMeta}</span><span>updated <b>${updated}</b></span>`;
+      document.getElementById('app').innerHTML = `<section class="run-head"><div><div class="overline">Barrage V2 / release evidence</div><h1>${d.models.length} builds. Separate questions.</h1><p>${d.interpretation.separation}</p></div><div class="gate-note"><span class="gate-mark" aria-hidden="true">×</span><div><b>${qualified} of ${d.models.length} release-qualified</b><p>${d.interpretation.releaseMeaning}</p></div></div></section>${modelSelector()}${suiteNav()}${overview()}${performance()}${runtime()}${qualityView('tools','Tool contract','Executable restraint, exact arguments, dependent sequences, recovery, duplicate avoidance, and evidence use.')}${qualityView('sandbox','Sandbox coding','Disposable coding tasks graded on acceptance, exact file scope, test execution, and recovery behavior.')}${smallSuite('concurrency','Concurrency','Two simultaneous generations and mixed prefill/generation contention.')}${smallSuite('vision','Vision','Deterministic image ingestion and multimodal decoding task.')}${method()}<footer class="provenance"><b>Normalized from ${d.source.schemaVersion} · ${d.source.label}</b><span>Runtime study · ${state.runtimeData.source.label}</span></footer>`;
       bind();
     }
 
@@ -382,7 +428,7 @@
       document.querySelectorAll('[data-view]').forEach(el=>el.addEventListener('click',()=>{state.view=el.dataset.view;render();document.querySelector('.suite-nav').scrollIntoView({block:'start'})}));
     }
 
-    fetch('data/barrage-v2.json').then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()}).then(data=>{state.data=data;render()}).catch(error=>{
+    Promise.all(['data/barrage-v2.json','data/runtime-tuning-v1.json'].map(path=>fetch(path).then(r=>{if(!r.ok)throw new Error(`${path}: HTTP ${r.status}`);return r.json()}))).then(([data,runtimeData])=>{state.data=data;state.runtimeData=runtimeData;render()}).catch(error=>{
       document.getElementById('app').innerHTML=`<div class="error"><b>Benchmark data could not be loaded.</b><p>${error.message}. Serve this directory over HTTP so the normalized JSON is available.</p></div>`;
     });
   </script>

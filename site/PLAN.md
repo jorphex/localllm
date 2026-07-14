@@ -1,30 +1,29 @@
-# Barrage V2 research interface
+# Runtime tuning study
 
-## Direction
+## Goal
 
-- Visual thesis: a precision workshop readout—cool instrument-gray surfaces, ink-heavy typography, and color used only to explain benchmark state.
-- Content plan: run qualification and interpretation first; four-model comparison second; separate performance, tool, sandbox, concurrency, and vision evidence; methodology and provenance last.
-- Interaction thesis: model selection should propagate across every view; suite switching should preserve context; dense charts should reveal exact values on focus without decorative motion.
+Publish the 2026-07-14 runtime-tuning campaign as a separate study without changing or blending the existing fair-profile Barrage results.
 
-## Execution
+## Acceptance criteria
 
-- [x] Build a repeatable normalization layer from the canonical `summary.json` into a small stable site schema.
-- [x] Replace placeholder `index.html` with the selected hybrid research interface using the normalized data.
-- [x] Keep benchmark families separate and make release-gate semantics explicit.
-- [x] Verify data fidelity, interactions, accessibility, responsive behavior, and browser rendering.
-- [x] Review the complete interface against the research-notebook purpose and correct visual or semantic ambiguity.
+- Runtime data is generated from the compact `runtime-tuning-campaign-v1.0` summary through a site-owned normalizer.
+- The site clearly distinguishes individually tuned profiles from fair-profile comparisons.
+- Retained shapes, direct PP/TG metrics, corrected warm-cache evidence, validation totals, agent-harness A/B findings, and safety scope are visible.
+- Private harness names, raw artifact paths, and internal digests are not published.
+- Sandbox and concurrency are not implied to have been rerun.
+- Desktop/mobile interactions and existing Barrage views continue to work.
 
-## Readability refinement
+## Constraints
 
-- [x] Increase supporting text and data-label sizes without reducing useful density.
-- [x] Explain selection color, benchmark denominators, task intent, and core/holdout status in place.
-- [x] Make model selection consistent across every table without rebuilding the active view.
-- [x] Improve chart-series differentiation and selected-column contrast.
-- [x] Re-test interactions, visual contrast, responsive layouts, and canonical data fidelity.
+- Do not modify benchmark sources, stack configuration, or raw result artifacts.
+- Preserve unrelated worktree changes outside `site/`.
+- Keep all evidence families separate and calculate no composite score.
 
-## Model identity and test stack
+## Steps
 
-- [x] Add quantization to every model label and comparison surface.
-- [x] Normalize the published runtime environment and documented GPU context.
-- [x] Expand Method with hardware, software, and explicit missing-field provenance.
-- [x] Regenerate data and verify labels, stack facts, responsive layout, and source fidelity.
+- [x] Add and verify the runtime-tuning normalization layer.
+- [x] Add a distinct Runtime view using the existing evidence-bench visual system.
+- [x] Add validation, correction, agent-harness decision, and safety context.
+- [x] Update method/provenance and resolve the runtime-ingestion note.
+- [x] Verify source fidelity, private-name scrubbing, responsive rendering, and regressions.
+- [x] Commit and push only site-owned changes.
